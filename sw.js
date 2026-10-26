@@ -1,6 +1,6 @@
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.use('Mi-Empresa-v1').then((cache) => {
+    caches.use('mi-empresa').then((cache) => {
       return cache.addAll(['./', './index.html', './manifest.webmanifest']);
     })
   );
