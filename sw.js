@@ -1,15 +1,24 @@
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.use('mi-empresa').then((cache) => {
-      return cache.addAll(['./', './index.html', './manifest.webmanifest']);
+const CACHE_NAME = 'mi-empresa-v1';
+const ASSETS_TO_CACHE = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/icono-192.png',
+  '/icono-512.png'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(ASSETS_TO_CACHE);
     })
   );
 });
 
-self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    caches.match(e.request).then((response) => {
-      return response || fetch(e.request);
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
     })
   );
 });
