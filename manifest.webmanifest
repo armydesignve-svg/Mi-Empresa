@@ -1,6 +1,6 @@
 {
-  "name": "Mi Empresa App",
-  "short_name": "MiEmpresa",
+  "name": "Mi Empresa",
+  "short_name": "mi-empresa",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#111827",
