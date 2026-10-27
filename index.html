@@ -472,11 +472,18 @@
         .doc-totales .v { display: block; font-size: .95rem; font-weight: 800; color: var(--text); }
         .doc-resumen { border: 1px dashed var(--line-2); border-radius: 1.25rem; padding: .85rem 1rem; }
 
+        /* ============ ESCÁNER DE PAGO MÓVIL ============ */
+        [x-cloak] { display: none !important; }
+        .esc-overlay { position: fixed; inset: 0; z-index: 80; background: rgba(0, 0, 0, .6); display: flex; padding: 1rem; overflow-y: auto; }
+        .esc-panel { width: 100%; max-width: 36rem; margin: auto; }
+
         /* ============ BIENVENIDA EN EL SIDEBAR ============ */
         .side-welcome { margin: 1.25rem 1rem 0; padding: .9rem 1rem 1rem; border-radius: 1.25rem; background: linear-gradient(180deg, var(--card-top), var(--card-bottom)); border: 1px solid var(--line); box-shadow: var(--card-inset); }
         .side-welcome .chip { font-size: .6rem; padding: .25rem .7rem; }
         .side-welcome p { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; line-height: 1.2; letter-spacing: -0.02em; color: var(--text); margin-top: .6rem; }
-        .side-welcome p span { color: var(--accent-text); }
+        .side-welcome p .nom { color: var(--accent-text); }
+        .print-only { display: none; }
+        @media print { .print-only { display: block !important; } }
 
         @media print { #login-screen { display: none !important; } }
     </style>
@@ -545,6 +552,7 @@
 <path d="M82.5122 24.3366C81.4006 24.3366 80.6198 24.0587 80.1699 23.5029C79.7464 22.9471 79.5347 22.2589 79.5347 21.4384C79.5347 20.6709 79.7067 19.7048 80.0508 18.5403C80.4213 17.3757 80.8977 16.1185 81.48 14.7687C82.0623 13.4189 82.6843 12.0823 83.3459 10.7589C84.0341 9.40909 84.709 8.17837 85.3707 7.06674C86.0588 5.92865 86.6544 5.01554 87.1572 4.32739C87.6601 3.66571 88.2027 3.00403 88.785 2.34235C89.3672 1.68067 90.0157 1.12486 90.7303 0.674914C91.4449 0.224972 92.2522 0 93.152 0C93.7608 0 94.2769 0.172037 94.7004 0.516111C95.1503 0.833718 95.3753 1.32336 95.3753 1.98504C95.3753 2.24971 95.3223 2.55409 95.2165 2.89816C95.1371 3.24223 94.9915 3.59954 94.7798 3.97008C93.1653 6.77561 91.2332 9.36939 88.9835 11.7514C86.7602 14.1335 84.4046 16.3435 81.9167 18.3815C81.8109 18.7785 81.705 19.1358 81.5991 19.4534C81.5197 19.771 81.4535 20.0224 81.4006 20.2077C81.3741 20.34 81.3609 20.4856 81.3609 20.6444C81.3609 20.7768 81.3609 20.9091 81.3609 21.0414C81.3609 21.6766 81.4668 22.2325 81.6785 22.7089C81.8903 23.1853 82.2476 23.4235 82.7504 23.4235C83.2268 23.4235 83.8091 23.1985 84.4973 22.7486C85.2119 22.2722 85.9265 21.7031 86.6411 21.0414C87.3557 20.3533 88.0042 19.6916 88.5864 19.0564C89.1687 18.4212 89.579 17.9315 89.8172 17.5875C89.8966 17.5081 89.976 17.4684 90.0554 17.4684C90.1612 17.4684 90.2407 17.5213 90.2936 17.6272C90.373 17.733 90.373 17.8654 90.2936 18.0242C90.0289 18.4741 89.6054 19.0299 89.0232 19.6916C88.4409 20.3533 87.7924 21.0282 87.0778 21.7163C86.3632 22.378 85.6751 22.9603 85.0134 23.4632C84.1929 24.0455 83.3592 24.3366 82.5122 24.3366ZM82.4725 16.7934C83.4783 16.1053 84.5237 15.2186 85.6089 14.1335C86.694 13.0219 87.7527 11.8176 88.785 10.5207C89.8436 9.22382 90.7965 7.94016 91.6434 6.66974C92.5168 5.39931 93.2182 4.24799 93.7476 3.21577C93.9064 2.92463 94.0122 2.67319 94.0652 2.46145C94.1446 2.22325 94.1843 2.01151 94.1843 1.82624C94.1843 1.32336 93.9725 1.07192 93.549 1.07192C93.1785 1.07192 92.7153 1.27043 92.1595 1.66743C90.7303 2.77906 89.4069 4.20829 88.1894 5.95512C86.972 7.67549 85.8868 9.48849 84.934 11.3941C83.9812 13.2998 83.1607 15.0995 82.4725 16.7934Z" fill="#F3BE0A"/>
 <path d="M87.6088 38.5098C87.2912 38.4304 87.0133 38.351 86.7751 38.2716C86.2722 38.0069 85.9149 37.7025 85.7032 37.3585C85.4914 37.0409 85.3856 36.6968 85.3856 36.3262C85.3856 35.7175 85.5973 35.0558 86.0208 34.3412C86.4178 33.653 86.9471 32.9384 87.6088 32.1974C88.2705 31.4033 89.1042 30.5961 90.11 29.7756C91.1422 28.9551 92.2141 28.1611 93.3257 27.3936C94.4374 26.6525 95.4166 26.004 96.2636 25.4482C96.7135 24.5219 97.1767 23.5293 97.6531 22.4707C98.156 21.412 98.6324 20.393 99.0824 19.4137C99.5323 18.4079 99.9161 17.4948 100.234 16.6743C100.578 15.8539 100.829 15.2186 100.988 14.7687C100.565 15.2716 100.075 15.9068 99.5191 16.6743C98.9633 17.4154 98.3545 18.2094 97.6928 19.0564C97.0311 19.8769 96.343 20.6577 95.6284 21.3987C94.9402 22.1398 94.2256 22.7486 93.4845 23.225C92.7435 23.6749 92.0156 23.8999 91.301 23.8999C90.2423 23.8999 89.5012 23.6352 89.0778 23.1059C88.6807 22.5501 88.4822 21.9016 88.4822 21.1605C88.4822 20.6312 88.5484 20.1018 88.6807 19.5725C88.8395 19.0432 89.038 18.5535 89.2763 18.1036C89.4351 17.786 89.6865 17.3625 90.0306 16.8331C90.3746 16.3038 90.7717 15.7612 91.2216 15.2054C91.6715 14.6496 92.1215 14.1864 92.5714 13.8159C93.0478 13.4453 93.4978 13.2601 93.9212 13.2601C94.4241 13.2601 94.8079 13.4453 95.0726 13.8159C95.3372 14.16 95.3637 14.3982 95.152 14.5305C94.7285 14.8216 94.1992 15.2716 93.5639 15.8803C92.9552 16.4626 92.3464 17.1375 91.7377 17.9051C91.5789 18.1168 91.3804 18.4476 91.1422 18.8976C90.9305 19.3475 90.732 19.8372 90.5467 20.3665C90.3614 20.8694 90.2688 21.3326 90.2688 21.756C90.2688 21.9413 90.2952 22.1266 90.3482 22.3119C90.4011 22.4707 90.4937 22.5898 90.6261 22.6692C90.8378 22.828 91.076 22.9074 91.3407 22.9074C91.7112 22.9074 92.1215 22.7883 92.5714 22.5501C93.0478 22.3119 93.4978 22.0075 93.9212 21.6369C95.4034 20.2077 96.7268 18.7123 97.8913 17.1507C99.0559 15.5892 100.287 14.0409 101.584 12.5058C101.663 12.2411 101.888 12.1087 102.258 12.1087C102.682 12.1087 103.119 12.2411 103.569 12.5058C104.045 12.744 104.243 12.9425 104.164 13.1013C103.926 13.6306 103.608 14.332 103.211 15.2054C102.841 16.0788 102.43 17.0184 101.981 18.0242C101.531 19.0299 101.081 20.0357 100.631 21.0414C100.181 22.0207 99.7705 22.9074 99.4 23.7014C99.7176 23.5426 100.287 23.1456 101.107 22.5104C101.928 21.8751 102.827 21.1076 103.807 20.2077C104.786 19.2814 105.673 18.3285 106.467 17.3493C106.626 17.1904 106.745 17.111 106.824 17.111C106.983 17.111 107.062 17.2169 107.062 17.4287C107.062 17.6139 106.983 17.8257 106.824 18.0639C106.427 18.5932 105.871 19.2152 105.157 19.9298C104.468 20.6444 103.714 21.3723 102.894 22.1133C102.1 22.828 101.319 23.4764 100.551 24.0587C99.7837 24.6674 99.1221 25.1306 98.5662 25.4482C97.7458 27.1951 96.9517 28.836 96.1842 30.3711C95.4166 31.9327 94.7153 33.1899 94.0801 34.1427C93.6566 34.8044 93.1405 35.4793 92.5317 36.1674C91.923 36.8556 91.2613 37.4246 90.5467 37.8746C89.8321 38.351 89.0778 38.5892 88.2837 38.5892C88.1779 38.5892 88.072 38.576 87.9661 38.5495C87.8603 38.5495 87.7412 38.5363 87.6088 38.5098ZM87.7279 37.6364C87.9397 37.6364 88.1911 37.5702 88.4822 37.4379C88.7998 37.3055 89.1307 37.0938 89.4748 36.8027C90.4805 35.9822 91.3275 35.0161 92.0156 33.9045C92.7038 32.8193 93.3125 31.668 93.8419 30.4505C94.3977 29.233 94.9535 28.0685 95.5093 26.9568C94.4771 27.7244 93.3125 28.6243 92.0156 29.6565C90.7187 30.7152 89.5409 31.7606 88.4822 32.7929C87.847 33.4281 87.3839 34.0501 87.0927 34.6588C86.8016 35.294 86.656 35.8498 86.656 36.3262C86.656 37.1997 87.0133 37.6364 87.7279 37.6364Z" fill="#F3BE0A"/>
                     </g>
+            <symbol id="ic-photo_camera" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></symbol>
             <symbol id="ic-logout" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></symbol>
             <symbol id="lg-mail" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></symbol>
             <symbol id="lg-lock" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM9 8V6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9z"/></symbol>
@@ -620,6 +628,77 @@
         </div>
     </div>
 
+    <!-- ESCÁNER DE PAGO MÓVIL -->
+    <div class="esc-overlay no-print" x-show="escaner.abierto" x-cloak @keydown.escape.window="cerrarEscaner()" @click.self="cerrarEscaner()">
+        <div class="esc-panel card-box p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-photo_camera"/></svg><span x-text="escaner.kind === 'cxp' ? 'Escanear pago a proveedor' : 'Escanear pago de cliente'"></span></h3>
+                <button type="button" @click="cerrarEscaner()" class="btn-circle w-10! h-10!" aria-label="Cerrar"><svg class="ic text-xl" aria-hidden="true"><use href="#ic-close"/></svg></button>
+            </div>
+
+            <div x-show="escaner.fase === 'inicio'" class="space-y-4">
+                <p class="text-xs text-slate-500">Sube la captura o foto del comprobante (Pago Móvil o transferencia). La lectura se hace en este equipo (la imagen no se envía a ningún servidor) y podrás corregir los datos antes de registrar.</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="btn-primary py-2.5 text-xs text-center cursor-pointer">Subir captura<input type="file" accept="image/*" class="hidden" @change="leerImagen($event)"></label>
+                    <label class="btn-ghost py-2.5 text-xs text-center cursor-pointer">Tomar foto<input type="file" accept="image/*" capture="environment" class="hidden" @change="leerImagen($event)"></label>
+                </div>
+                <div class="space-y-1"><label class="flabel">O pega el texto del comprobante</label><textarea x-model="escaner.texto" rows="4" class="field w-full px-4 py-2.5 text-xs" placeholder="Referencia: 004567891234&#10;Monto: Bs. 1.250,50 ..."></textarea></div>
+                <button type="button" @click="analizarTexto()" :disabled="!escaner.texto.trim()" class="btn-ghost w-full py-2.5 text-xs">Analizar texto</button>
+                <p x-show="escaner.error" x-text="escaner.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+            </div>
+
+            <div x-show="escaner.fase === 'leyendo'" class="py-6 space-y-3 text-center">
+                <p class="text-sm font-semibold" x-text="escaner.progreso > 0 ? 'Leyendo comprobante… ' + escaner.progreso + '%' : 'Preparando lector…'"></p>
+                <div class="h-2 rounded-full overflow-hidden" style="background: var(--line-2)"><div class="h-full" style="background: var(--lime); transition: width .2s" :style="'width:' + escaner.progreso + '%'"></div></div>
+                <p class="text-[11px] text-slate-500">La primera vez se descarga el lector de texto (requiere internet).</p>
+            </div>
+
+            <div x-show="escaner.fase === 'revisar'" class="space-y-4">
+                <div class="flex gap-3 items-center">
+                    <img x-show="escaner.img" :src="escaner.img" alt="" class="w-14 h-14 object-cover rounded-xl" style="border: 1px solid var(--line-2)">
+                    <p class="text-[11px] text-slate-500">Revisa y corrige los datos leídos antes de registrar.</p>
+                </div>
+                <p x-show="escaner.aviso" x-text="escaner.aviso" class="text-[11px] font-medium" style="color: var(--warn)"></p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1 col-span-2"><label class="flabel">Tipo de pago</label><select x-model="escaner.metodo" @change="recalcularEscaneo()" class="field w-full px-3 py-2.5 text-xs"><option value="Pago móvil">Pago móvil</option><option value="Transferencia">Transferencia</option></select></div>
+                    <div class="space-y-1 col-span-2"><label class="flabel">Referencia</label><input type="text" x-model class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 "><label class="flabel">Monto (Bs)</label><input type="number" x-model class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 "><label class="flabel">Banco</label><input type="text" x-model class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 "><label class="flabel">Fecha</label><input type="date" x-model class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 "><label class="flabel">Hora</label><input type="time" x-model class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 "><label class="flabel">Teléfono</label><input type="text" x-model class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 "><label class="flabel">Cédula / RIF</label><input type="text" x-model class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 col-span-2"><label class="flabel">Concepto</label><input type="text" x-model class="field w-full px-4 py-2.5 text-xs"></div>
+                </div>
+                <div class="space-y-1"><label class="flabel" x-text="escaner.kind === 'cxp' ? 'Proveedor al que se pagó' : 'Cliente que pagó'"></label>
+                    <select x-model="escaner.clienteId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione...</option>
+                        <template x-for="g in escGrupos" :key="g.id"><option :value="g.id" :selected="String(g.id) === String(escaner.clienteId)" x-text="`${g.nombre} — ${g.saldo.toFixed(2)}`"></option></template>
+                    </select>
+                </div>
+                <div class="space-y-1"><label class="flabel">Monto a aplicar ($)</label>
+                    <div class="flex gap-2"><input type="number" min="0" step="0.01" x-model="escaner.montoUsd" class="field flex-1 px-4 py-2.5 text-xs"><button type="button" @click="escaner.montoUsd = escSaldo || ''" :disabled="!escGrupo" class="btn-ghost px-3 py-2.5 text-xs whitespace-nowrap">Saldo total</button></div>
+                    <p class="text-[11px] text-slate-500 px-1" x-show="escaner.tasa > 0" x-text="'Tasa ' + escaner.metodo + ' del ' + fmtFecha(escaner.f.fecha) + ': Bs. ' + fmtTasa(escaner.tasa) + ' por $'"></p>
+                </div>
+                <div x-show="escGrupo && Number(escaner.montoUsd) > 0" class="doc-resumen text-xs space-y-1">
+                    <p><span class="badge badge-info" x-text="escTipo === 'completo' ? 'Pago completo' : 'Abono'"></span></p>
+                    <p class="text-slate-500" x-text="'Saldo pendiente: ' + usd(escSaldo) + '  →  quedará en ' + usd(Math.max(escSaldo - Number(escaner.montoUsd), 0))"></p>
+                    <p x-show="Number(escaner.montoUsd) > escSaldo + 0.001" style="color: var(--danger)">El monto excede el saldo pendiente.</p>
+                </div>
+                <p x-show="escaner.error" x-text="escaner.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button type="button" @click="escaner.fase = 'inicio'; escaner.error = ''" class="btn-ghost py-2.5 text-xs">Escanear otro</button>
+                    <button type="button" @click="registrarEscaneo()" class="btn-primary py-2.5 text-xs">Registrar pago</button>
+                </div>
+            </div>
+
+            <div x-show="escaner.fase === 'listo'" class="py-4 text-center space-y-3">
+                <p class="text-base font-extrabold" style="color: var(--accent-text)">¡Pago registrado!</p>
+                <p class="text-xs text-slate-500" x-text="escaner.resultado"></p>
+                <div class="grid grid-cols-2 gap-3"><button type="button" @click="abrirEscaner()" class="btn-ghost py-2.5 text-xs">Escanear otro</button><button type="button" @click="cerrarEscaner()" class="btn-primary py-2.5 text-xs">Cerrar</button></div>
+            </div>
+        </div>
+    </div>
+
     <!-- HEADER MÓVIL: logo + menú hamburguesa -->
     <header class="mobilebar lg:hidden fixed top-0 inset-x-0 h-16 z-20 backdrop-blur-xl flex items-center justify-between px-4 no-print">
         <span class="logo-pill"><svg viewBox="0 0 187 62" class="h-8" style="aspect-ratio:187/62" role="img" aria-label="Angely Gabriela"><use href="#logo-art"/></svg></span>
@@ -644,7 +723,7 @@
         <!-- BIENVENIDA -->
         <div class="side-welcome">
             <span class="chip"><i class="live-dot"></i> Sesión activa</span>
-            <p>¡Bienvenido a Mi <span>Empresa</span>!</p>
+            <p>¡<span x-text="saludo"></span> <span class="nom" x-text="usuario.nombre || 'Empresa'"></span>!</p>
         </div>
 
         <!-- Menú -->
@@ -683,9 +762,22 @@
             <p class="text-[10px] font-semibold text-center flex items-center justify-center gap-1.5 pb-1" :style="(nube.estado === 'error' || nube.estado === 'offline') ? 'color: var(--warn)' : 'color: var(--muted)'">
                 <i class="live-dot" x-show="nube.estado === 'ok'"></i><span x-text="nubeTexto"></span>
             </p>
-            <button @click="exportarDatos" class="btn-side">
-                <svg class="ic text-base" aria-hidden="true"><use href="#ic-file_download"/></svg> Descargar
-            </button>
+            <div class="relative">
+                <button @click="descargaAbierta = !descargaAbierta" class="btn-side" aria-haspopup="true" :aria-expanded="descargaAbierta">
+                    <svg class="ic text-base" aria-hidden="true"><use href="#ic-file_download"/></svg> Descargar
+                </button>
+                <div x-show="descargaAbierta" x-cloak x-transition.opacity @click.outside="descargaAbierta = false" @keydown.escape.window="descargaAbierta = false"
+                     class="absolute bottom-full left-0 right-0 mb-2 rounded-2xl p-2 space-y-1 z-50" style="background: var(--sidebar-bg); border: 1px solid var(--line-2); box-shadow: 0 18px 40px -12px rgba(0,0,0,.55)">
+                    <button type="button" @click="descargaAbierta = false; exportarDatos()" class="w-full text-left px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[var(--lime-soft)] transition-colors">
+                        <span class="block text-xs font-bold" style="color: var(--text)">Toda la data</span>
+                        <span class="block text-[10px]" style="color: var(--muted)">Archivo JSON (respaldo completo)</span>
+                    </button>
+                    <button type="button" @click="descargaAbierta = false; descargarPDFEstadisticas()" class="w-full text-left px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[var(--lime-soft)] transition-colors">
+                        <span class="block text-xs font-bold" style="color: var(--text)">Reporte de estadísticas</span>
+                        <span class="block text-[10px]" style="color: var(--muted)">PDF imprimible</span>
+                    </button>
+                </div>
+            </div>
             <label class="btn-side">
                 <svg class="ic text-base" aria-hidden="true"><use href="#ic-file_upload"/></svg> Cargar
                 <input type="file" accept=".json" @change="importarDatos" class="hidden">
@@ -706,9 +798,6 @@
                 <button @click="toggleTheme()" :title="theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'" :aria-label="theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'" class="btn-circle btn-theme">
                     <svg class="ic text-2xl" aria-hidden="true"><use :href="theme === 'dark' ? '#ic-light_mode' : '#ic-dark_mode'"/></svg>
                 </button>
-                <button @click="window.print()" title="Descargar PDF" aria-label="Descargar PDF" class="btn-circle">
-                    <svg class="ic text-2xl" aria-hidden="true"><use href="#ic-picture_as_pdf"/></svg>
-                </button>
                 <button @click="cerrarSesion()" title="Cerrar sesión" aria-label="Cerrar sesión" class="btn-ghost inline-flex items-center gap-2 h-[2.9rem] px-3.5 sm:px-5 text-sm">
                     <svg class="ic text-xl" aria-hidden="true"><use href="#ic-logout"/></svg>
                     <span class="hidden sm:inline">Cerrar sesión</span>
@@ -719,6 +808,10 @@
 
         <!-- ESTADÍSTICAS -->
         <div x-show="currentTab === 'estadisticas'" class="space-y-6">
+            <div class="print-only">
+                <h2 style="font-size: 20px; font-weight: 800">Mi Empresa — Reporte de estadísticas</h2>
+                <p style="font-size: 12px" x-text="'Generado el ' + fmtFecha(hoy()) + (usuario.nombre ? ' · ' + usuario.nombre : '')"></p>
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
                 <div class="card-box float stat-card card-lime">
@@ -1319,7 +1412,10 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
                 <div class="card-box p-6 space-y-4">
-                    <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_made"/></svg><span>Registrar pago</span></h3>
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_made"/></svg><span>Registrar pago</span></h3>
+                        <button type="button" @click="abrirEscaner('cxp')" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-photo_camera"/></svg> Escanear pago móvil</button>
+                    </div>
                     <div class="space-y-3">
                         <div class="space-y-1">
                             <label class="flabel">Proveedor con deuda</label>
@@ -1552,7 +1648,10 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
                 <div class="card-box p-6 space-y-4">
-                    <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_received"/></svg><span>Registrar cobro</span></h3>
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_received"/></svg><span>Registrar cobro</span></h3>
+                        <button type="button" @click="abrirEscaner('cxc')" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-photo_camera"/></svg> Escanear pago móvil</button>
+                    </div>
                     <div class="space-y-3">
                         <div class="space-y-1">
                             <label class="flabel">Cliente con deuda</label>
@@ -1882,7 +1981,7 @@
             const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
             const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
             // método de pago -> tasa que se usa para el equivalente en Bs. (null = sin conversión)
-            const RATE = { 'BCV': 'usd', 'Pago móvil': 'usd', 'Transferencia': 'usd', 'EUR': 'usd', 'USDT': 'usdt', 'Efectivo': null };
+            const RATE = { 'BCV': 'usd', 'Pago móvil': 'usd', 'Transferencia': 'usd', 'Tarjeta': 'usd', 'EUR': 'usd', 'USDT': 'usdt', 'Efectivo': null };
             const LISTAS = { proveedor: 'proveedores', cliente: 'clientes', producto: 'productos', compra: 'compras', venta: 'ventas', gasto: 'gastos', prestamo: 'prestamos' };
             const NOMBRES = { proveedor: 'Proveedor', cliente: 'Cliente', producto: 'Producto', compra: 'Compra', venta: 'Venta', gasto: 'Gasto', prestamo: 'Préstamo' };
             const CLAVE_DATOS = 'mn_datos_v3';
@@ -1936,11 +2035,25 @@
                 prestamos: [],     // { id, prestamista, monto, interes, fecha, periodicidad }
                 _ultimoId: 0,
                 nube: { estado: '', ultima: null },
+                usuario: { nombre: '', femenino: false },
+                descargaAbierta: false,
+                get saludo() { return this.usuario.nombre ? (this.usuario.femenino ? 'Bienvenida' : 'Bienvenido') : 'Bienvenido a Mi'; },
+                cargarUsuario() { const u = window.SB && SB.tieneSesion() ? SB.usuario() : null; this.usuario = u ? { nombre: u.nombre, femenino: !!u.femenino } : { nombre: '', femenino: false }; },
+                async descargarPDFEstadisticas() {
+                    const previo = this.currentTab;
+                    this.currentTab = 'estadisticas'; this.sidebarOpen = false;
+                    await this.$nextTick();
+                    try { this.scheduleCharts(); } catch (e) {}
+                    await new Promise(r => setTimeout(r, 800));
+                    const volver = () => { if (previo !== 'estadisticas') this.currentTab = previo; window.removeEventListener('afterprint', volver); };
+                    window.addEventListener('afterprint', volver);
+                    window.print();
+                },
                 _nubeListo: false, _nubeJson: '', _nubeT: null, _nubePushing: false, _nubeRepetir: false,
 
-                metodosTx: ['BCV', 'USDT', 'EUR', 'Efectivo'],
-                metodosGasto: ['Efectivo', 'Pago móvil', 'USDT'],
-                metodosPago: ['BCV', 'Pago móvil', 'Transferencia', 'USDT', 'EUR', 'Efectivo'],
+                metodosTx: ['BCV', 'Transferencia', 'Tarjeta', 'USDT', 'EUR', 'Efectivo'],
+                metodosGasto: ['Efectivo', 'Pago móvil', 'Transferencia', 'Tarjeta', 'USDT'],
+                metodosPago: ['BCV', 'Pago móvil', 'Transferencia', 'Tarjeta', 'USDT', 'EUR', 'Efectivo'],
                 periodicidades: ['Pago único', 'Semanal', 'Quincenal', 'Mensual', 'Trimestral', 'Anual'],
 
                 form: {
@@ -2636,6 +2749,8 @@
                     const monto = this.r2(Number(f.monto));
                     if (!(monto > 0)) { f.error = 'Ingrese un monto válido mayor a cero.'; return; }
                     if (!f.fecha) { f.error = 'Indique la fecha.'; return; }
+                    const dup = this.abonoPorReferencia(f.referencia);
+                    if (dup && !confirm(`La referencia ${f.referencia} ya está registrada` + (dup.quien ? ` (${dup.quien}, ${this.fmtFecha(dup.fecha)}, ${this.usd(dup.monto)})` : '') + '.\n¿Registrar este pago de todos modos?')) { f.error = 'Registro cancelado: la referencia ya existe.'; return; }
                     await this.asegurarTasasFecha(f.fecha);
                     const objetivo = this.docsObjetivo(kind);
                     const maximo = this.saldoSeleccion(kind);
@@ -2651,7 +2766,8 @@
                         const origen = origenes.find(x => x.id === d.id);
                         if (!origen || aplicar <= 0) continue;
                         if (!origen.abonos) origen.abonos = [];
-                        origen.abonos.push({ id: lote + n, pagoId: lote, fecha: f.fecha, monto: aplicar, referencia: (f.referencia || '').trim(), metodo: f.metodo, tasa });
+                        origen.abonos.push({ id: lote + n, pagoId: lote, fecha: f.fecha, monto: aplicar, referencia: (f.referencia || '').trim(), metodo: f.metodo, tasa,
+                            ...(f.extra ? { bs: f.extra.montoBs > 0 ? this.r2(f.extra.montoBs * aplicar / monto) : undefined, hora: f.extra.hora || undefined, banco: f.extra.banco || undefined } : {}) });
                         restante = this.r2(restante - aplicar);
                         n++;
                     }
@@ -3027,6 +3143,114 @@
                     this._nubeT = setTimeout(() => (this._nubeListo ? this.nubePush() : this.nubeIniciar()), e && e.offline ? 15000 : 30000);
                 },
 
+                // ===================== ESCÁNER DE PAGO MÓVIL =====================
+                escaner: { abierto: false, fase: 'inicio', progreso: 0, texto: '', error: '', aviso: '', img: '', tasa: 0, clienteId: '', montoUsd: '', resultado: '', kind: 'cxc', metodo: 'Pago móvil', f: { banco: '', referencia: '', montoBs: '', fecha: '', hora: '', telefono: '', cedula: '', concepto: '' } },
+                get escGrupos() { return (this.escaner.kind === 'cxp' ? this.cxpGrupos : this.cxcGrupos).filter(g => g.saldo > 0.004); },
+                get escGrupo() { return this.escGrupos.find(g => String(g.id) === String(this.escaner.clienteId)) || null; },
+                get escSaldo() { return this.escGrupo ? this.escGrupo.saldo : 0; },
+                get escTipo() { return Number(this.escaner.montoUsd) >= this.escSaldo - 0.005 ? 'completo' : 'abono'; },
+                abrirEscaner(kind) {
+                    kind = kind || this.escaner.kind || 'cxc';
+                    if (this.escaner.img) { try { URL.revokeObjectURL(this.escaner.img); } catch (e) {} }
+                    this.escaner = { abierto: true, fase: 'inicio', progreso: 0, texto: '', error: '', aviso: '', img: '', tasa: 0, clienteId: '', montoUsd: '', resultado: '', kind, metodo: 'Pago móvil', f: { banco: '', referencia: '', montoBs: '', fecha: '', hora: '', telefono: '', cedula: '', concepto: '' } };
+                },
+                cerrarEscaner() { this.escaner.abierto = false; },
+                cargarOCR() {
+                    if (window.Tesseract) return Promise.resolve(window.Tesseract);
+                    if (!this._ocr) this._ocr = new Promise((ok, no) => {
+                        const sc = document.createElement('script');
+                        sc.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+                        sc.onload = () => ok(window.Tesseract);
+                        sc.onerror = () => { this._ocr = null; no(new Error('No se pudo cargar el lector de texto. Revisa tu conexión a internet o pega el texto del comprobante.')); };
+                        document.head.appendChild(sc);
+                    });
+                    return this._ocr;
+                },
+                async leerImagen(ev) {
+                    const file = ev.target.files && ev.target.files[0];
+                    ev.target.value = '';
+                    if (!file) return;
+                    const e = this.escaner;
+                    e.error = ''; e.progreso = 0; e.fase = 'leyendo';
+                    try {
+                        if (e.img) { try { URL.revokeObjectURL(e.img); } catch (x) {} }
+                        e.img = URL.createObjectURL(file);
+                        const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('No se pudo abrir la imagen.')); i.src = e.img; });
+                        const T = await this.cargarOCR();
+                        const r = await T.recognize(window.prepararImagenOCR(img), 'spa', { logger: m => { if (m.status === 'recognizing text') e.progreso = Math.round(m.progress * 100); } });
+                        e.texto = (r.data && r.data.text) || '';
+                        await this.analizarTexto();
+                    } catch (err) { e.error = (err && err.message) || 'No se pudo leer la imagen.'; e.fase = 'inicio'; }
+                },
+                async analizarTexto() {
+                    const e = this.escaner;
+                    const r = window.parsearPagoMovil(e.texto, this.hoy());
+                    e.f = { ...r, fecha: r.fecha || this.hoy() };
+                    const faltan = [];
+                    if (!r.referencia) faltan.push('la referencia');
+                    if (!(Number(r.montoBs) > 0)) faltan.push('el monto');
+                    if (!r.fecha) faltan.push('la fecha (se usó la de hoy)');
+                    e.aviso = faltan.length ? 'No se pudo leer ' + faltan.join(', ') + '. Complétalo manualmente.' : '';
+                    e.error = ''; e.fase = 'revisar';
+                    this.sugerirClienteEscaneo();
+                    await this.recalcularEscaneo();
+                },
+                async recalcularEscaneo() {
+                    const e = this.escaner;
+                    if (!e.f.fecha) return;
+                    await this.asegurarTasasFecha(e.f.fecha);
+                    e.tasa = this.tasaPorMetodo(e.metodo, e.f.fecha) || 0;
+                    const bs = Number(e.f.montoBs);
+                    if (bs > 0 && e.tasa > 0) e.montoUsd = this.r2(bs / e.tasa);
+                },
+                sugerirClienteEscaneo() {
+                    const e = this.escaner;
+                    if (e.clienteId !== '') return;
+                    const norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+                    const ced = (e.f.cedula || '').replace(/\D/g, ''), texto = norm(e.texto);
+                    const personas = e.kind === 'cxp' ? this.proveedores : this.clientes;
+                    for (const g of this.escGrupos) {
+                        const c = personas.find(x => String(x.id) === String(g.id));
+                        if (!c) continue;
+                        const rif = (c.rif || '').replace(/\D/g, '');
+                        const nombre = norm(c.nombre);
+                        if ((rif && ced && (rif.includes(ced) || ced.includes(rif))) || (nombre.split(' ').length >= 2 && texto.includes(nombre))) { e.clienteId = g.id; return; }
+                    }
+                },
+                abonoPorReferencia(ref) {
+                    const n = String(ref || '').replace(/\D/g, '').replace(/^0+/, '');
+                    if (n.length < 4) return null;
+                    const buscar = (lista, kind) => {
+                        for (const d of lista) for (const a of (d.abonos || [])) {
+                            if (String(a.referencia || '').replace(/\D/g, '').replace(/^0+/, '') === n) {
+                                const q = kind === 'cxc' ? this.clientes.find(c => c.id === d.clienteId) : this.proveedores.find(p => p.id === d.proveedorId);
+                                return { fecha: a.fecha, monto: a.monto, quien: q ? q.nombre : '' };
+                            }
+                        }
+                        return null;
+                    };
+                    return buscar(this.ventas, 'cxc') || buscar(this.compras, 'cxp');
+                },
+                async registrarEscaneo() {
+                    const e = this.escaner;
+                    e.error = '';
+                    if (e.clienteId === '') { e.error = e.kind === 'cxp' ? 'Seleccione el proveedor al que se le pagó.' : 'Seleccione el cliente que realizó el pago.'; return; }
+                    const usd = this.r2(Number(e.montoUsd));
+                    if (!(usd > 0)) { e.error = 'El monto en $ debe ser mayor a cero.'; return; }
+                    if (!e.f.fecha) { e.error = 'Indique la fecha del pago.'; return; }
+                    const g = this.escGrupo, antes = g ? g.saldo : 0, nombre = g ? g.nombre : '';
+                    const f = this.carteraForm[e.kind];
+                    Object.assign(f, { contraId: e.clienteId, docId: '', monto: usd, fecha: e.f.fecha, referencia: e.f.referencia, metodo: e.metodo, tasa: e.tasa > 0 ? e.tasa : '', error: '',
+                        extra: { montoBs: Number(e.f.montoBs) || 0, hora: e.f.hora, banco: e.f.banco } });
+                    await this.registrarAbono(e.kind);
+                    f.extra = null;
+                    if (f.error) { e.error = f.error; return; }
+                    f.contraId = '';
+                    const resta = Math.max(this.r2(antes - usd), 0);
+                    e.resultado = `${nombre}: ${this.usd(usd)}` + (Number(e.f.montoBs) > 0 ? ` (Bs. ${this.fmtBs(Number(e.f.montoBs))})` : '') + (resta > 0.004 ? ` · queda pendiente ${this.usd(resta)}` : ' · deuda saldada');
+                    e.fase = 'listo';
+                },
+
                 // ===================== INICIO =====================
                 init() {
                     this.cargarGuardado();
@@ -3041,6 +3265,7 @@
                     document.addEventListener('visibilitychange', () => {
                         if (document.visibilityState === 'hidden' && this._nubeListo && localStorage.getItem('mn_nube_sucio') === '1') this.nubePush();
                     });
+                    this.cargarUsuario();
                     this.nubeIniciar();
                     this.$watch('currentTab', () => { window.scrollTo({ top: 0 }); this.scheduleCharts(); });
                     this.$watch('periodo', () => this.scheduleCharts());
@@ -3092,6 +3317,78 @@
         }
     </script>
     <script>
+        /* ============ ESCÁNER DE PAGO MÓVIL (interpretación del texto) ============ */
+        window.prepararImagenOCR = function (img) {
+            var esc = Math.min(2.5, Math.max(1, 1400 / img.width));
+            var w = Math.min(1800, Math.round(img.width * esc)), h = Math.round(img.height * (w / img.width));
+            var c = document.createElement('canvas'); c.width = w; c.height = h;
+            var x = c.getContext('2d', { willReadFrequently: true });
+            x.drawImage(img, 0, 0, w, h);
+            var d = x.getImageData(0, 0, w, h), p = d.data, sum = 0, i;
+            for (i = 0; i < p.length; i += 4) { var g = p[i] * 0.299 + p[i + 1] * 0.587 + p[i + 2] * 0.114; p[i] = p[i + 1] = p[i + 2] = g; sum += g; }
+            var inv = (sum / (w * h)) < 120; /* capturas en modo oscuro: se invierten para leer mejor */
+            for (i = 0; i < p.length; i += 4) { var v = inv ? 255 - p[i] : p[i]; v = Math.max(0, Math.min(255, (v - 128) * 1.4 + 128)); p[i] = p[i + 1] = p[i + 2] = v; }
+            x.putImageData(d, 0, 0);
+            return c;
+        };
+        window.parsearPagoMovil = function (texto, hoyISO) {
+            var t = String(texto || '').replace(/\r/g, '').replace(/[ \t]+/g, ' ');
+            var plano = t.split('\n').map(function (l) { return l.trim(); }).filter(Boolean).join('\n');
+            var out = { banco: '', referencia: '', montoBs: '', fecha: '', hora: '', telefono: '', cedula: '', concepto: '' };
+            var pad = function (n) { return String(n).padStart(2, '0'); };
+            function num(str) { /* formato venezolano 1.234,56 (también tolera 1,234.56) */
+                var x = String(str).replace(/[^\d.,]/g, ''); if (!x) return NaN;
+                var lc = x.lastIndexOf(','), lp = x.lastIndexOf('.');
+                if (lc > -1 && lp > -1) x = lc > lp ? x.replace(/\./g, '').replace(',', '.') : x.replace(/,/g, '');
+                else if (lc > -1) x = /,\d{1,2}$/.test(x) ? x.replace(/,(\d{1,2})$/, '.$1').replace(/,/g, '') : x.replace(/,/g, '');
+                else if (lp > -1) x = (/\.\d{1,2}$/.test(x) && (x.match(/\./g) || []).length === 1) ? x : x.replace(/\./g, '');
+                return parseFloat(x);
+            }
+            /* Fecha */
+            var meses = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12 };
+            var reF1 = /\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{4}|\d{2})\b/, reF2 = /\b(20\d{2})-(\d{2})-(\d{2})\b/,
+                reF3 = /(\d{1,2})\s*(?:de\s+)?(ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)[a-z]*\.?\s*(?:de\s+|,)?\s*(\d{4})/i;
+            var m = plano.match(reF2);
+            if (m) out.fecha = m[1] + '-' + m[2] + '-' + m[3];
+            else if ((m = plano.match(reF1)) && +m[2] >= 1 && +m[2] <= 12 && +m[1] >= 1 && +m[1] <= 31) out.fecha = (m[3].length === 2 ? '20' + m[3] : m[3]) + '-' + pad(m[2]) + '-' + pad(m[1]);
+            else if ((m = plano.match(reF3))) out.fecha = m[3] + '-' + pad(meses[m[2].toLowerCase()]) + '-' + pad(m[1]);
+            /* Hora */
+            m = plano.match(/\b([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?\s*(a\.?\s?m\.?|p\.?\s?m\.?)?/i);
+            if (m) { var hh = +m[1], ap = (m[3] || '').toLowerCase().replace(/[^apm]/g, ''); if (ap === 'pm' && hh < 12) hh += 12; if (ap === 'am' && hh === 12) hh = 0; out.hora = pad(hh) + ':' + m[2]; }
+            /* Teléfono */
+            m = plano.match(/(?:\+?58[\s-]?|0)(4(?:12|14|16|24|26))[\s-]?(\d{3})[\s-]?(\d{4})/);
+            if (m) out.telefono = '0' + m[1] + '-' + m[2] + m[3];
+            /* Cédula / RIF */
+            m = plano.match(/(?:c[eé]dula|c\.?\s?i\.?|rif|identificaci[oó]n|documento)\s*[:#]?\s*([VEJGPvejgp])?[\s.-]*(\d{6,9})/i) || plano.match(/\b([VEve])[-\s]?(\d{6,9})\b/);
+            if (m) out.cedula = ((m[1] || 'V').toUpperCase()) + '-' + m[2];
+            /* Monto */
+            var money = '(\\d{1,3}(?:,\\d{3})+\\.\\d{2}|\\d{1,3}(?:\\.\\d{3})+,\\d{2}|\\d+,\\d{2}|\\d+\\.\\d{2})';
+            var sinFechas = plano.replace(new RegExp(reF1.source, 'g'), ' ').replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, ' ');
+            m = sinFechas.match(new RegExp('(?:monto|importe|total|enviado|pagado|bs\\.?s?\\.?|ves)[^\\d\\n]{0,25}' + money, 'i')) || sinFechas.match(new RegExp(money));
+            if (m) { var v = num(m[1]); if (v > 0 && v < 1e9) out.montoBs = Math.round(v * 100) / 100; }
+            /* Referencia */
+            var reRef = /(?:n[uú]mero\s+de\s+)?(?:referencia|ref\.?|nro\.?\s*(?:de\s*)?(?:ref\w*|operaci[oó]n)|operaci[oó]n|comprobante|confirmaci[oó]n|transacci[oó]n)\s*(?:n[°ºo]\.?)?\s*[:#.\-]?\s*(\d{4,20})/gi, r;
+            while ((r = reRef.exec(plano))) { out.referencia = r[1]; break; }
+            if (!out.referencia) {
+                var ced = (out.cedula || '').replace(/\D/g, '');
+                var runs = (plano.match(/\b\d{6,20}\b/g) || []).filter(function (d) { return !/^(0?4\d{9}|584\d{9})$/.test(d) && d !== ced && !/^20\d{6}$/.test(d); });
+                runs.sort(function (a, b) { return b.length - a.length; });
+                if (runs.length) out.referencia = runs[0];
+            }
+            /* Banco */
+            var bancos = [[/banco de venezuela|\bbdv\b/i, 'Banco de Venezuela'], [/venezolano de cr[eé]dito/i, 'Venezolano de Crédito'], [/banesco/i, 'Banesco'], [/mercantil/i, 'Mercantil'], [/provincial|bbva/i, 'Provincial'], [/\bbnc\b|nacional de cr[eé]dito/i, 'BNC'], [/bancamiga/i, 'Bancamiga'], [/tesoro/i, 'Banco del Tesoro'], [/bicentenario/i, 'Bicentenario'], [/banplus/i, 'Banplus'], [/exterior/i, 'Banco Exterior'], [/bancaribe/i, 'Bancaribe'], [/banco activo/i, 'Banco Activo'], [/sofitasa/i, 'Sofitasa'], [/banco plaza/i, 'Banco Plaza'], [/100\s?%\s?banco/i, '100% Banco'], [/mi banco/i, 'Mi Banco'], [/\bbfc\b|fondo com[uú]n/i, 'BFC'], [/del sur/i, 'Del Sur'], [/bancrecer/i, 'Bancrecer'], [/banfanb/i, 'Banfanb'], [/agr[ií]cola/i, 'Banco Agrícola'], [/caron[ií]/i, 'Banco Caroní']];
+            for (var i = 0; i < bancos.length; i++) { if (bancos[i][0].test(plano)) { out.banco = bancos[i][1]; break; } }
+            if (!out.banco) {
+                var cod = { '0102': 'Banco de Venezuela', '0104': 'Venezolano de Crédito', '0105': 'Mercantil', '0108': 'Provincial', '0114': 'Bancaribe', '0115': 'Banco Exterior', '0128': 'Banco Caroní', '0134': 'Banesco', '0137': 'Sofitasa', '0138': 'Banco Plaza', '0151': 'BFC', '0156': '100% Banco', '0157': 'Del Sur', '0163': 'Banco del Tesoro', '0166': 'Banco Agrícola', '0168': 'Bancrecer', '0169': 'Mi Banco', '0171': 'Banco Activo', '0172': 'Bancamiga', '0174': 'Banplus', '0175': 'Bicentenario', '0177': 'Banfanb', '0191': 'BNC' };
+                var c = plano.match(/\b(01\d{2})\b/); if (c && cod[c[1]]) out.banco = cod[c[1]];
+            }
+            /* Concepto */
+            m = plano.match(/(?:concepto|motivo|descripci[oó]n|detalle)\s*[:\-]?\s*(.+)/i);
+            if (m) out.concepto = m[1].trim().slice(0, 80);
+            return out;
+        };
+    </script>
+    <script>
         /* ============ SUPABASE (login + respaldo) ============ */
         window.SB = (function () {
             var URL = 'https://jtjpwwzrxinlxtiphhhw.supabase.co';
@@ -3117,7 +3414,8 @@
                 return json;
             }
             function aSesion(r) {
-                return { access_token: r.access_token, refresh_token: r.refresh_token, expires_at: r.expires_at || (Math.floor(Date.now() / 1000) + (r.expires_in || 3600)), user_id: r.user && r.user.id, email: r.user && r.user.email };
+                var um = (r.user && r.user.user_metadata) || {};
+                return { access_token: r.access_token, refresh_token: r.refresh_token, expires_at: r.expires_at || (Math.floor(Date.now() / 1000) + (r.expires_in || 3600)), user_id: r.user && r.user.id, email: r.user && r.user.email, nombre: um.nombre || um.full_name || um.name || um.display_name || '', genero: um.genero || um.gender || '' };
             }
             var refrescando = null;
             async function token() {
@@ -3129,7 +3427,7 @@
                         try {
                             var r = await llamar('/auth/v1/token?grant_type=refresh_token', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: s.refresh_token }) });
                             var n = aSesion(r);
-                            if (!n.user_id) { n.user_id = s.user_id; n.email = s.email; }
+                            if (!n.user_id) { n.user_id = s.user_id; n.email = s.email; n.nombre = s.nombre; n.genero = s.genero; }
                             guardarSes(n); return n;
                         } catch (e) {
                             if (e.status === 400 || e.status === 401 || e.status === 403) { limpiar(); e.sinSesion = true; }
@@ -3147,6 +3445,17 @@
             return {
                 tieneSesion: function () { return !!leerSes(); },
                 usuarioId: function () { var s = leerSes(); return s ? s.user_id : null; },
+                usuario: function () {
+                    var s = leerSes(); if (!s) return null;
+                    var n = String(s.nombre || '').trim();
+                    var deCorreo = !n;
+                    if (deCorreo && s.email) n = s.email.split('@')[0].split(/[._\-+\d]+/)[0];
+                    n = n.split(/\s+/)[0] || '';
+                    n = n.charAt(0).toUpperCase() + (deCorreo ? n.slice(1).toLowerCase() : n.slice(1));
+                    var g = String(s.genero || '').toLowerCase().trim();
+                    var fem = /^(f|mujer|w)/.test(g) ? true : (/^(m|h|v)/.test(g) ? false : /(a|ly|ie)$/i.test(n));
+                    return { nombre: n, femenino: fem };
+                },
                 entrar: async function (email, pass, recordar) {
                     var r = await llamar('/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, password: pass }) });
                     limpiar();
@@ -3240,7 +3549,7 @@
                 setTimeout(function () {
                     document.documentElement.setAttribute('data-auth', 'in');
                     window.dispatchEvent(new Event('resize')); /* que las gráficas se ajusten */
-                    try { Alpine.$data(document.body).nubeIniciar(); } catch (e) {}
+                    try { var app = Alpine.$data(document.body); app.cargarUsuario(); app.nubeIniciar(); } catch (e) {}
                 }, 1200);
             });
 
