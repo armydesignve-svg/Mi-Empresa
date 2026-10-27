@@ -458,6 +458,16 @@
         .lg-success p { color: var(--muted); font-size: .85rem; margin-top: .4rem; }
         @media (max-width: 420px) { .lg-card { padding: 1.9rem 1.35rem 1.5rem; border-radius: 1.75rem; } }
 
+        /* ============ REGISTRO AGRUPADO POR FACTURA ============ */
+        .doc-card { border: 1px solid var(--line); border-radius: 1.25rem; background: var(--field-bg); overflow: hidden; }
+        .doc-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .5rem .75rem; padding: .85rem 1rem; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, var(--card-top), var(--card-bottom)); }
+        .doc-foot { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: .75rem 1rem; padding: .85rem 1rem; border-top: 1px solid var(--line); background: linear-gradient(180deg, var(--card-top), var(--card-bottom)); }
+        .doc-totales { display: flex; flex-wrap: wrap; gap: .6rem 1.4rem; }
+        .doc-totales > div { min-width: 4.5rem; }
+        .doc-totales .k { display: block; font-size: .62rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+        .doc-totales .v { display: block; font-size: .95rem; font-weight: 800; color: var(--text); }
+        .doc-resumen { border: 1px dashed var(--line-2); border-radius: 1.25rem; padding: .85rem 1rem; }
+
         /* ============ BIENVENIDA EN EL SIDEBAR ============ */
         .side-welcome { margin: 1.25rem 1rem 0; padding: .9rem 1rem 1rem; border-radius: 1.25rem; background: linear-gradient(180deg, var(--card-top), var(--card-bottom)); border: 1px solid var(--line); box-shadow: var(--card-inset); }
         .side-welcome .chip { font-size: .6rem; padding: .25rem .7rem; }
@@ -630,7 +640,7 @@
         <!-- BIENVENIDA -->
         <div class="side-welcome">
             <span class="chip"><i class="live-dot"></i> Sesión activa</span>
-            <p>¡Bienvenido a Mi <span>Empresa</span>!</p>
+            <p>¡Bienvenida <span>Angely</span>!</p>
         </div>
 
         <!-- Menú -->
@@ -1111,25 +1121,63 @@
                     </div>
                     <div class="card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-assignment"/></svg><span>Registro de Compras</span></h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2.5 px-3">Fecha</th><th class="py-2.5 px-3">Proveedor</th><th class="py-2.5 px-3">Producto</th><th class="py-2.5 px-3">Kg</th><th class="py-2.5 px-3">$/kg</th><th class="py-2.5 px-3">Total</th><th class="py-2.5 px-3">Método</th><th class="py-2.5 px-3 text-right no-print">Acción</th></tr></thead>
-                            <tbody class="divide-y divide-slate-100 text-xs">
-                                <template x-if="comprasList.length === 0">
-                                    <tr><td colspan="8" class="py-5 text-center text-slate-400 italic">No se han registrado compras.</td></tr>
-                                </template>
-                                <template x-for="r in comprasList" :key="r.id">
-                                    <tr>
-<td class="py-2.5 px-3 text-slate-500 whitespace-nowrap" x-text="fmtFecha(r.fecha)"></td>
-<td class="py-2.5 px-3 text-slate-900 font-medium"><span x-text="r.proveedorNombre"></span> <span x-show="r.tipoPago === 'Credito'" class="badge badge-info ml-1">Crédito</span></td>
-<td class="py-2.5 px-3 text-slate-600"><span x-text="r.producto"></span> <span x-show="r.lineasDoc > 1" class="badge badge-info ml-1" x-text="r.lineasDoc + ' prod.'"></span></td>
-<td class="py-2.5 px-3 text-slate-600" x-text="fmtKg(r.cantidadKg)"></td>
-<td class="py-2.5 px-3 text-slate-600"><span class="block" x-text="usd(r.precioKg)"></span><span class="block text-[10px] text-slate-500" x-text="r.precioKgBs > 0 ? 'Bs. ' + fmtBs(r.precioKgBs) : ''"></span></td>
-<td class="py-2.5 px-3"><span class="block text-emerald-600 font-bold" x-text="usd(r.total)"></span><span class="block text-[10px] text-slate-500" x-text="r.totalBs > 0 ? 'Bs. ' + fmtBs(r.totalBs) : ''"></span><span class="block text-[10px] text-slate-400" x-show="r.totalBs > 0" x-text="'Tasa ' + fmtTasa(r.tasa) + ' · ' + fmtFecha(r.tasaFecha)"></span></td>
-<td class="py-2.5 px-3 text-slate-500" x-text="r.metodo"></td><td class="py-2.5 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirModal('compra', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('compra', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td></tr>
-                                </template>
-                            </tbody>
-                        </table>
+                    <div class="space-y-4">
+                        <template x-if="comprasDocs.length === 0"><p class="py-5 text-center text-slate-400 italic text-xs">No se han registrado compras.</p></template>
+                        <template x-for="doc in comprasDocs" :key="doc.key">
+                            <div class="doc-card">
+                                <div class="doc-head">
+                                    <div class="min-w-0 space-y-1">
+                                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Proveedor</p>
+                                        <p class="text-sm font-bold text-slate-900 truncate" x-text="doc.contraparte"></p>
+                                        <p class="text-[11px] text-slate-500" x-text="'Método: ' + doc.metodo + (doc.tasa > 0 ? ' · Tasa ' + fmtTasa(doc.tasa) + ' (' + fmtFecha(doc.tasaFecha || doc.fecha) + ')' : '')"></p>
+                                        <p class="text-[11px]" x-show="doc.credito"><span class="badge badge-info" x-text="'Crédito ' + (doc.diasCredito > 0 ? doc.diasCredito + ' d' : '')"></span> <span class="text-slate-500" x-show="doc.vence" x-text="'Vence: ' + fmtFecha(doc.vence)"></span></p>
+                                        <p class="text-[11px] text-slate-500" x-show="!doc.credito">Condición: Contado</p>
+                                    </div>
+                                    <div class="text-right space-y-1">
+                                        <span class="chip">Compra</span>
+                                        <p class="text-xs text-slate-500 whitespace-nowrap" x-text="fmtFecha(doc.fecha)"></p>
+                                    </div>
+                                </div>
+                                <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2 px-3">Producto</th><th class="py-2 px-3">Kg</th><th class="py-2 px-3">$/kg</th><th class="py-2 px-3">Subtotal</th><th class="py-2 px-3 text-right no-print">Acción</th></tr></thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    <template x-for="r in doc.lineas" :key="r.id">
+                                        <tr>
+                                        <td class="py-2 px-3 text-slate-900 font-medium" x-text="r.producto"></td>
+                                        <td class="py-2 px-3 text-slate-600" x-text="fmtKg(r.cantidadKg)"></td>
+                                        <td class="py-2 px-3 text-slate-600"><span class="block" x-text="usd(r.precioKg)"></span><span class="block text-[10px] text-slate-500" x-text="r.precioKgBs > 0 ? 'Bs. ' + fmtBs(r.precioKgBs) : ''"></span></td>
+                                        <td class="py-2 px-3"><span class="block font-semibold text-slate-900" x-text="usd(r.total)"></span><span class="block text-[10px] text-slate-500" x-text="r.totalBs > 0 ? 'Bs. ' + fmtBs(r.totalBs) : ''"></span></td>
+                                        <td class="py-2 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirModal('compra', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('compra', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                                </div>
+                                <div class="doc-foot">
+                                    <div class="doc-totales">
+                                        <div><span class="k">Productos</span><span class="v" x-text="doc.nProductos"></span></div>
+                                        <div><span class="k">Total kg</span><span class="v" x-text="fmtKg(doc.totalKg)"></span></div>
+                                        <div><span class="k">Total $</span><span class="v" x-text="usd(doc.total)"></span><span class="block text-[10px] text-slate-500" x-show="doc.totalBs > 0" x-text="'Bs. ' + fmtBs(doc.totalBs)"></span></div>
+                                        <div x-show="doc.credito"><span class="k">Abonado</span><span class="v" x-text="usd(doc.abonado)"></span></div>
+                                        <div x-show="doc.credito"><span class="k">Saldo</span><span class="v" :style="doc.saldo > 0 ? 'color: var(--warn)' : 'color: var(--accent-text)'" x-text="usd(doc.saldo)"></span></div>
+                                    </div>
+                                    <div class="no-print flex items-center gap-4">
+                                        
+                                        <button @click="eliminarDoc('compra', doc.key)" class="text-rose-600 hover:underline cursor-pointer font-medium text-xs">Eliminar compra completa</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <div class="doc-resumen" x-show="comprasDocs.length > 0">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Totales del registro</p>
+                            <div class="doc-totales">
+                                <div><span class="k">Compras</span><span class="v" x-text="comprasTotales.docs"></span></div>
+                                <div><span class="k">Productos</span><span class="v" x-text="comprasTotales.productos"></span></div>
+                                <div><span class="k">Total kg</span><span class="v" x-text="fmtKg(comprasTotales.kg)"></span></div>
+                                <div><span class="k">Total $</span><span class="v" x-text="usd(comprasTotales.total)"></span><span class="block text-[10px] text-slate-500" x-show="comprasTotales.totalBs > 0" x-text="'Bs. ' + fmtBs(comprasTotales.totalBs)"></span></div>
+                            </div>
+                        </div>
                     </div>
                     </div>
                 </div>
@@ -1165,27 +1213,69 @@
                 </div>
                 <div class="lg:col-span-2 card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-bar_chart"/></svg><span>Ventas Registradas</span></h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2.5 px-3">Fecha</th><th class="py-2.5 px-3">Cliente / Negocio</th><th class="py-2.5 px-3">Producto</th><th class="py-2.5 px-3">Kg</th><th class="py-2.5 px-3">$/kg</th><th class="py-2.5 px-3">Total</th><th class="py-2.5 px-3">Costo</th><th class="py-2.5 px-3">Ganancia</th><th class="py-2.5 px-3">Método</th><th class="py-2.5 px-3 text-right no-print">Acción</th></tr></thead>
-                            <tbody class="divide-y divide-slate-100 text-xs">
-                                <template x-if="ventasList.length === 0">
-                                    <tr><td colspan="10" class="py-5 text-center text-slate-400 italic">No se han registrado ventas.</td></tr>
-                                </template>
-                                <template x-for="r in ventasList" :key="r.id">
-                                    <tr>
-<td class="py-2.5 px-3 text-slate-500 whitespace-nowrap" x-text="fmtFecha(r.fecha)"></td>
-<td class="py-2.5 px-3 text-slate-900 font-medium"><span x-text="r.clienteNombre"></span> <span x-show="r.tipoPago === 'Credito'" class="badge badge-info ml-1" x-text="`Crédito ${r.diasCredito} d`"></span></td>
-<td class="py-2.5 px-3 text-slate-600"><span x-text="r.producto"></span> <span x-show="r.lineasDoc > 1" class="badge badge-info ml-1" x-text="r.lineasDoc + ' prod.'"></span></td>
-<td class="py-2.5 px-3 text-slate-600" x-text="fmtKg(r.cantidadKg)"></td>
-<td class="py-2.5 px-3 text-slate-600"><span class="block" x-text="usd(r.precioKg)"></span><span class="block text-[10px] text-slate-500" x-text="r.precioKgBs > 0 ? 'Bs. ' + fmtBs(r.precioKgBs) : ''"></span></td>
-<td class="py-2.5 px-3"><span class="block text-slate-900 font-semibold" x-text="usd(r.total)"></span><span class="block text-[10px] text-slate-500" x-text="r.totalBs > 0 ? 'Bs. ' + fmtBs(r.totalBs) : ''"></span><span class="block text-[10px] text-slate-400" x-show="r.totalBs > 0" x-text="'Tasa ' + fmtTasa(r.tasa) + ' · ' + fmtFecha(r.tasaFecha)"></span></td>
-<td class="py-2.5 px-3 text-amber-700" x-text="usd(r.costo)"></td>
-<td class="py-2.5 px-3 font-bold" :style="r.ganancia < 0 ? 'color: var(--danger)' : 'color: var(--accent-text)'" x-text="usd(r.ganancia)"></td>
-<td class="py-2.5 px-3 text-slate-500" x-text="r.metodo"></td><td class="py-2.5 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirFactura(r)" class="text-emerald-600 hover:underline cursor-pointer font-medium">Generar Factura</button><button @click="abrirModal('venta', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('venta', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td></tr>
-                                </template>
-                            </tbody>
-                        </table>
+                    <div class="space-y-4">
+                        <template x-if="ventasDocs.length === 0"><p class="py-5 text-center text-slate-400 italic text-xs">No se han registrado ventas.</p></template>
+                        <template x-for="doc in ventasDocs" :key="doc.key">
+                            <div class="doc-card">
+                                <div class="doc-head">
+                                    <div class="min-w-0 space-y-1">
+                                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Cliente</p>
+                                        <p class="text-sm font-bold text-slate-900 truncate" x-text="doc.contraparte"></p>
+                                        <p class="text-[11px] text-slate-500" x-text="'Método: ' + doc.metodo + (doc.tasa > 0 ? ' · Tasa ' + fmtTasa(doc.tasa) + ' (' + fmtFecha(doc.tasaFecha || doc.fecha) + ')' : '')"></p>
+                                        <p class="text-[11px]" x-show="doc.credito"><span class="badge badge-info" x-text="'Crédito ' + (doc.diasCredito > 0 ? doc.diasCredito + ' d' : '')"></span> <span class="text-slate-500" x-show="doc.vence" x-text="'Vence: ' + fmtFecha(doc.vence)"></span></p>
+                                        <p class="text-[11px] text-slate-500" x-show="!doc.credito">Condición: Contado</p>
+                                    </div>
+                                    <div class="text-right space-y-1">
+                                        <span class="chip">Factura N° <b x-text="String(doc.nro || 0).padStart(6, '0')"></b></span>
+                                        <p class="text-xs text-slate-500 whitespace-nowrap" x-text="fmtFecha(doc.fecha)"></p>
+                                    </div>
+                                </div>
+                                <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2 px-3">Producto</th><th class="py-2 px-3">Kg</th><th class="py-2 px-3">$/kg</th><th class="py-2 px-3">Subtotal</th><th class="py-2 px-3">Costo</th><th class="py-2 px-3">Ganancia</th><th class="py-2 px-3 text-right no-print">Acción</th></tr></thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    <template x-for="r in doc.lineas" :key="r.id">
+                                        <tr>
+                                        <td class="py-2 px-3 text-slate-900 font-medium" x-text="r.producto"></td>
+                                        <td class="py-2 px-3 text-slate-600" x-text="fmtKg(r.cantidadKg)"></td>
+                                        <td class="py-2 px-3 text-slate-600"><span class="block" x-text="usd(r.precioKg)"></span><span class="block text-[10px] text-slate-500" x-text="r.precioKgBs > 0 ? 'Bs. ' + fmtBs(r.precioKgBs) : ''"></span></td>
+                                        <td class="py-2 px-3"><span class="block font-semibold text-slate-900" x-text="usd(r.total)"></span><span class="block text-[10px] text-slate-500" x-text="r.totalBs > 0 ? 'Bs. ' + fmtBs(r.totalBs) : ''"></span></td>
+                                        <td class="py-2 px-3 text-amber-700" x-text="usd(r.costo)"></td>
+                                        <td class="py-2 px-3 font-bold" :style="r.ganancia < 0 ? 'color: var(--danger)' : 'color: var(--accent-text)'" x-text="usd(r.ganancia)"></td>
+                                        <td class="py-2 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirModal('venta', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('venta', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                                </div>
+                                <div class="doc-foot">
+                                    <div class="doc-totales">
+                                        <div><span class="k">Productos</span><span class="v" x-text="doc.nProductos"></span></div>
+                                        <div><span class="k">Total kg</span><span class="v" x-text="fmtKg(doc.totalKg)"></span></div>
+                                        <div><span class="k">Total $</span><span class="v" x-text="usd(doc.total)"></span><span class="block text-[10px] text-slate-500" x-show="doc.totalBs > 0" x-text="'Bs. ' + fmtBs(doc.totalBs)"></span></div>
+                                    <div><span class="k">Costo</span><span class="v" style="color: var(--warn)" x-text="usd(doc.costo)"></span></div>
+                                    <div><span class="k">Ganancia</span><span class="v" :style="doc.ganancia < 0 ? 'color: var(--danger)' : 'color: var(--accent-text)'" x-text="usd(doc.ganancia)"></span></div>
+                                        <div x-show="doc.credito"><span class="k">Abonado</span><span class="v" x-text="usd(doc.abonado)"></span></div>
+                                        <div x-show="doc.credito"><span class="k">Saldo</span><span class="v" :style="doc.saldo > 0 ? 'color: var(--warn)' : 'color: var(--accent-text)'" x-text="usd(doc.saldo)"></span></div>
+                                    </div>
+                                    <div class="no-print flex items-center gap-4">
+                                        <button @click="abrirFactura(doc.lineas[0])" class="text-emerald-600 hover:underline cursor-pointer font-medium text-xs">Generar Factura</button>
+                                        <button @click="eliminarDoc('venta', doc.key)" class="text-rose-600 hover:underline cursor-pointer font-medium text-xs">Eliminar factura completa</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <div class="doc-resumen" x-show="ventasDocs.length > 0">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Totales del registro</p>
+                            <div class="doc-totales">
+                                <div><span class="k">Facturas</span><span class="v" x-text="ventasTotales.docs"></span></div>
+                                <div><span class="k">Productos</span><span class="v" x-text="ventasTotales.productos"></span></div>
+                                <div><span class="k">Total kg</span><span class="v" x-text="fmtKg(ventasTotales.kg)"></span></div>
+                                <div><span class="k">Total $</span><span class="v" x-text="usd(ventasTotales.total)"></span><span class="block text-[10px] text-slate-500" x-show="ventasTotales.totalBs > 0" x-text="'Bs. ' + fmtBs(ventasTotales.totalBs)"></span></div>
+                            <div><span class="k">Costo</span><span class="v" style="color: var(--warn)" x-text="usd(ventasTotales.costo)"></span></div>
+                            <div><span class="k">Ganancia</span><span class="v" :style="ventasTotales.ganancia < 0 ? 'color: var(--danger)' : 'color: var(--accent-text)'" x-text="usd(ventasTotales.ganancia)"></span></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2313,6 +2403,44 @@
                         const costoBs = this.r2((costosBs[v.id] || 0) * v.cantidadKg);
                         return { ...v, lineasDoc: cuenta[this.claveDoc(v)] || 1, producto: prod ? prod.nombre : 'N/D', clienteNombre: cli ? this.nombreCliente(cli) : 'Cliente desconocido', total, costoUnit, costo, ganancia: this.r2(total - costo), ...bs, costoBs, gananciaBs: this.r2(bs.totalBsEst - costoBs) };
                     }).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.docId != null ? b.docId : b.id) - (a.docId != null ? a.docId : a.id) || a.id - b.id);
+                },
+                agruparDocs(lista, tipo) {
+                    const m = new Map();
+                    lista.forEach(r => { const k = this.claveDoc(r); if (!m.has(k)) m.set(k, { key: k, tipo, lineas: [] }); m.get(k).lineas.push(r); });
+                    return [...m.values()].map(d => {
+                        const L = d.lineas, p = L[0];
+                        const sum = f => this.r2(L.reduce((a, x) => a + (Number(x[f]) || 0), 0));
+                        const abonado = this.r2(L.reduce((a, x) => a + (x.abonos || []).reduce((b, y) => b + Number(y.monto || 0), 0), 0));
+                        const total = sum('total');
+                        return {
+                            ...d, id: p.id, docId: p.docId, nro: p.nro, fecha: p.fecha,
+                            contraparte: tipo === 'venta' ? p.clienteNombre : p.proveedorNombre,
+                            tipoPago: p.tipoPago, credito: p.tipoPago === 'Credito', diasCredito: Number(p.diasCredito) || 0, vence: p.vence,
+                            metodo: p.metodo, tasa: Number(p.tasa) > 0 ? Number(p.tasa) : 0, tasaFecha: p.tasaFecha,
+                            nProductos: L.length, totalKg: Math.round(L.reduce((a, x) => a + (Number(x.cantidadKg) || 0), 0) * 1000) / 1000,
+                            total, totalBs: sum('totalBs'), costo: sum('costo'), ganancia: sum('ganancia'),
+                            abonado, saldo: this.r2(Math.max(total - abonado, 0))
+                        };
+                    });
+                },
+                totalesDocs(docs) {
+                    const t = { docs: docs.length, productos: 0, kg: 0, total: 0, totalBs: 0, costo: 0, ganancia: 0 };
+                    docs.forEach(d => { t.productos += d.nProductos; t.kg += d.totalKg; t.total += d.total; t.totalBs += d.totalBs; t.costo += d.costo; t.ganancia += d.ganancia; });
+                    return { ...t, kg: Math.round(t.kg * 1000) / 1000, total: this.r2(t.total), totalBs: this.r2(t.totalBs), costo: this.r2(t.costo), ganancia: this.r2(t.ganancia) };
+                },
+                get comprasDocs() { return this.agruparDocs(this.comprasList, 'compra'); },
+                get ventasDocs() { return this.agruparDocs(this.ventasList, 'venta'); },
+                get comprasTotales() { return this.totalesDocs(this.comprasDocs); },
+                get ventasTotales() { return this.totalesDocs(this.ventasDocs); },
+                eliminarDoc(tipo, key) {
+                    const lista = this[LISTAS[tipo]];
+                    const grupo = lista.filter(x => this.claveDoc(x) === key);
+                    if (!grupo.length) return;
+                    const nombre = tipo === 'venta' ? 'venta' : 'compra';
+                    const conAbonos = grupo.some(x => (x.abonos || []).length > 0);
+                    const msg = `¿Eliminar toda la ${nombre} (${grupo.length} ${grupo.length === 1 ? 'producto' : 'productos'})${conAbonos ? ' junto con sus abonos registrados' : ''}?`;
+                    if (!confirm(msg)) return;
+                    this[LISTAS[tipo]] = lista.filter(x => this.claveDoc(x) !== key);
                 },
                 get productosRentabilidad() {
                     const map = {};
