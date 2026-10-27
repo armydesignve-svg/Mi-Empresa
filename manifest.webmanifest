@@ -3,8 +3,8 @@
   "short_name": "Mi Empresa",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#111827",
-  "theme_color": "#2563EB",
+  "background_color": "#080806",
+  "theme_color": "#A3E636",
   "icons": [
     {
       "src": "icon-192.png",
