@@ -15,7 +15,11 @@
         /* Sesión: decide ANTES de pintar si se muestra el login o la app (evita parpadeos) */
         (function () {
             var on = false;
-            try { on = localStorage.getItem('miEmpresaSession') === 'true' || sessionStorage.getItem('miEmpresaSession') === 'true'; } catch (e) {}
+            try {
+                [localStorage, sessionStorage].forEach(function (st) {
+                    if (st.getItem('miEmpresaSession') === 'true' && st.getItem('miEmpresaSb')) on = true;
+                });
+            } catch (e) {}
             document.documentElement.setAttribute('data-auth', on ? 'in' : 'out');
         })();
     </script>
@@ -640,7 +644,7 @@
         <!-- BIENVENIDA -->
         <div class="side-welcome">
             <span class="chip"><i class="live-dot"></i> Sesión activa</span>
-            <p>¡Bienvenida <span>Angely</span>!</p>
+            <p>¡Bienvenido a Mi <span>Empresa</span>!</p>
         </div>
 
         <!-- Menú -->
@@ -676,6 +680,9 @@
 
         <!-- Respaldo -->
         <div class="p-4 border-t border-slate-800 space-y-2">
+            <p class="text-[10px] font-semibold text-center flex items-center justify-center gap-1.5 pb-1" :style="(nube.estado === 'error' || nube.estado === 'offline') ? 'color: var(--warn)' : 'color: var(--muted)'">
+                <i class="live-dot" x-show="nube.estado === 'ok'"></i><span x-text="nubeTexto"></span>
+            </p>
             <button @click="exportarDatos" class="btn-side">
                 <svg class="ic text-base" aria-hidden="true"><use href="#ic-file_download"/></svg> Descargar
             </button>
@@ -1928,6 +1935,8 @@
                 gastos: [],        // { id, titulo, monto, fecha, categoria, metodo, tasa }
                 prestamos: [],     // { id, prestamista, monto, interes, fecha, periodicidad }
                 _ultimoId: 0,
+                nube: { estado: '', ultima: null },
+                _nubeListo: false, _nubeJson: '', _nubeT: null, _nubePushing: false, _nubeRepetir: false,
 
                 metodosTx: ['BCV', 'USDT', 'EUR', 'Efectivo'],
                 metodosGasto: ['Efectivo', 'Pago móvil', 'USDT'],
@@ -2929,6 +2938,84 @@
                     this.scheduleCharts();
                 },
 
+                // ===================== RESPALDO AUTOMÁTICO EN SUPABASE =====================
+                get nubeTexto() {
+                    const e = this.nube.estado;
+                    if (e === 'sync') return 'Sincronizando con la nube…';
+                    if (e === 'guardando') return 'Guardando en la nube…';
+                    if (e === 'ok') return 'Respaldado en la nube' + (this.nube.ultima ? ' · ' + this.nube.ultima.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }) : '');
+                    if (e === 'offline') return 'Sin conexión · se respaldará al volver';
+                    if (e === 'error') return 'No se pudo respaldar · reintentando';
+                    return 'Respaldo en la nube';
+                },
+                async nubeIniciar() {
+                    if (!window.SB || !SB.tieneSesion() || this._nubeListo) return;
+                    this.nube.estado = 'sync';
+                    try {
+                        const remoto = await SB.leer();
+                        const total = this.proveedores.length + this.clientes.length + this.productos.length + this.compras.length + this.ventas.length + this.gastos.length + this.prestamos.length;
+                        const ultimo = localStorage.getItem('mn_nube_sync') || '';
+                        const sucio = localStorage.getItem('mn_nube_sucio') === '1' || (ultimo === '' && total > 0);
+                        if (!remoto) {
+                            this._nubeListo = true;
+                            if (total > 0) await this.nubePush(); else { this._nubeJson = JSON.stringify(this.snapshot()); this.nube.estado = 'ok'; }
+                            return;
+                        }
+                        const remotoCambio = remoto.updated_at !== ultimo;
+                        let usarNube = false;
+                        if (total === 0) usarNube = true;
+                        else if (remotoCambio && !sucio) usarNube = true;
+                        else if (remotoCambio && sucio) {
+                            usarNube = confirm('Se encontró un respaldo en la nube (' + new Date(remoto.updated_at).toLocaleString('es-VE') + ') distinto a los datos de este equipo.\n\nAceptar: usar los datos de la NUBE (reemplaza los de este equipo).\nCancelar: conservar los de ESTE equipo (reemplaza la nube).');
+                        }
+                        if (usarNube) {
+                            try { if (total > 0) localStorage.setItem('mn_local_previo', JSON.stringify(this.snapshot())); } catch (e) {}
+                            this.aplicarDatos(remoto.datos);
+                            this._nubeJson = JSON.stringify(this.snapshot());
+                            try { localStorage.setItem('mn_nube_sync', remoto.updated_at); localStorage.setItem('mn_nube_sucio', '0'); } catch (e) {}
+                            this.nube.estado = 'ok'; this.nube.ultima = new Date(remoto.updated_at);
+                            this._nubeListo = true;
+                        } else {
+                            this._nubeListo = true;
+                            if (sucio || remotoCambio) await this.nubePush();
+                            else { this._nubeJson = JSON.stringify(this.snapshot()); this.nube.estado = 'ok'; this.nube.ultima = new Date(remoto.updated_at); }
+                        }
+                    } catch (e) { this.nubeError(e); }
+                },
+                nubeCambio(v) {
+                    if (v === this._nubeJson) return;
+                    if (!window.SB || !SB.tieneSesion()) return;
+                    try { localStorage.setItem('mn_nube_sucio', '1'); } catch (e) {}
+                    if (!this._nubeListo) return;
+                    clearTimeout(this._nubeT);
+                    this._nubeT = setTimeout(() => this.nubePush(), 4000);
+                },
+                async nubePush() {
+                    if (!window.SB || !SB.tieneSesion()) return;
+                    clearTimeout(this._nubeT);
+                    if (this._nubePushing) { this._nubeRepetir = true; return; }
+                    this._nubePushing = true; this.nube.estado = 'guardando';
+                    try {
+                        const json = JSON.stringify(this.snapshot());
+                        const fila = await SB.guardar(JSON.parse(json));
+                        try { localStorage.setItem('mn_nube_sync', fila.updated_at); } catch (e) {}
+                        this._nubeJson = json;
+                        if (JSON.stringify(this.snapshot()) === json) { try { localStorage.setItem('mn_nube_sucio', '0'); } catch (e) {} }
+                        this.nube.estado = 'ok'; this.nube.ultima = new Date();
+                    } catch (e) { this.nubeError(e); }
+                    finally {
+                        this._nubePushing = false;
+                        if (this._nubeRepetir) { this._nubeRepetir = false; this._nubeT = setTimeout(() => this.nubePush(), 1000); }
+                    }
+                },
+                nubeError(e) {
+                    if (e && e.sinSesion) { location.reload(); return; }
+                    this.nube.estado = e && e.offline ? 'offline' : 'error';
+                    console.warn('Respaldo en la nube:', e);
+                    clearTimeout(this._nubeT);
+                    this._nubeT = setTimeout(() => (this._nubeListo ? this.nubePush() : this.nubeIniciar()), e && e.offline ? 15000 : 30000);
+                },
+
                 // ===================== INICIO =====================
                 init() {
                     this.cargarGuardado();
@@ -2938,7 +3025,12 @@
                     this.restaurarTasas();
                     this.cargarTasas();
                     window.addEventListener('online', () => this.cargarTasas());
-                    this.$watch(() => JSON.stringify(this.snapshot()), () => { this.guardarTodoDiferido(); this.scheduleCharts(); });
+                    this.$watch(() => JSON.stringify(this.snapshot()), (v) => { this.guardarTodoDiferido(); this.scheduleCharts(); this.nubeCambio(v); });
+                    window.addEventListener('online', () => { if (this._nubeListo) this.nubePush(); else this.nubeIniciar(); });
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'hidden' && this._nubeListo && localStorage.getItem('mn_nube_sucio') === '1') this.nubePush();
+                    });
+                    this.nubeIniciar();
                     this.$watch('currentTab', () => { window.scrollTo({ top: 0 }); this.scheduleCharts(); });
                     this.$watch('periodo', () => this.scheduleCharts());
                     this.scheduleCharts();
@@ -2989,18 +3081,88 @@
         }
     </script>
     <script>
+        /* ============ SUPABASE (login + respaldo) ============ */
+        window.SB = (function () {
+            var URL = 'https://jtjpwwzrxinlxtiphhhw.supabase.co';
+            var KEY = 'sb_publishable_TnMlNwMVgoHcty7f06_ibg_XKRwm2Md';
+            var SK = 'miEmpresaSb', FLAG = 'miEmpresaSession';
+            function leerSes() { try { var r = localStorage.getItem(SK) || sessionStorage.getItem(SK); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+            function guardarSes(s, recordar) {
+                try {
+                    var st = recordar == null ? (localStorage.getItem(SK) ? localStorage : sessionStorage) : (recordar ? localStorage : sessionStorage);
+                    st.setItem(SK, JSON.stringify(s));
+                } catch (e) {}
+            }
+            function limpiar() { try { [localStorage, sessionStorage].forEach(function (st) { st.removeItem(SK); st.removeItem(FLAG); }); } catch (e) {} }
+            async function llamar(path, opt) {
+                var res;
+                try { res = await fetch(URL + path, opt); } catch (e) { var er = new Error('offline'); er.offline = true; throw er; }
+                var txt = await res.text(), json = null;
+                try { json = txt ? JSON.parse(txt) : null; } catch (e) {}
+                if (!res.ok) {
+                    var err = new Error((json && (json.msg || json.error_description || json.message)) || ('HTTP ' + res.status));
+                    err.status = res.status; throw err;
+                }
+                return json;
+            }
+            function aSesion(r) {
+                return { access_token: r.access_token, refresh_token: r.refresh_token, expires_at: r.expires_at || (Math.floor(Date.now() / 1000) + (r.expires_in || 3600)), user_id: r.user && r.user.id, email: r.user && r.user.email };
+            }
+            var refrescando = null;
+            async function token() {
+                var s = leerSes();
+                if (!s) { var e = new Error('sin sesión'); e.sinSesion = true; throw e; }
+                if (s.expires_at - 60 > Date.now() / 1000) return s;
+                if (!refrescando) {
+                    refrescando = (async function () {
+                        try {
+                            var r = await llamar('/auth/v1/token?grant_type=refresh_token', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ refresh_token: s.refresh_token }) });
+                            var n = aSesion(r);
+                            if (!n.user_id) { n.user_id = s.user_id; n.email = s.email; }
+                            guardarSes(n); return n;
+                        } catch (e) {
+                            if (e.status === 400 || e.status === 401 || e.status === 403) { limpiar(); e.sinSesion = true; }
+                            throw e;
+                        }
+                    })().finally(function () { refrescando = null; });
+                }
+                return refrescando;
+            }
+            async function rest(path, opt) {
+                var s = await token();
+                opt.headers = Object.assign({ apikey: KEY, Authorization: 'Bearer ' + s.access_token, 'Content-Type': 'application/json' }, opt.headers || {});
+                return llamar(path, opt);
+            }
+            return {
+                tieneSesion: function () { return !!leerSes(); },
+                entrar: async function (email, pass, recordar) {
+                    var r = await llamar('/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, password: pass }) });
+                    limpiar();
+                    guardarSes(aSesion(r), recordar);
+                    try { (recordar ? localStorage : sessionStorage).setItem(FLAG, 'true'); } catch (e) {}
+                    return r;
+                },
+                salir: limpiar,
+                leer: async function () {
+                    var r = await rest('/rest/v1/respaldos?select=datos,updated_at&limit=1', { method: 'GET' });
+                    return (r && r[0]) || null;
+                },
+                guardar: async function (datos) {
+                    var s = await token();
+                    var r = await rest('/rest/v1/respaldos?on_conflict=user_id', {
+                        method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+                        body: JSON.stringify({ user_id: s.user_id, datos: datos, updated_at: new Date().toISOString() })
+                    });
+                    return r[0];
+                }
+            };
+        })();
+    </script>
+    <script>
         /* ============ LOGIN ============ */
         (function () {
-            /* Acceso guardado "cifrado" (SHA-256 de correo|clave). Si cambias los datos, hay que generar un código nuevo. */
-            var ACCESS_HASH = 'e896ddfe6e7f2483898c06ac62a533e6387347b6ad6134fd6126c71e5ae9f009';
-            var SESSION_KEY = 'miEmpresaSession';
             var $ = function (id) { return document.getElementById(id); };
             var card = $('lg-card');
-
-            async function sha256(text) {
-                var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-                return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
-            }
 
             /* Tema: usa el mismo de la app (Alpine) */
             $('lg-theme-btn').addEventListener('click', function () {
@@ -3051,37 +3213,34 @@
                 if (!email || !pass) { showError('Escribe tu correo y tu contraseña'); return; }
 
                 setLoading(true);
-                await new Promise(function (r) { setTimeout(r, 700); });
-
-                var ok = false;
                 try {
-                    ok = (await sha256(email + '|' + pass)) === ACCESS_HASH;
+                    await SB.entrar(email, pass, $('lg-remember').checked);
                 } catch (err) {
                     setLoading(false);
-                    showError('Abre este archivo desde https o localhost para poder validar');
+                    if (err && err.offline) showError('No se pudo conectar. Revisa tu internet.');
+                    else if (err && (err.status === 400 || err.status === 401)) { showError('Correo o contraseña incorrectos'); $('lg-password').value = ''; $('lg-password').focus(); }
+                    else showError((err && err.message) || 'No se pudo iniciar sesión');
                     return;
                 }
-                if (!ok) {
-                    setLoading(false);
-                    showError('Correo o contraseña incorrectos');
-                    $('lg-password').value = '';
-                    $('lg-password').focus();
-                    return;
-                }
-
-                try { (($('lg-remember').checked) ? localStorage : sessionStorage).setItem(SESSION_KEY, 'true'); } catch (err) {}
 
                 $('lg-login-box').hidden = true;
                 $('lg-success').hidden = false;
                 setTimeout(function () {
                     document.documentElement.setAttribute('data-auth', 'in');
                     window.dispatchEvent(new Event('resize')); /* que las gráficas se ajusten */
+                    try { Alpine.$data(document.body).nubeIniciar(); } catch (e) {}
                 }, 1200);
             });
 
             /* Cerrar sesión (lo usa el botón del header) */
-            window.cerrarSesion = function () {
-                try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch (e) {}
+            window.cerrarSesion = async function () {
+                try {
+                    if (localStorage.getItem('mn_nube_sucio') === '1') {
+                        var app = Alpine.$data(document.body);
+                        await Promise.race([app.nubePush(), new Promise(function (r) { setTimeout(r, 3000); })]);
+                    }
+                } catch (e) {}
+                SB.salir();
                 location.reload();
             };
         })();
