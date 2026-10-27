@@ -1062,7 +1062,24 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div class="card-box p-6 space-y-4 self-start">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-receipt_long"/></svg><span>Registrar Compra a Proveedor</span></h3>
-                    <p x-show="proveedores.length === 0 || productos.length === 0" class="text-[11px] px-1" style="color: var(--warn)">Registre primero al menos un proveedor y un producto en el menú Registro.</p><div class="space-y-3"><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="form.compra.fecha" @change="asegurarTasasFecha(form.compra.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Proveedor</label><select x-model="form.compra.proveedorId" @change="alElegirProveedor(form.compra)" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione proveedor...</option><template x-for="p in proveedores" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(form.compra.proveedorId)" x-text="nombreProveedor(p)"></option></template></select></div><div class="space-y-1"><label class="flabel">Producto</label><select x-model="form.compra.productoId"  class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option><template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(form.compra.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="form.compra.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="form.compra.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.compra.metodo" @change="aplicarTasa(form.compra)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === form.compra.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.compra.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.compra.metodo, form.compra.fecha) > 0 ? fmtTasa(tasaOperacion(form.compra.metodo, form.compra.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(Number(form.compra.precioKg) * Number(form.compra.cantidadKg), form.compra)"></p><div class="space-y-1"><label class="flabel">Condición de pago</label><select x-model="form.compra.tipoPago" :disabled="false" class="field w-full px-3 py-2.5 text-xs"><option value="Contado">Contado</option><option value="Credito">Crédito (Cuenta por Pagar)</option></select></div><div class="space-y-1" x-show="form.compra.tipoPago === 'Credito'"><label class="flabel">Días de crédito</label><input type="number" x-model.number="form.compra.diasCredito" placeholder="Opcional" min="0" :disabled="false" class="field w-full px-4 py-2.5 text-xs"></div><p x-show="false" class="text-[11px] text-slate-500 px-1">Esta compra ya tiene pagos registrados: su condición de pago no puede cambiarse.</p></div>
+                    <p x-show="proveedores.length === 0 || productos.length === 0" class="text-[11px] px-1" style="color: var(--warn)">Registre primero al menos un proveedor y un producto en el menú Registro.</p><div class="space-y-3"><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="form.compra.fecha" @change="asegurarTasasFecha(form.compra.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Proveedor</label><select x-model="form.compra.proveedorId" @change="alElegirProveedor(form.compra)" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione proveedor...</option><template x-for="p in proveedores" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(form.compra.proveedorId)" x-text="nombreProveedor(p)"></option></template></select></div><div class="space-y-3">
+                        <template x-for="(it, i) in form.compra.items" :key="it.k">
+                            <div class="rounded-2xl p-3 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
+                                <div class="flex items-center justify-between">
+                                    <span class="flabel" x-text="'Producto ' + (i + 1)"></span>
+                                    <button type="button" x-show="form.compra.items.length > 1" @click="quitarLinea('compra', i)" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                                </div>
+                                <select x-model="it.productoId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option>
+                                    <template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(it.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="it.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div>
+                                    <div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="it.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div>
+                                </div>
+                                <p class="text-[11px] text-slate-500 text-right" x-show="Number(it.precioKg) > 0 && Number(it.cantidadKg) > 0" x-text="'Subtotal: ' + usd(Number(it.precioKg) * Number(it.cantidadKg))"></p>
+                            </div>
+                        </template>
+                        <button type="button" @click="agregarLinea('compra')" class="btn-ghost w-full py-2 text-xs">+ Agregar otro producto</button>
+                    </div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.compra.metodo" @change="aplicarTasa(form.compra)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === form.compra.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.compra.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.compra.metodo, form.compra.fecha) > 0 ? fmtTasa(tasaOperacion(form.compra.metodo, form.compra.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(totalItems(form.compra), form.compra)"></p><div class="space-y-1"><label class="flabel">Condición de pago</label><select x-model="form.compra.tipoPago" :disabled="false" class="field w-full px-3 py-2.5 text-xs"><option value="Contado">Contado</option><option value="Credito">Crédito (Cuenta por Pagar)</option></select></div><div class="space-y-1" x-show="form.compra.tipoPago === 'Credito'"><label class="flabel">Días de crédito</label><input type="number" x-model.number="form.compra.diasCredito" placeholder="Opcional" min="0" :disabled="false" class="field w-full px-4 py-2.5 text-xs"></div><p x-show="false" class="text-[11px] text-slate-500 px-1">Esta compra ya tiene pagos registrados: su condición de pago no puede cambiarse.</p></div>
                     <p x-show="err.compra" x-text="err.compra" class="text-xs font-medium" style="color: var(--danger)"></p>
                     <button @click="crear('compra')" class="btn-primary w-full py-2.5 text-xs">Registrar Compra</button>
                 </div>
@@ -1101,7 +1118,7 @@
                                     <tr>
 <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap" x-text="fmtFecha(r.fecha)"></td>
 <td class="py-2.5 px-3 text-slate-900 font-medium"><span x-text="r.proveedorNombre"></span> <span x-show="r.tipoPago === 'Credito'" class="badge badge-info ml-1">Crédito</span></td>
-<td class="py-2.5 px-3 text-slate-600" x-text="r.producto"></td>
+<td class="py-2.5 px-3 text-slate-600"><span x-text="r.producto"></span> <span x-show="r.lineasDoc > 1" class="badge badge-info ml-1" x-text="r.lineasDoc + ' prod.'"></span></td>
 <td class="py-2.5 px-3 text-slate-600" x-text="fmtKg(r.cantidadKg)"></td>
 <td class="py-2.5 px-3 text-slate-600"><span class="block" x-text="usd(r.precioKg)"></span><span class="block text-[10px] text-slate-500" x-text="r.precioKgBs > 0 ? 'Bs. ' + fmtBs(r.precioKgBs) : ''"></span></td>
 <td class="py-2.5 px-3"><span class="block text-emerald-600 font-bold" x-text="usd(r.total)"></span><span class="block text-[10px] text-slate-500" x-text="r.totalBs > 0 ? 'Bs. ' + fmtBs(r.totalBs) : ''"></span><span class="block text-[10px] text-slate-400" x-show="r.totalBs > 0" x-text="'Tasa ' + fmtTasa(r.tasa) + ' · ' + fmtFecha(r.tasaFecha)"></span></td>
@@ -1120,7 +1137,25 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div class="card-box p-6 space-y-4 self-start">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-shopping_cart"/></svg><span>Registrar Venta / Pedido</span></h3>
-                    <p x-show="clientes.length === 0 || productos.length === 0" class="text-[11px] px-1" style="color: var(--warn)">Registre primero al menos un cliente y un producto en el menú Registro.</p><div class="space-y-3"><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="form.venta.fecha" @change="asegurarTasasFecha(form.venta.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Cliente</label><select x-model="form.venta.clienteId"  class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione cliente...</option><template x-for="c in clientes" :key="c.id"><option :value="c.id" :selected="String(c.id) === String(form.venta.clienteId)" x-text="nombreCliente(c)"></option></template></select></div><div class="space-y-1"><label class="flabel">Producto</label><select x-model="form.venta.productoId"  class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option><template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(form.venta.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select></div><p x-show="form.venta.productoId !== '' && form.venta.productoId != null" class="text-[11px] px-1" :style="existenciaDe(Number(form.venta.productoId), null) < Number(form.venta.cantidadKg || 0) ? 'color: var(--warn)' : 'color: var(--muted)'" x-text="'Existencia: ' + fmtKg(existenciaDe(Number(form.venta.productoId), null)) + ' kg'"></p><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="form.venta.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="form.venta.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.venta.metodo" @change="aplicarTasa(form.venta)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === form.venta.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.venta.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.venta.metodo, form.venta.fecha) > 0 ? fmtTasa(tasaOperacion(form.venta.metodo, form.venta.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(Number(form.venta.precioKg) * Number(form.venta.cantidadKg), form.venta)"></p><div class="space-y-1"><label class="flabel">Días de crédito (0 = contado)</label><input type="number" x-model.number="form.venta.diasCredito" placeholder="0" min="0" :disabled="false" class="field w-full px-4 py-2.5 text-xs"></div><p x-show="false" class="text-[11px] text-slate-500 px-1">Esta venta ya tiene abonos registrados: sus días de crédito no pueden cambiarse.</p></div>
+                    <p x-show="clientes.length === 0 || productos.length === 0" class="text-[11px] px-1" style="color: var(--warn)">Registre primero al menos un cliente y un producto en el menú Registro.</p><div class="space-y-3"><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="form.venta.fecha" @change="asegurarTasasFecha(form.venta.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Cliente</label><select x-model="form.venta.clienteId"  class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione cliente...</option><template x-for="c in clientes" :key="c.id"><option :value="c.id" :selected="String(c.id) === String(form.venta.clienteId)" x-text="nombreCliente(c)"></option></template></select></div><div class="space-y-3">
+                        <template x-for="(it, i) in form.venta.items" :key="it.k">
+                            <div class="rounded-2xl p-3 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
+                                <div class="flex items-center justify-between">
+                                    <span class="flabel" x-text="'Producto ' + (i + 1)"></span>
+                                    <button type="button" x-show="form.venta.items.length > 1" @click="quitarLinea('venta', i)" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                                </div>
+                                <select x-model="it.productoId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option>
+                                    <template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(it.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select>
+                            <p x-show="it.productoId !== '' && it.productoId != null" class="text-[11px] px-1" :style="existenciaDe(Number(it.productoId), null) < kgEnForm(form.venta.items, it.productoId) ? 'color: var(--warn)' : 'color: var(--muted)'" x-text="'Existencia: ' + fmtKg(existenciaDe(Number(it.productoId), null)) + ' kg'"></p>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="it.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div>
+                                    <div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="it.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div>
+                                </div>
+                                <p class="text-[11px] text-slate-500 text-right" x-show="Number(it.precioKg) > 0 && Number(it.cantidadKg) > 0" x-text="'Subtotal: ' + usd(Number(it.precioKg) * Number(it.cantidadKg))"></p>
+                            </div>
+                        </template>
+                        <button type="button" @click="agregarLinea('venta')" class="btn-ghost w-full py-2 text-xs">+ Agregar otro producto</button>
+                    </div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.venta.metodo" @change="aplicarTasa(form.venta)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === form.venta.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.venta.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.venta.metodo, form.venta.fecha) > 0 ? fmtTasa(tasaOperacion(form.venta.metodo, form.venta.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(totalItems(form.venta), form.venta)"></p><div class="space-y-1"><label class="flabel">Días de crédito (0 = contado)</label><input type="number" x-model.number="form.venta.diasCredito" placeholder="0" min="0" :disabled="false" class="field w-full px-4 py-2.5 text-xs"></div><p x-show="false" class="text-[11px] text-slate-500 px-1">Esta venta ya tiene abonos registrados: sus días de crédito no pueden cambiarse.</p></div>
                     <p x-show="err.venta" x-text="err.venta" class="text-xs font-medium" style="color: var(--danger)"></p>
                     <button @click="crear('venta')" class="btn-primary w-full py-2.5 text-xs">Registrar Venta</button>
                 </div>
@@ -1137,7 +1172,7 @@
                                     <tr>
 <td class="py-2.5 px-3 text-slate-500 whitespace-nowrap" x-text="fmtFecha(r.fecha)"></td>
 <td class="py-2.5 px-3 text-slate-900 font-medium"><span x-text="r.clienteNombre"></span> <span x-show="r.tipoPago === 'Credito'" class="badge badge-info ml-1" x-text="`Crédito ${r.diasCredito} d`"></span></td>
-<td class="py-2.5 px-3 text-slate-600" x-text="r.producto"></td>
+<td class="py-2.5 px-3 text-slate-600"><span x-text="r.producto"></span> <span x-show="r.lineasDoc > 1" class="badge badge-info ml-1" x-text="r.lineasDoc + ' prod.'"></span></td>
 <td class="py-2.5 px-3 text-slate-600" x-text="fmtKg(r.cantidadKg)"></td>
 <td class="py-2.5 px-3 text-slate-600"><span class="block" x-text="usd(r.precioKg)"></span><span class="block text-[10px] text-slate-500" x-text="r.precioKgBs > 0 ? 'Bs. ' + fmtBs(r.precioKgBs) : ''"></span></td>
 <td class="py-2.5 px-3"><span class="block text-slate-900 font-semibold" x-text="usd(r.total)"></span><span class="block text-[10px] text-slate-500" x-text="r.totalBs > 0 ? 'Bs. ' + fmtBs(r.totalBs) : ''"></span><span class="block text-[10px] text-slate-400" x-show="r.totalBs > 0" x-text="'Tasa ' + fmtTasa(r.tasa) + ' · ' + fmtFecha(r.tasaFecha)"></span></td>
@@ -1674,13 +1709,17 @@
                 </div>
                 <table class="fx-table">
                     <thead><tr><th>Producto</th><th class="num">Cant. (kg)</th><th class="num">Precio $/kg</th><th class="num">Subtotal $</th><th class="num">Subtotal Bs.</th></tr></thead>
-                    <tbody><tr>
-                        <td x-text="factura.d.producto"></td>
-                        <td class="num" x-text="fmtKg(factura.d.cantidadKg)"></td>
-                        <td class="num"><span x-text="usd(factura.d.precioKg)"></span><span class="fx-sub fx-col-extra" x-show="factura.d.precioKgBs > 0" x-text="'Bs. ' + fmtBs(factura.d.precioKgBs)"></span></td>
-                        <td class="num" x-text="usd(factura.d.total)"></td>
-                        <td class="num" x-text="factura.d.totalBs > 0 ? 'Bs. ' + fmtBs(factura.d.totalBs) : '—'"></td>
-                    </tr></tbody>
+                    <tbody>
+                        <template x-for="(it, i) in factura.d.items" :key="i">
+                            <tr>
+                                <td x-text="it.producto"></td>
+                                <td class="num" x-text="fmtKg(it.cantidadKg)"></td>
+                                <td class="num"><span x-text="usd(it.precioKg)"></span><span class="fx-sub fx-col-extra" x-show="it.precioKgBs > 0" x-text="'Bs. ' + fmtBs(it.precioKgBs)"></span></td>
+                                <td class="num" x-text="usd(it.total)"></td>
+                                <td class="num" x-text="it.totalBs > 0 ? 'Bs. ' + fmtBs(it.totalBs) : '—'"></td>
+                            </tr>
+                        </template>
+                    </tbody>
                 </table>
                 <div class="fx-totales">
                     <div class="fx-total"><span>Total $</span><span x-text="usd(factura.d.total)"></span></div>
@@ -1790,8 +1829,8 @@
                 proveedores: [],   // { id, nombre, apellido, telefono, tipoPago, diasCredito }
                 clientes: [],      // { id, nombre, negocio, rif, direccion }
                 productos: [],     // { id, nombre, codigo }
-                compras: [],       // { id, fecha, proveedorId, productoId, precioKg, cantidadKg, metodo, tasa, tasaEur, tipoPago, diasCredito, vence, abonos[] }
-                ventas: [],        // { id, fecha, clienteId, productoId, precioKg, cantidadKg, metodo, tasa, tasaEur, tipoPago, diasCredito, vence, abonos[] }
+                compras: [],       // { id, docId, fecha, proveedorId, productoId, precioKg, cantidadKg, metodo, tasa, tasaEur, tipoPago, diasCredito, vence, abonos[] }
+                ventas: [],        // { id, docId, nro, fecha, clienteId, productoId, precioKg, cantidadKg, metodo, tasa, tasaEur, tipoPago, diasCredito, vence, abonos[] }
                 gastos: [],        // { id, titulo, monto, fecha, categoria, metodo, tasa }
                 prestamos: [],     // { id, prestamista, monto, interes, fecha, periodicidad }
                 _ultimoId: 0,
@@ -1805,8 +1844,8 @@
                     proveedor: { nombre: '', apellido: '', telefono: '', tipoPago: 'Contado', diasCredito: '' },
                     cliente: { nombre: '', negocio: '', rif: '', direccion: '' },
                     producto: { nombre: '', codigo: '' },
-                    compra: { fecha: '', proveedorId: '', productoId: '', precioKg: '', cantidadKg: '', metodo: 'BCV', tasa: '', tipoPago: 'Contado', diasCredito: '' },
-                    venta: { fecha: '', clienteId: '', productoId: '', precioKg: '', cantidadKg: '', metodo: 'BCV', tasa: '', diasCredito: '' },
+                    compra: { fecha: '', proveedorId: '', items: [{ k: 0, productoId: '', precioKg: '', cantidadKg: '' }], metodo: 'BCV', tasa: '', tipoPago: 'Contado', diasCredito: '' },
+                    venta: { fecha: '', clienteId: '', items: [{ k: 0, productoId: '', precioKg: '', cantidadKg: '' }], metodo: 'BCV', tasa: '', diasCredito: '' },
                     gasto: { titulo: '', monto: '', fecha: '', categoria: '', metodo: 'Efectivo', tasa: '' },
                     prestamo: { prestamista: '', monto: '', interes: '', fecha: '', periodicidad: 'Mensual' }
                 },
@@ -1823,8 +1862,8 @@
                         proveedor: { nombre: '', apellido: '', telefono: '', tipoPago: 'Contado', diasCredito: '' },
                         cliente: { nombre: '', negocio: '', rif: '', direccion: '' },
                         producto: { nombre: '', codigo: '' },
-                        compra: { fecha: h, proveedorId: '', productoId: '', precioKg: '', cantidadKg: '', metodo: 'BCV', tasa: '', tipoPago: 'Contado', diasCredito: '' },
-                        venta: { fecha: h, clienteId: '', productoId: '', precioKg: '', cantidadKg: '', metodo: 'BCV', tasa: '', diasCredito: '' },
+                        compra: { fecha: h, proveedorId: '', items: [this.itemVacio()], metodo: 'BCV', tasa: '', tipoPago: 'Contado', diasCredito: '' },
+                        venta: { fecha: h, clienteId: '', items: [this.itemVacio()], metodo: 'BCV', tasa: '', diasCredito: '' },
                         gasto: { titulo: '', monto: '', fecha: h, categoria: '', metodo: 'Efectivo', tasa: '' },
                         prestamo: { prestamista: '', monto: '', interes: '', fecha: h, periodicidad: 'Mensual' }
                     };
@@ -1855,16 +1894,12 @@
                         case 'compra':
                             if (!d.fecha) return 'Indique la fecha de la compra.';
                             if (d.proveedorId === '' || d.proveedorId == null) return 'Seleccione un proveedor.';
-                            if (d.productoId === '' || d.productoId == null) return 'Seleccione un producto.';
-                            if (!(num(d.precioKg) > 0)) return 'Ingrese el precio por kilo.';
-                            if (!(num(d.cantidadKg) > 0)) return 'Ingrese la cantidad en kilos.';
+                            { const ei = this.validarLineas(d); if (ei) return ei; }
                             return '';
                         case 'venta':
                             if (!d.fecha) return 'Indique la fecha de la venta.';
                             if (d.clienteId === '' || d.clienteId == null) return 'Seleccione un cliente.';
-                            if (d.productoId === '' || d.productoId == null) return 'Seleccione un producto.';
-                            if (!(num(d.precioKg) > 0)) return 'Ingrese el precio por kilo.';
-                            if (!(num(d.cantidadKg) > 0)) return 'Ingrese la cantidad en kilos.';
+                            { const ei = this.validarLineas(d); if (ei) return ei; }
                             if (d.diasCredito !== '' && d.diasCredito != null && !(num(d.diasCredito) >= 0)) return 'Los días de crédito no son válidos.';
                             return '';
                         case 'gasto':
@@ -1961,20 +1996,63 @@
                     }
                     return true;
                 },
+                // ---------- Varios productos por compra / venta ----------
+                itemVacio() { this._kLinea = (this._kLinea || 0) + 1; return { k: this._kLinea, productoId: '', precioKg: '', cantidadKg: '' }; },
+                agregarLinea(tipo) { this.form[tipo].items.push(this.itemVacio()); },
+                quitarLinea(tipo, i) { if (this.form[tipo].items.length > 1) this.form[tipo].items.splice(i, 1); },
+                totalItems(d) { return this.r2((d.items || []).reduce((a, it) => a + (Number(it.precioKg) || 0) * (Number(it.cantidadKg) || 0), 0)); },
+                kgEnForm(items, productoId) { return (items || []).filter(it => String(it.productoId) === String(productoId)).reduce((a, it) => a + (Number(it.cantidadKg) || 0), 0); },
+                // Valida las líneas (formulario con items) o los campos sueltos (modal de edición de una línea)
+                validarLineas(d) {
+                    const num = v => Number(v);
+                    const una = (x, pre) => {
+                        if (x.productoId === '' || x.productoId == null) return pre + 'Seleccione un producto.';
+                        if (!(num(x.precioKg) > 0)) return pre + 'Ingrese el precio por kilo.';
+                        if (!(num(x.cantidadKg) > 0)) return pre + 'Ingrese la cantidad en kilos.';
+                        return '';
+                    };
+                    if (!Array.isArray(d.items)) return una(d, '');
+                    if (d.items.length === 0) return 'Agregue al menos un producto.';
+                    for (let i = 0; i < d.items.length; i++) {
+                        const e = una(d.items[i], d.items.length > 1 ? `Producto ${i + 1}: ` : '');
+                        if (e) return e;
+                    }
+                    return '';
+                },
+                confirmarStockItems(items) {
+                    const porProd = {};
+                    items.forEach(it => { porProd[it.productoId] = (porProd[it.productoId] || 0) + Number(it.cantidadKg); });
+                    const faltan = Object.keys(porProd).filter(pid => porProd[pid] > this.existenciaDe(Number(pid), null) + 0.0001).map(pid => {
+                        const p = this.productos.find(x => String(x.id) === String(pid));
+                        return `• ${p ? p.nombre : 'Producto'}: ${this.fmtKg(porProd[pid])} kg (existencia ${this.fmtKg(Math.max(this.existenciaDe(Number(pid), null), 0))} kg)`;
+                    });
+                    if (!faltan.length) return true;
+                    return confirm(`La cantidad supera la existencia actual en:\n${faltan.join('\n')}\n\n¿Registrar la venta de todos modos?`);
+                },
+                claveDoc(r) { return r.docId != null ? `${r.docId}|${r.clienteId != null ? r.clienteId : r.proveedorId}|${r.fecha}` : `i${r.id}`; },
                 async crear(tipo) {
                     const d = this.form[tipo];
                     const e = this.validarEntidad(tipo, d, null);
                     if (e) { this.err[tipo] = e; return; }
-                    if (tipo === 'venta' && !this.confirmarStock(d, null)) return;
+                    const multi = tipo === 'compra' || tipo === 'venta';
+                    if (tipo === 'venta' && !this.confirmarStockItems(d.items)) return;
                     if (this._guardando) return;
                     if (['compra', 'venta', 'gasto', 'prestamo'].includes(tipo)) {
                         this._guardando = true;
                         try { await this.asegurarTasasFecha(d.fecha); } finally { this._guardando = false; }
                     }
-                    const item = { id: this.nuevoId(), ...this.normalizarEntidad(tipo, d, null) };
-                    if (tipo === 'compra' || tipo === 'venta') item.abonos = [];
-                    this[LISTAS[tipo]].push(item);
-                    if (tipo === 'venta') this.asegurarNumeros();
+                    if (multi) {
+                        // Un registro por producto, unidos por el mismo docId (mismo pedido / factura)
+                        const docId = this.nuevoId();
+                        d.items.forEach(it => {
+                            const linea = { ...d, productoId: it.productoId, precioKg: it.precioKg, cantidadKg: it.cantidadKg };
+                            this[LISTAS[tipo]].push({ id: this.nuevoId(), docId, ...this.normalizarEntidad(tipo, linea, null), abonos: [] });
+                        });
+                        if (tipo === 'venta') this.asegurarNumeros();
+                    } else {
+                        const item = { id: this.nuevoId(), ...this.normalizarEntidad(tipo, d, null) };
+                        this[LISTAS[tipo]].push(item);
+                    }
                     this.resetForm(tipo);
                 },
                 abrirModal(tipo, item) {
@@ -2002,7 +2080,9 @@
                     if (tipo === 'venta' && !this.confirmarStock(data, id)) return;
                     if (['compra', 'venta', 'gasto', 'prestamo'].includes(tipo)) await this.asegurarTasasFecha(data.fecha);
                     const nuevo = this.normalizarEntidad(tipo, data, orig);
+                    const sale = orig.docId != null && (nuevo.fecha !== orig.fecha || (tipo === 'venta' ? nuevo.clienteId !== orig.clienteId : nuevo.proveedorId !== orig.proveedorId));
                     Object.assign(orig, nuevo);
+                    if (sale) { orig.docId = this.nuevoId(); if (tipo === 'venta') { delete orig.nro; this.asegurarNumeros(); } }
                     this.cerrarModal();
                 },
                 usosDe(tipo, id) {
@@ -2209,14 +2289,16 @@
                     }).sort((a, b) => a.nombre.localeCompare(b.nombre));
                 },
                 get comprasList() {
+                    const cuenta = {}; this.compras.forEach(c => { const k = this.claveDoc(c); cuenta[k] = (cuenta[k] || 0) + 1; });
                     return this.compras.map(c => {
                         const prod = this.productos.find(p => p.id === c.productoId);
                         const prov = this.proveedores.find(p => p.id === c.proveedorId);
-                        return { ...c, producto: prod ? prod.nombre : 'N/D', proveedorNombre: prov ? this.nombreProveedor(prov) : 'Desconocido', total: this.r2(c.precioKg * c.cantidadKg), ...this.bsOp(c, this.r2(c.precioKg * c.cantidadKg)) };
-                    }).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.id - a.id);
+                        return { ...c, lineasDoc: cuenta[this.claveDoc(c)] || 1, producto: prod ? prod.nombre : 'N/D', proveedorNombre: prov ? this.nombreProveedor(prov) : 'Desconocido', total: this.r2(c.precioKg * c.cantidadKg), ...this.bsOp(c, this.r2(c.precioKg * c.cantidadKg)) };
+                    }).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.docId != null ? b.docId : b.id) - (a.docId != null ? a.docId : a.id) || a.id - b.id);
                 },
                 get ventasList() {
                     const inv = this.inventarioCalc, costos = inv.costoVenta, costosBs = inv.costoVentaBs;
+                    const cuenta = {}; this.ventas.forEach(v => { const k = this.claveDoc(v); cuenta[k] = (cuenta[k] || 0) + 1; });
                     return this.ventas.map(v => {
                         const prod = this.productos.find(p => p.id === v.productoId);
                         const cli = this.clientes.find(c => c.id === v.clienteId);
@@ -2225,8 +2307,8 @@
                         const costo = this.r2(costoUnit * v.cantidadKg);
                         const bs = this.bsOp(v, total);
                         const costoBs = this.r2((costosBs[v.id] || 0) * v.cantidadKg);
-                        return { ...v, producto: prod ? prod.nombre : 'N/D', clienteNombre: cli ? this.nombreCliente(cli) : 'Cliente desconocido', total, costoUnit, costo, ganancia: this.r2(total - costo), ...bs, costoBs, gananciaBs: this.r2(bs.totalBsEst - costoBs) };
-                    }).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.id - a.id);
+                        return { ...v, lineasDoc: cuenta[this.claveDoc(v)] || 1, producto: prod ? prod.nombre : 'N/D', clienteNombre: cli ? this.nombreCliente(cli) : 'Cliente desconocido', total, costoUnit, costo, ganancia: this.r2(total - costo), ...bs, costoBs, gananciaBs: this.r2(bs.totalBsEst - costoBs) };
+                    }).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.docId != null ? b.docId : b.id) - (a.docId != null ? a.docId : a.id) || a.id - b.id);
                 },
                 get productosRentabilidad() {
                     const map = {};
@@ -2534,22 +2616,30 @@
                 // ---- Factura / nota de entrega ----
                 asegurarNumeros() {
                     let max = this.ventas.reduce((m, v) => Math.max(m, Number(v.nro) || 0), 0);
+                    const asignado = {};
+                    this.ventas.forEach(v => { if (Number(v.nro) > 0 && v.docId != null && !asignado[this.claveDoc(v)]) asignado[this.claveDoc(v)] = v.nro; });
                     this.ventas.filter(v => !(Number(v.nro) > 0))
                         .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || '') || a.id - b.id)
-                        .forEach(v => { v.nro = ++max; });
+                        .forEach(v => {
+                            const k = this.claveDoc(v);
+                            if (v.docId != null) { if (!asignado[k]) asignado[k] = ++max; v.nro = asignado[k]; }
+                            else v.nro = ++max;
+                        });
                 },
                 abrirFactura(r) {
                     this.asegurarNumeros();
                     const v = this.ventasList.find(x => x.id === r.id);
                     if (!v) return;
+                    const k = this.claveDoc(v);
+                    const lineas = this.ventasList.filter(x => this.claveDoc(x) === k).sort((a, b) => a.id - b.id);
                     const c = this.clientes.find(x => x.id === v.clienteId) || {};
                     const credito = v.tipoPago === 'Credito' && Number(v.diasCredito) > 0;
                     this.factura.d = {
                         nro: String(v.nro || 0).padStart(6, '0'),
                         fecha: v.fecha, vence: credito ? v.vence : null,
                         cliente: { nombre: c.nombre || '', negocio: c.negocio || '', rif: c.rif || '', direccion: c.direccion || '' },
-                        producto: v.producto, cantidadKg: v.cantidadKg, precioKg: v.precioKg, precioKgBs: v.precioKgBs,
-                        total: v.total, totalBs: v.totalBs,
+                        items: lineas.map(l => ({ producto: l.producto, cantidadKg: l.cantidadKg, precioKg: l.precioKg, precioKgBs: l.precioKgBs, total: l.total, totalBs: l.totalBs })),
+                        total: this.r2(lineas.reduce((a, l) => a + l.total, 0)), totalBs: this.r2(lineas.reduce((a, l) => a + (Number(l.totalBs) || 0), 0)),
                         tasa: Number(v.tasa) > 0 ? Number(v.tasa) : 0, tasaFecha: v.tasaFecha || v.fecha,
                         tasaEtiqueta: RATE[v.metodo] === 'usdt' ? 'USDT' : 'BCV',
                         condicion: credito ? `Crédito a ${Number(v.diasCredito)} días` : 'Contado',
