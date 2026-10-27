@@ -1,6 +1,6 @@
 {
   "name": "mi-empresa",
-  "short_name": "mi-empresa",
+  "short_name": "Mi Empresa",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#111827",
