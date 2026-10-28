@@ -1265,6 +1265,7 @@
                                     </div>
                                     <div class="no-print flex items-center gap-4">
                                         
+                                        <button @click="abrirDoc('compra', doc.key)" class="text-blue-600 hover:underline cursor-pointer font-medium text-xs">Editar compra completa</button>
                                         <button @click="eliminarDoc('compra', doc.key)" class="text-rose-600 hover:underline cursor-pointer font-medium text-xs">Eliminar compra completa</button>
                                     </div>
                                 </div>
@@ -1361,6 +1362,7 @@
                                     </div>
                                     <div class="no-print flex items-center gap-4">
                                         <button @click="abrirFactura(doc.lineas[0])" class="text-emerald-600 hover:underline cursor-pointer font-medium text-xs">Generar Factura</button>
+                                        <button @click="abrirDoc('venta', doc.key)" class="text-blue-600 hover:underline cursor-pointer font-medium text-xs">Editar factura completa</button>
                                         <button @click="eliminarDoc('venta', doc.key)" class="text-rose-600 hover:underline cursor-pointer font-medium text-xs">Eliminar factura completa</button>
                                     </div>
                                 </div>
@@ -1938,6 +1940,83 @@
         </template>
     </div>
 
+    <!-- MODAL: EDITAR FACTURA / COMPRA COMPLETA -->
+    <div x-show="modalDoc.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="cerrarDoc()" @keydown.escape.window="cerrarDoc()" role="dialog" aria-modal="true" aria-label="Editar documento completo"
+         x-effect="document.body.style.overflow = modalDoc.abierto ? 'hidden' : ''">
+        <div class="card-box modal-card p-6 space-y-5">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-edit"/></svg><span x-text="modalDoc.tipo === 'venta' ? 'Editar factura completa' + (modalDoc.nro ? ' N° ' + String(modalDoc.nro).padStart(6, '0') : '') : 'Editar compra completa'"></span></h3>
+                <button @click="cerrarDoc()" aria-label="Cerrar" class="btn-circle w-9! h-9!"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+            </div>
+            <template x-if="modalDoc.abierto">
+                <div class="space-y-3">
+                    <div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="modalDoc.data.fecha" @change="cambioFechaDoc()" class="field w-full px-4 py-2 text-xs"></div>
+
+                    <template x-if="modalDoc.tipo === 'compra'">
+                        <div class="space-y-1"><label class="flabel">Proveedor</label>
+                            <select x-model="modalDoc.data.proveedorId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione proveedor...</option>
+                                <template x-for="p in proveedores" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(modalDoc.data.proveedorId)" x-text="nombreProveedor(p)"></option></template></select></div>
+                    </template>
+                    <template x-if="modalDoc.tipo === 'venta'">
+                        <div class="space-y-1"><label class="flabel">Cliente</label>
+                            <select x-model="modalDoc.data.clienteId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione cliente...</option>
+                                <template x-for="c in clientes" :key="c.id"><option :value="c.id" :selected="String(c.id) === String(modalDoc.data.clienteId)" x-text="nombreCliente(c)"></option></template></select></div>
+                    </template>
+
+                    <div class="space-y-3">
+                        <template x-for="(it, i) in modalDoc.data.items" :key="it.k">
+                            <div class="rounded-2xl p-3 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
+                                <div class="flex items-center justify-between">
+                                    <span class="flabel" x-text="'Producto ' + (i + 1)"></span>
+                                    <button type="button" @click="quitarLineaDoc(i)" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                                </div>
+                                <select x-model="it.productoId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option>
+                                    <template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(it.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select>
+                                <p x-show="modalDoc.tipo === 'venta' && it.productoId !== '' && it.productoId != null" class="text-[11px] px-1"
+                                   :style="existenciaDoc(it.productoId, modalDoc.ids) < Number(it.cantidadKg || 0) ? 'color: var(--warn)' : 'color: var(--muted)'"
+                                   x-text="'Existencia: ' + fmtKg(existenciaDoc(it.productoId, modalDoc.ids)) + ' kg'"></p>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="it.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div>
+                                    <div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="it.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div>
+                                </div>
+                                <p class="text-[11px] text-slate-500 text-right" x-show="Number(it.precioKg) > 0 && Number(it.cantidadKg) > 0" x-text="'Subtotal: ' + usd(Number(it.precioKg) * Number(it.cantidadKg))"></p>
+                                <p class="text-[11px] px-1" x-show="it.abonado > 0" style="color: var(--warn)" x-text="'Tiene abonos por ' + usd(it.abonado) + ' (no se puede quitar)'"></p>
+                            </div>
+                        </template>
+                        <button type="button" @click="agregarLineaDoc()" class="btn-ghost w-full py-2 text-xs">+ Agregar otro producto</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1"><label class="flabel">Método de pago</label>
+                            <select x-model="modalDoc.data.metodo" @change="aplicarTasa(modalDoc.data)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === modalDoc.data.metodo" x-text="mt"></option></template></select></div>
+                        <div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label>
+                            <input type="number" x-model.number="modalDoc.data.tasa" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(modalDoc.data.metodo, modalDoc.data.fecha) > 0 ? fmtTasa(tasaOperacion(modalDoc.data.metodo, modalDoc.data.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(totalItems(modalDoc.data), modalDoc.data)"></p>
+
+                    <template x-if="modalDoc.tipo === 'compra'">
+                        <div class="space-y-3">
+                            <div class="space-y-1"><label class="flabel">Condición de pago</label>
+                                <select x-model="modalDoc.data.tipoPago" :disabled="modalDoc.bloqueado" class="field w-full px-3 py-2.5 text-xs"><option value="Contado">Contado</option><option value="Credito">Crédito (Cuenta por Pagar)</option></select></div>
+                            <div class="space-y-1" x-show="modalDoc.data.tipoPago === 'Credito'"><label class="flabel">Días de crédito</label>
+                                <input type="number" x-model.number="modalDoc.data.diasCredito" placeholder="Opcional" min="0" :disabled="modalDoc.bloqueado" class="field w-full px-4 py-2.5 text-xs"></div>
+                        </div>
+                    </template>
+                    <template x-if="modalDoc.tipo === 'venta'">
+                        <div class="space-y-1"><label class="flabel">Días de crédito (0 = contado)</label>
+                            <input type="number" x-model.number="modalDoc.data.diasCredito" placeholder="0" min="0" :disabled="modalDoc.bloqueado" class="field w-full px-4 py-2.5 text-xs"></div>
+                    </template>
+                    <p x-show="modalDoc.bloqueado" class="text-[11px] text-slate-500 px-1">Esta operación ya tiene abonos registrados: su condición de pago no puede cambiarse.</p>
+                </div>
+            </template>
+            <p x-show="modalDoc.error" x-text="modalDoc.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+            <div class="flex gap-2 pt-1">
+                <button @click="guardarDoc()" class="btn-primary flex-1 py-2.5 text-xs">Guardar factura</button>
+                <button @click="cerrarDoc()" class="btn-ghost px-5 py-2.5 text-xs">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL DE EDICIÓN -->
     <div x-show="modal.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="cerrarModal()" @keydown.escape.window="cerrarModal()" role="dialog" aria-modal="true" :aria-label="modalTitulo"
          x-effect="document.body.style.overflow = modal.abierto ? 'hidden' : ''">
@@ -2068,6 +2147,8 @@
                 },
                 err: { proveedor: '', cliente: '', producto: '', compra: '', venta: '', gasto: '', prestamo: '' },
                 modal: { abierto: false, tipo: '', id: null, data: {}, error: '' },
+                // Editor de factura completa (compra o venta con todos sus productos)
+                modalDoc: { abierto: false, tipo: '', ids: [], nro: null, data: { items: [] }, ini: {}, bloqueado: false, error: '' },
 
                 nuevoId() {
                     this._ultimoId = Math.max(Date.now(), this._ultimoId + 1);
@@ -2301,6 +2382,103 @@
                     Object.assign(orig, nuevo);
                     if (sale) { orig.docId = this.nuevoId(); if (tipo === 'venta') { delete orig.nro; this.asegurarNumeros(); } }
                     this.cerrarModal();
+                },
+                // ---------- Editar una compra / factura completa ----------
+                abrirDoc(tipo, key) {
+                    const lineas = this[LISTAS[tipo]].filter(x => this.claveDoc(x) === key).sort((a, b) => a.id - b.id);
+                    if (!lineas.length) return;
+                    const p = lineas[0];
+                    const sumAb = l => this.r2((l.abonos || []).reduce((a, y) => a + Number(y.monto || 0), 0));
+                    const data = {
+                        fecha: p.fecha,
+                        metodo: p.metodo, tasa: p.tasa,
+                        tipoPago: p.tipoPago === 'Credito' ? 'Credito' : 'Contado',
+                        diasCredito: p.diasCredito || '',
+                        items: lineas.map(l => ({ ...this.itemVacio(), id: l.id, productoId: l.productoId, precioKg: l.precioKg, cantidadKg: l.cantidadKg, abonado: sumAb(l) }))
+                    };
+                    if (tipo === 'venta') data.clienteId = p.clienteId; else data.proveedorId = p.proveedorId;
+                    this.modalDoc = {
+                        abierto: true, tipo, ids: lineas.map(l => l.id), nro: tipo === 'venta' ? (p.nro || null) : null,
+                        data, ini: { fecha: p.fecha, metodo: p.metodo, tasa: p.tasa },
+                        bloqueado: lineas.some(l => (l.abonos || []).length > 0), error: ''
+                    };
+                },
+                cerrarDoc() { this.modalDoc.abierto = false; this.modalDoc.error = ''; },
+                agregarLineaDoc() { this.modalDoc.data.items.push(this.itemVacio()); },
+                quitarLineaDoc(i) {
+                    const items = this.modalDoc.data.items;
+                    if (items.length <= 1) { this.modalDoc.error = 'La factura debe tener al menos un producto. Si quiere borrarla, use «Eliminar».'; return; }
+                    if (items[i].abonado > 0) { this.modalDoc.error = 'Este producto ya tiene abonos registrados, no se puede quitar. Elimine primero sus abonos en Cuentas por Cobrar/Pagar.'; return; }
+                    this.modalDoc.error = '';
+                    items.splice(i, 1);
+                },
+                async cambioFechaDoc() {
+                    const d = this.modalDoc.data, ini = this.modalDoc.ini;
+                    await this.asegurarTasasFecha(d.fecha);
+                    if (d.fecha === ini.fecha) d.tasa = ini.tasa;
+                    else if (d.tasa === '' || Number(d.tasa) === Number(ini.tasa)) d.tasa = '';
+                },
+                // Existencia de un producto sin contar las líneas que se están editando
+                existenciaDoc(productoId, ids) {
+                    const inv = this.inventarioCalc.stock[productoId];
+                    let q = inv ? inv.qty : 0;
+                    this.ventas.filter(v => ids.includes(v.id) && String(v.productoId) === String(productoId)).forEach(v => { q += Number(v.cantidadKg); });
+                    return this.r2(q);
+                },
+                confirmarStockDoc(items, ids) {
+                    const porProd = {};
+                    items.forEach(it => { porProd[it.productoId] = (porProd[it.productoId] || 0) + Number(it.cantidadKg); });
+                    const faltan = Object.keys(porProd).filter(pid => porProd[pid] > this.existenciaDoc(pid, ids) + 0.0001).map(pid => {
+                        const pr = this.productos.find(x => String(x.id) === String(pid));
+                        return `• ${pr ? pr.nombre : 'Producto'}: ${this.fmtKg(porProd[pid])} kg (existencia ${this.fmtKg(Math.max(this.existenciaDoc(pid, ids), 0))} kg)`;
+                    });
+                    if (!faltan.length) return true;
+                    return confirm(`La cantidad supera la existencia actual en:\n${faltan.join('\n')}\n\n¿Guardar los cambios de todos modos?`);
+                },
+                async guardarDoc() {
+                    const md = this.modalDoc, tipo = md.tipo, d = md.data;
+                    const e = this.validarEntidad(tipo, d, null);
+                    if (e) { md.error = e; return; }
+                    // Un producto con abonos no puede quedar por debajo de lo ya abonado
+                    for (const it of d.items) {
+                        if (it.id != null && this.r2(Number(it.precioKg) * Number(it.cantidadKg)) + 0.004 < Number(it.abonado || 0)) {
+                            const pr = this.productos.find(x => String(x.id) === String(it.productoId));
+                            md.error = `El total de ${pr ? pr.nombre : 'un producto'} no puede ser menor a lo ya abonado (${this.usd(it.abonado)}).`;
+                            return;
+                        }
+                    }
+                    if (tipo === 'venta' && !this.confirmarStockDoc(d.items, md.ids)) return;
+                    if (this._guardando) return;
+                    this._guardando = true;
+                    try { await this.asegurarTasasFecha(d.fecha); } finally { this._guardando = false; }
+
+                    const orig = this[LISTAS[tipo]].filter(x => md.ids.includes(x.id)).sort((a, b) => a.id - b.id);
+                    if (!orig.length) { this.cerrarDoc(); return; }
+                    const tpl = orig[0];
+                    const ini = md.ini;
+                    // Si no se tocó fecha / método / tasa, cada línea conserva su propia tasa congelada
+                    const igual = d.fecha === ini.fecha && d.metodo === ini.metodo && String(d.tasa) === String(ini.tasa);
+                    const docId = tpl.docId != null ? tpl.docId : this.nuevoId();
+                    const nuevas = [];
+                    d.items.forEach(it => {
+                        const o = it.id != null ? orig.find(x => x.id === it.id) : null;
+                        const prev = o || { ...tpl, abonos: [] };
+                        const linea = { ...d, productoId: it.productoId, precioKg: it.precioKg, cantidadKg: it.cantidadKg };
+                        if (o && igual) { linea.metodo = o.metodo; linea.tasa = o.tasa; }
+                        const n = this.normalizarEntidad(tipo, linea, prev);
+                        if (o) { Object.assign(o, n); o.docId = docId; }
+                        else {
+                            const nueva = { id: this.nuevoId(), docId, ...n, abonos: [] };
+                            if (tipo === 'venta' && tpl.nro) nueva.nro = tpl.nro;
+                            nuevas.push(nueva);
+                        }
+                    });
+                    const quedan = d.items.filter(i => i.id != null).map(i => i.id);
+                    const lista = this[LISTAS[tipo]].filter(x => !md.ids.includes(x.id) || quedan.includes(x.id));
+                    nuevas.forEach(n => lista.push(n));
+                    this[LISTAS[tipo]] = lista;
+                    if (tipo === 'venta') this.asegurarNumeros();
+                    this.cerrarDoc();
                 },
                 usosDe(tipo, id) {
                     const n = (arr, k) => arr.filter(x => x[k] === id).length;
