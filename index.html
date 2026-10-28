@@ -648,7 +648,7 @@
             </div>
 
             <div x-show="escaner.fase === 'leyendo'" class="py-6 space-y-3 text-center">
-                <p class="text-sm font-semibold" x-text="escaner.progreso > 0 ? 'Leyendo comprobante… ' + escaner.progreso + '%' : 'Preparando lector…'"></p>
+                <p class="text-sm font-semibold" x-text="escaner.progreso > 0 ? 'Leyendo comprobante… ' + escaner.progreso + '%' + (escaner.pasada === 2 ? ' (2.ª lectura para mejorar la precisión)' : '') : (escaner.pasada === 2 ? 'Mejorando la lectura…' : 'Preparando lector…')"></p>
                 <div class="h-2 rounded-full overflow-hidden" style="background: var(--line-2)"><div class="h-full" style="background: var(--lime); transition: width .2s" :style="'width:' + escaner.progreso + '%'"></div></div>
                 <p class="text-[11px] text-slate-500">La primera vez se descarga el lector de texto (requiere internet).</p>
             </div>
@@ -678,6 +678,7 @@
                 <div class="space-y-1"><label class="flabel">Monto a aplicar ($)</label>
                     <div class="flex gap-2"><input type="number" min="0" step="0.01" x-model="escaner.montoUsd" class="field flex-1 px-4 py-2.5 text-xs"><button type="button" @click="escaner.montoUsd = escSaldo || ''" :disabled="!escGrupo" class="btn-ghost px-3 py-2.5 text-xs whitespace-nowrap">Saldo total</button></div>
                     <p class="text-[11px] text-slate-500 px-1" x-show="escaner.tasa > 0" x-text="'Tasa ' + escaner.metodo + ' del ' + fmtFecha(escaner.f.fecha) + ': Bs. ' + fmtTasa(escaner.tasa) + ' por $'"></p>
+                    <p class="text-[11px] px-1" x-show="escaner.f.usdConcepto > 0" style="color: var(--muted)">El concepto menciona <b x-text="usd(escaner.f.usdConcepto)"></b>. <button type="button" class="underline cursor-pointer" style="color: var(--accent-text)" @click="escaner.montoUsd = escaner.f.usdConcepto">Usar este monto</button></p>
                 </div>
                 <div x-show="escGrupo && Number(escaner.montoUsd) > 0" class="doc-resumen text-xs space-y-1">
                     <p><span class="badge badge-info" x-text="escTipo === 'completo' ? 'Pago completo' : 'Abono'"></span></p>
@@ -3171,21 +3172,31 @@
                     ev.target.value = '';
                     if (!file) return;
                     const e = this.escaner;
-                    e.error = ''; e.progreso = 0; e.fase = 'leyendo';
+                    e.error = ''; e.progreso = 0; e.pasada = 1; e.fase = 'leyendo';
                     try {
                         if (e.img) { try { URL.revokeObjectURL(e.img); } catch (x) {} }
                         e.img = URL.createObjectURL(file);
                         const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('No se pudo abrir la imagen.')); i.src = e.img; });
                         const T = await this.cargarOCR();
-                        const r = await T.recognize(window.prepararImagenOCR(img), 'spa', { logger: m => { if (m.status === 'recognizing text') e.progreso = Math.round(m.progress * 100); } });
-                        e.texto = (r.data && r.data.text) || '';
-                        await this.analizarTexto();
+                        const leer = async (modo) => ((await T.recognize(window.prepararImagenOCR(img, modo), 'spa', { logger: m => { if (m.status === 'recognizing text') e.progreso = Math.round(m.progress * 100); } })).data.text) || '';
+                        let texto = await leer('a');
+                        let r = window.parsearPagoMovil(texto);
+                        if (!r.referencia || !(Number(r.montoBs) > 0)) { /* 2.ª pasada con otro tratamiento de la imagen */
+                            e.pasada = 2; e.progreso = 0;
+                            const t2 = await leer('b');
+                            r = window.fusionarPagoMovil(r, window.parsearPagoMovil(t2));
+                            texto += '\n' + t2;
+                        }
+                        e.texto = texto;
+                        await this.analizarTexto(r);
                     } catch (err) { e.error = (err && err.message) || 'No se pudo leer la imagen.'; e.fase = 'inicio'; }
                 },
-                async analizarTexto() {
+                async analizarTexto(pre) {
                     const e = this.escaner;
-                    const r = window.parsearPagoMovil(e.texto, this.hoy());
-                    e.f = { ...r, fecha: r.fecha || this.hoy() };
+                    const r = (pre && pre.referencia !== undefined) ? pre : window.parsearPagoMovil(e.texto);
+                    /* Cobro a cliente: interesa el banco que recibió. Pago a proveedor: el banco desde el que se pagó. */
+                    e.f = { banco: (e.kind === 'cxp' ? r.bancoOrigen : r.bancoDestino) || r.banco || '', referencia: r.referencia, montoBs: r.montoBs, fecha: r.fecha || this.hoy(), hora: r.hora, telefono: r.telefono, cedula: r.cedula, concepto: r.concepto, usdConcepto: r.usdConcepto };
+                    if (r.metodo) e.metodo = r.metodo;
                     const faltan = [];
                     if (!r.referencia) faltan.push('la referencia');
                     if (!(Number(r.montoBs) > 0)) faltan.push('el monto');
@@ -3207,22 +3218,29 @@
                     const e = this.escaner;
                     if (e.clienteId !== '') return;
                     const norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-                    const ced = (e.f.cedula || '').replace(/\D/g, ''), texto = norm(e.texto);
+                    const STOP = new Set(['c', 'a', 'ca', 'sa', 's', 'srl', 'cia', 'de', 'la', 'el', 'y', 'los', 'las', 'del']);
+                    const palabras = new Set(norm(e.texto).split(' '));
+                    const ced = (e.f.cedula || '').replace(/\D/g, '');
                     const personas = e.kind === 'cxp' ? this.proveedores : this.clientes;
-                    for (const g of this.escGrupos) {
+                    const hallados = this.escGrupos.filter(g => {
                         const c = personas.find(x => String(x.id) === String(g.id));
-                        if (!c) continue;
+                        if (!c) return false;
                         const rif = (c.rif || '').replace(/\D/g, '');
-                        const nombre = norm(c.nombre);
-                        if ((rif && ced && (rif.includes(ced) || ced.includes(rif))) || (nombre.split(' ').length >= 2 && texto.includes(nombre))) { e.clienteId = g.id; return; }
-                    }
+                        if (e.kind === 'cxp' && rif.length >= 6 && ced.length >= 6 && (rif.includes(ced) || ced.includes(rif))) return true;
+                        const tokens = norm(c.nombre).split(' ').filter(tk => tk && !STOP.has(tk));
+                        return tokens.length > 0 && tokens.join('').length >= 5 && tokens.every(tk => palabras.has(tk));
+                    });
+                    if (hallados.length === 1) e.clienteId = hallados[0].id;
                 },
                 abonoPorReferencia(ref) {
-                    const n = String(ref || '').replace(/\D/g, '').replace(/^0+/, '');
+                    const norm = x => String(x || '').replace(/\D/g, '').replace(/^0+/, '');
+                    const n = norm(ref);
                     if (n.length < 4) return null;
+                    /* Igual, o una es el final de la otra (ej. referencia larga del BNC vs. la interbancaria de 8 dígitos) */
+                    const igual = m => m === n || (Math.min(m.length, n.length) >= 6 && (m.endsWith(n) || n.endsWith(m)));
                     const buscar = (lista, kind) => {
                         for (const d of lista) for (const a of (d.abonos || [])) {
-                            if (String(a.referencia || '').replace(/\D/g, '').replace(/^0+/, '') === n) {
+                            if (igual(norm(a.referencia))) {
                                 const q = kind === 'cxc' ? this.clientes.find(c => c.id === d.clienteId) : this.proveedores.find(p => p.id === d.proveedorId);
                                 return { fecha: a.fecha, monto: a.monto, quien: q ? q.nombre : '' };
                             }
@@ -3317,26 +3335,36 @@
         }
     </script>
     <script>
-        /* ============ ESCÁNER DE PAGO MÓVIL (interpretación del texto) ============ */
-        window.prepararImagenOCR = function (img) {
-            var esc = Math.min(2.5, Math.max(1, 1400 / img.width));
-            var w = Math.min(1800, Math.round(img.width * esc)), h = Math.round(img.height * (w / img.width));
+        /* ============ ESCÁNER DE PAGO MÓVIL / TRANSFERENCIA (interpretación del texto) ============ */
+        window.prepararImagenOCR = function (img, modo) {
+            var esc = Math.max(1, Math.min(2, 1500 / img.width));
+            var w = Math.round(img.width * esc), h = Math.round(img.height * esc);
             var c = document.createElement('canvas'); c.width = w; c.height = h;
             var x = c.getContext('2d', { willReadFrequently: true });
             x.drawImage(img, 0, 0, w, h);
             var d = x.getImageData(0, 0, w, h), p = d.data, sum = 0, i;
             for (i = 0; i < p.length; i += 4) { var g = p[i] * 0.299 + p[i + 1] * 0.587 + p[i + 2] * 0.114; p[i] = p[i + 1] = p[i + 2] = g; sum += g; }
-            var inv = (sum / (w * h)) < 120; /* capturas en modo oscuro: se invierten para leer mejor */
-            for (i = 0; i < p.length; i += 4) { var v = inv ? 255 - p[i] : p[i]; v = Math.max(0, Math.min(255, (v - 128) * 1.4 + 128)); p[i] = p[i + 1] = p[i + 2] = v; }
+            var inv = (sum / (w * h)) < 120; /* capturas en modo oscuro: se invierten */
+            for (i = 0; i < p.length; i += 4) {
+                var v = inv ? 255 - p[i] : p[i];
+                if (modo === 'b') v = v > 125 ? 255 : 0; /* 2.ª pasada: blanco y negro */
+                p[i] = p[i + 1] = p[i + 2] = v;
+            }
             x.putImageData(d, 0, 0);
             return c;
         };
-        window.parsearPagoMovil = function (texto, hoyISO) {
+        window.fusionarPagoMovil = function (a, b) {
+            var r = {};
+            Object.keys(a).forEach(function (k) { r[k] = (a[k] === '' || a[k] == null) ? b[k] : a[k]; });
+            return r;
+        };
+        window.parsearPagoMovil = function (texto) {
             var t = String(texto || '').replace(/\r/g, '').replace(/[ \t]+/g, ' ');
-            var plano = t.split('\n').map(function (l) { return l.trim(); }).filter(Boolean).join('\n');
-            var out = { banco: '', referencia: '', montoBs: '', fecha: '', hora: '', telefono: '', cedula: '', concepto: '' };
+            var lineas = t.split('\n').map(function (l) { return l.trim(); }).filter(function (l) { return l && !/conexi.n/i.test(l); }); /* quita "Última conexión" */
+            var plano = lineas.join('\n');
+            var out = { banco: '', bancoOrigen: '', bancoDestino: '', metodo: '', referencia: '', montoBs: '', fecha: '', hora: '', telefono: '', cedula: '', concepto: '', usdConcepto: '' };
             var pad = function (n) { return String(n).padStart(2, '0'); };
-            function num(str) { /* formato venezolano 1.234,56 (también tolera 1,234.56) */
+            function num(str) { /* 1.234,56 (venezolano) o 1,234.56 */
                 var x = String(str).replace(/[^\d.,]/g, ''); if (!x) return NaN;
                 var lc = x.lastIndexOf(','), lp = x.lastIndexOf('.');
                 if (lc > -1 && lp > -1) x = lc > lp ? x.replace(/\./g, '').replace(',', '.') : x.replace(/,/g, '');
@@ -3344,47 +3372,104 @@
                 else if (lp > -1) x = (/\.\d{1,2}$/.test(x) && (x.match(/\./g) || []).length === 1) ? x : x.replace(/\./g, '');
                 return parseFloat(x);
             }
-            /* Fecha */
-            var meses = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12 };
-            var reF1 = /\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{4}|\d{2})\b/, reF2 = /\b(20\d{2})-(\d{2})-(\d{2})\b/,
-                reF3 = /(\d{1,2})\s*(?:de\s+)?(ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)[a-z]*\.?\s*(?:de\s+|,)?\s*(\d{4})/i;
-            var m = plano.match(reF2);
-            if (m) out.fecha = m[1] + '-' + m[2] + '-' + m[3];
-            else if ((m = plano.match(reF1)) && +m[2] >= 1 && +m[2] <= 12 && +m[1] >= 1 && +m[1] <= 31) out.fecha = (m[3].length === 2 ? '20' + m[3] : m[3]) + '-' + pad(m[2]) + '-' + pad(m[1]);
-            else if ((m = plano.match(reF3))) out.fecha = m[3] + '-' + pad(meses[m[2].toLowerCase()]) + '-' + pad(m[1]);
-            /* Hora */
-            m = plano.match(/\b([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?\s*(a\.?\s?m\.?|p\.?\s?m\.?)?/i);
-            if (m) { var hh = +m[1], ap = (m[3] || '').toLowerCase().replace(/[^apm]/g, ''); if (ap === 'pm' && hh < 12) hh += 12; if (ap === 'am' && hh === 12) hh = 0; out.hora = pad(hh) + ':' + m[2]; }
-            /* Teléfono */
-            m = plano.match(/(?:\+?58[\s-]?|0)(4(?:12|14|16|24|26))[\s-]?(\d{3})[\s-]?(\d{4})/);
+            /* ---------- Fecha y hora (la hora solo se toma si está pegada a la fecha) ---------- */
+            var reD = '(\\d{1,2})\\s*[\\/\\-.]\\s*(\\d{1,2})\\s*[\\/\\-.]\\s*(\\d{4}|\\d{2})';
+            function fechaDe(m) {
+                var d = +m[1], mo = +m[2], y = m[3].length === 2 ? 2000 + (+m[3]) : +m[3];
+                if (mo < 1 || mo > 12 || d < 1 || d > 31 || y < 2000 || y > 2100) return '';
+                return y + '-' + pad(mo) + '-' + pad(d);
+            }
+            var fin = 0, mf = plano.match(new RegExp('fecha[^\\d]{0,30}' + reD, 'i')), mm;
+            if (mf && (out.fecha = fechaDe([mf[0], mf[1], mf[2], mf[3]]))) fin = mf.index + mf[0].length;
+            if (!out.fecha) {
+                var reG = new RegExp(reD, 'g');
+                while ((mm = reG.exec(plano))) { var f2 = fechaDe(mm); if (f2) { out.fecha = f2; fin = mm.index + mm[0].length; break; } }
+            }
+            if (!out.fecha && (mm = plano.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/))) { out.fecha = mm[0]; fin = mm.index + mm[0].length; }
+            if (!out.fecha && (mm = plano.match(/(\d{1,2})\s*(?:de\s+)?(ene|feb|mar|abr|may|jun|jul|ago|sep|set|oct|nov|dic)[a-z]*\.?\s*(?:de\s+|,)?\s*(\d{4})/i))) {
+                var ms = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12 };
+                out.fecha = mm[3] + '-' + pad(ms[mm[2].toLowerCase()]) + '-' + pad(mm[1]); fin = mm.index + mm[0].length;
+            }
+            if (out.fecha) {
+                var mt = plano.slice(fin, fin + 30).match(/^[^\d\n]{0,12}(\d{1,2}):([0-5]\d)(?::[0-5]\d)?\s*(a\.?\s?m\.?|p\.?\s?m\.?)?/i);
+                if (mt && +mt[1] < 24) {
+                    var hh = +mt[1], ap = (mt[3] || '').toLowerCase().replace(/[^apm]/g, '');
+                    if (ap === 'pm' && hh < 12) hh += 12; if (ap === 'am' && hh === 12) hh = 0;
+                    out.hora = pad(hh) + ':' + mt[2];
+                }
+            }
+            /* ---------- Teléfono ---------- */
+            var m = plano.match(/(?:\+?58[\s-]?|0)(4(?:12|14|16|24|26))[\s-]?(\d{3})[\s-]?(\d{4})/);
             if (m) out.telefono = '0' + m[1] + '-' + m[2] + m[3];
-            /* Cédula / RIF */
-            m = plano.match(/(?:c[eé]dula|c\.?\s?i\.?|rif|identificaci[oó]n|documento)\s*[:#]?\s*([VEJGPvejgp])?[\s.-]*(\d{6,9})/i) || plano.match(/\b([VEve])[-\s]?(\d{6,9})\b/);
+            /* ---------- Cédula / RIF (del receptor) ---------- */
+            m = plano.match(/(?:c[eé]dula(?:\s+de\s+identidad)?(?:\s*\/\s*rif)?|\brif\b|\bc\.?\s?i\.?\b|identificaci.n(?:\s+(?:del\s+)?(?:receptor|beneficiario))?|documento)\s*[:#]?\s*([VEJGPvejgp])?[\s.\-]*(\d{6,9}(?:-\d)?)/i) || plano.match(/\b([VEJGvejg])[-\s]?(\d{6,9}(?:-\d)?)\b/);
             if (m) out.cedula = ((m[1] || 'V').toUpperCase()) + '-' + m[2];
-            /* Monto */
+            /* ---------- Monto en Bs ---------- */
             var money = '(\\d{1,3}(?:,\\d{3})+\\.\\d{2}|\\d{1,3}(?:\\.\\d{3})+,\\d{2}|\\d+,\\d{2}|\\d+\\.\\d{2})';
-            var sinFechas = plano.replace(new RegExp(reF1.source, 'g'), ' ').replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, ' ');
-            m = sinFechas.match(new RegExp('(?:monto|importe|total|enviado|pagado|bs\\.?s?\\.?|ves)[^\\d\\n]{0,25}' + money, 'i')) || sinFechas.match(new RegExp(money));
-            if (m) { var v = num(m[1]); if (v > 0 && v < 1e9) out.montoBs = Math.round(v * 100) / 100; }
-            /* Referencia */
-            var reRef = /(?:n[uú]mero\s+de\s+)?(?:referencia|ref\.?|nro\.?\s*(?:de\s*)?(?:ref\w*|operaci[oó]n)|operaci[oó]n|comprobante|confirmaci[oó]n|transacci[oó]n)\s*(?:n[°ºo]\.?)?\s*[:#.\-]?\s*(\d{4,20})/gi, r;
-            while ((r = reRef.exec(plano))) { out.referencia = r[1]; break; }
+            var base = plano.replace(new RegExp(reD, 'g'), ' ').replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, ' ').replace(/comisi.n[^\d]{0,25}\d{1,3}(?:[.,]\d{3})*[.,]\d{2}/ig, ' ');
+            function primero(rx) {
+                var g = new RegExp(rx, 'ig'), k;
+                while ((k = g.exec(base))) { var v = num(k[1]); if (v > 0 && v < 1e10) return Math.round(v * 100) / 100; }
+                return '';
+            }
+            out.montoBs = primero('monto[^\\d]{0,40}' + money) || primero('\\bde\\s+bs\\.?s?[.,]?\\s*' + money) || primero(money + '\\s*bs\\b') ||
+                primero('\\bbs\\.?s?[.,]?\\s*' + money) || primero('total[^\\d]{0,25}' + money) || primero(money);
+            /* ---------- Referencia ---------- */
+            var etiq = '(?:n[uú]mero\\s+de\\s+referencia|nro\\.?\\s*(?:de\\s*)?(?:referencia|operaci.n)|referencia(?!\\s+interbancaria)|\\bref\\.?|comprobante(?!\\s+de)|confirmaci.n|transacci.n)';
+            m = plano.match(new RegExp(etiq + '[^\\d\\n]{0,8}\\s*(\\d{4,30})', 'i')) || plano.match(/operaci.n\s*[:#.\-]?\s*(\d{4,30})/i);
+            if (m) out.referencia = m[1];
             if (!out.referencia) {
                 var ced = (out.cedula || '').replace(/\D/g, '');
-                var runs = (plano.match(/\b\d{6,20}\b/g) || []).filter(function (d) { return !/^(0?4\d{9}|584\d{9})$/.test(d) && d !== ced && !/^20\d{6}$/.test(d); });
-                runs.sort(function (a, b) { return b.length - a.length; });
+                var runs = (plano.replace(new RegExp(reD, 'g'), ' ').match(/\b\d{6,30}\b/g) || []).filter(function (d) { return !/^(0?4\d{9}|584\d{9})$/.test(d) && !(ced && ced.indexOf(d) > -1); });
+                runs.sort(function (a, b) { var pa = a.length >= 8 && a.length <= 14 ? 1 : 0, pb = b.length >= 8 && b.length <= 14 ? 1 : 0; return pb - pa || b.length - a.length; });
                 if (runs.length) out.referencia = runs[0];
             }
-            /* Banco */
-            var bancos = [[/banco de venezuela|\bbdv\b/i, 'Banco de Venezuela'], [/venezolano de cr[eé]dito/i, 'Venezolano de Crédito'], [/banesco/i, 'Banesco'], [/mercantil/i, 'Mercantil'], [/provincial|bbva/i, 'Provincial'], [/\bbnc\b|nacional de cr[eé]dito/i, 'BNC'], [/bancamiga/i, 'Bancamiga'], [/tesoro/i, 'Banco del Tesoro'], [/bicentenario/i, 'Bicentenario'], [/banplus/i, 'Banplus'], [/exterior/i, 'Banco Exterior'], [/bancaribe/i, 'Bancaribe'], [/banco activo/i, 'Banco Activo'], [/sofitasa/i, 'Sofitasa'], [/banco plaza/i, 'Banco Plaza'], [/100\s?%\s?banco/i, '100% Banco'], [/mi banco/i, 'Mi Banco'], [/\bbfc\b|fondo com[uú]n/i, 'BFC'], [/del sur/i, 'Del Sur'], [/bancrecer/i, 'Bancrecer'], [/banfanb/i, 'Banfanb'], [/agr[ií]cola/i, 'Banco Agrícola'], [/caron[ií]/i, 'Banco Caroní']];
-            for (var i = 0; i < bancos.length; i++) { if (bancos[i][0].test(plano)) { out.banco = bancos[i][1]; break; } }
-            if (!out.banco) {
-                var cod = { '0102': 'Banco de Venezuela', '0104': 'Venezolano de Crédito', '0105': 'Mercantil', '0108': 'Provincial', '0114': 'Bancaribe', '0115': 'Banco Exterior', '0128': 'Banco Caroní', '0134': 'Banesco', '0137': 'Sofitasa', '0138': 'Banco Plaza', '0151': 'BFC', '0156': '100% Banco', '0157': 'Del Sur', '0163': 'Banco del Tesoro', '0166': 'Banco Agrícola', '0168': 'Bancrecer', '0169': 'Mi Banco', '0171': 'Banco Activo', '0172': 'Bancamiga', '0174': 'Banplus', '0175': 'Bicentenario', '0177': 'Banfanb', '0191': 'BNC' };
-                var c = plano.match(/\b(01\d{2})\b/); if (c && cod[c[1]]) out.banco = cod[c[1]];
+            /* Referencias de BNC: 0191 + AAAAMMDD + HHMMSS + secuencia (sirve si el comprobante no trae fecha) */
+            m = out.referencia.match(/^01\d{2}(20\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\d{4,}$/);
+            if (m && +m[2] >= 1 && +m[2] <= 12 && +m[3] >= 1 && +m[3] <= 31 && +m[4] < 24 && +m[5] < 60) {
+                if (!out.fecha) out.fecha = m[1] + '-' + m[2] + '-' + m[3];
+                if (!out.hora) out.hora = m[4] + ':' + m[5];
             }
-            /* Concepto */
-            m = plano.match(/(?:concepto|motivo|descripci[oó]n|detalle)\s*[:\-]?\s*(.+)/i);
-            if (m) out.concepto = m[1].trim().slice(0, 80);
+            /* ---------- Bancos (origen / destino) ---------- */
+            var BANCOS = [[/banco de venezuela|\bbdv\b/i, 'Banco de Venezuela'], [/venezolano de cr.dito/i, 'Venezolano de Crédito'], [/banesco/i, 'Banesco'], [/mercantil/i, 'Mercantil'], [/provincial|bbva/i, 'Provincial'], [/\bbnc\b|nacional de cr.dito/i, 'BNC'], [/bancamiga/i, 'Bancamiga'], [/tesoro/i, 'Banco del Tesoro'], [/bicentenario/i, 'Bicentenario'], [/banplus/i, 'Banplus'], [/banco exterior|\bexterior\b/i, 'Banco Exterior'], [/bancaribe/i, 'Bancaribe'], [/banco activo/i, 'Banco Activo'], [/sofitasa/i, 'Sofitasa'], [/banco plaza/i, 'Banco Plaza'], [/100\s?%\s?banco/i, '100% Banco'], [/mi banco/i, 'Mi Banco'], [/\bbfc\b|fondo\s*com[uúi]n/i, 'BFC'], [/del sur/i, 'Del Sur'], [/bancrecer/i, 'Bancrecer'], [/banfanb/i, 'Banfanb'], [/agr.cola/i, 'Banco Agrícola'], [/caron./i, 'Banco Caroní']];
+            var COD = { '0102': 'Banco de Venezuela', '0104': 'Venezolano de Crédito', '0105': 'Mercantil', '0108': 'Provincial', '0114': 'Bancaribe', '0115': 'Banco Exterior', '0128': 'Banco Caroní', '0134': 'Banesco', '0137': 'Sofitasa', '0138': 'Banco Plaza', '0151': 'BFC', '0156': '100% Banco', '0157': 'Del Sur', '0163': 'Banco del Tesoro', '0166': 'Banco Agrícola', '0168': 'Bancrecer', '0169': 'Mi Banco', '0171': 'Banco Activo', '0172': 'Bancamiga', '0174': 'Banplus', '0175': 'Bicentenario', '0177': 'Banfanb', '0191': 'BNC' };
+            function bancosEn(str) { /* todos los bancos mencionados, en orden de aparición */
+                var res = [];
+                BANCOS.forEach(function (b) { var k = str.match(b[0]); if (k) res.push({ i: k.index, n: b[1] }); });
+                var re = /(?:^|\D)(01\d{2})(?=\D|$)/g, c;
+                while ((c = re.exec(str))) if (COD[c[1]]) res.push({ i: c.index, n: COD[c[1]] });
+                return res.sort(function (a, b) { return a.i - b.i; });
+            }
+            var marc = [], mk;
+            var rO = /cuenta\s+(?:debitada|origen|a\s+debitar|de\s+origen)|banco\s+emisor|\bemisor\b|\borigen\b|\bordenante\b/ig;
+            var rD = /cuenta\s+(?:abonada|destino|a\s+acreditar|[o0]\s+nro)|banco\s+receptor|\breceptor\b|\bdestino\b|\bbeneficiario\b|\bbanco\s+(?=0\d{3}\b)/ig;
+            while ((mk = rO.exec(plano))) marc.push({ i: mk.index, t: 'o' });
+            while ((mk = rD.exec(plano))) marc.push({ i: mk.index, t: 'd' });
+            marc.sort(function (a, b) { return a.i - b.i; });
+            marc.forEach(function (mc, k) {
+                var hasta = k + 1 < marc.length ? marc[k + 1].i : plano.length;
+                var b = bancosEn(plano.slice(mc.i, Math.min(hasta, mc.i + 140)))[0];
+                if (!b) return;
+                if (mc.t === 'o' && !out.bancoOrigen) out.bancoOrigen = b.n;
+                if (mc.t === 'd' && !out.bancoDestino) out.bancoDestino = b.n;
+            });
+            if (!out.bancoOrigen) {
+                var otros = bancosEn(plano).filter(function (b) { return b.n !== out.bancoDestino; });
+                if (otros.length) out.bancoOrigen = otros[0].n;
+            }
+            out.banco = out.bancoOrigen || out.bancoDestino || '';
+            /* ---------- Tipo de operación ---------- */
+            if (/pago\s*m[oó]vil|celular/i.test(plano)) out.metodo = 'Pago móvil';
+            else if (/transferencia|cuenta/i.test(plano)) out.metodo = 'Transferencia';
+            /* ---------- Concepto ---------- */
+            m = plano.match(/concepto\s*[:\-]?[ \t]*([^\n]*)\n?([^\n]*)/i);
+            if (m) {
+                var cc = (m[1] || '').trim() || (/^(comisi|total|referencia|monto|fecha|banco|nombre|cuenta)/i.test(m[2]) ? '' : (m[2] || '').trim());
+                if (cc && !(/\.$/.test(cc) && cc.split(' ').length <= 2)) out.concepto = cc.slice(0, 80);
+            }
+            /* ---------- Monto en $ mencionado en el concepto (ej. "Pgo 218.36$$$") ---------- */
+            m = out.concepto.match(/(\d+(?:[.,]\d{1,2})?)\s*\$|\$\s*(\d+(?:[.,]\d{1,2})?)/);
+            if (m) { var u = num(m[1] || m[2]); if (u > 0) out.usdConcepto = Math.round(u * 100) / 100; }
             return out;
         };
     </script>
