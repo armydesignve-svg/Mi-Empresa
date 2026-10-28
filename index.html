@@ -228,6 +228,12 @@
         .topbar { background: var(--topbar-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--line); border-radius: 1.75rem; box-shadow: var(--card-inset), var(--card-shadow); }
         .mobilebar { background: var(--mobilebar-bg); border-bottom: 1px solid var(--line); }
 
+        /* ===== Foto de perfil de la empresa (círculo 1:1) ===== */
+        .avatar-empresa { width: 2.5rem; height: 2.5rem; border-radius: 9999px; overflow: hidden; flex: none; display: inline-block; box-shadow: 0 0 0 2px var(--lime); background: var(--lime-soft); }
+        .avatar-empresa.lg { width: 4.5rem; height: 4.5rem; }
+        .avatar-empresa img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .avatar-empresa .avatar-ini { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--accent-text); font-size: 1.1rem; }
+        .avatar-empresa.lg .avatar-ini { font-size: 1.8rem; }
         /* ===== Mejoras para el celular ===== */
         html { -webkit-text-size-adjust: 100%; }
         button, a, label, select, summary, [role="button"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -244,8 +250,6 @@
             td.no-print button, .doc-foot button { padding: .6rem .5rem; min-height: 40px; }
             .doc-foot .no-print { flex-wrap: wrap; row-gap: .25rem; }
         }
-        .logo-cliente { background: #fff; border-radius: 12px; padding: .25rem .6rem; display: inline-flex; align-items: center; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
-        .logo-pill { background: #0a0a0a; border-radius: 999px; padding: .3rem 1rem; display: inline-flex; align-items: center; }
 
         /* ---------- Formularios ---------- */
         .field { background: var(--field-bg); border: 1px solid var(--line-2); color: var(--text); border-radius: 1rem; outline: none; transition: border-color .2s ease, box-shadow .2s ease; }
@@ -695,9 +699,9 @@
         <button @click="sidebarOpen = true" aria-label="Abrir menú" class="btn-circle shrink-0">
             <svg class="ic text-2xl" aria-hidden="true"><use href="#ic-menu"/></svg>
         </button>
-        <div class="min-w-0 flex items-center">
-            <span class="logo-cliente" x-show="empresa.logo" x-cloak><img :src="empresa.logo" :alt="empresa.nombre || nombreApp" class="h-8 max-w-[11rem] object-contain"></span>
-            <span class="text-base font-extrabold truncate" x-show="!empresa.logo" x-text="empresa.nombre || nombreApp"></span>
+        <div class="min-w-0 flex items-center gap-2.5">
+            <span class="avatar-empresa"><template x-if="empresa.logo"><img :src="empresa.logo" alt="Foto de la empresa"></template><template x-if="!empresa.logo"><span class="avatar-ini" x-text="inicialEmpresa"></span></template></span>
+            <span class="text-base font-extrabold truncate" x-text="empresa.nombre || nombreApp"></span>
         </div>
     </header>
 
@@ -716,7 +720,12 @@
 
         <!-- BIENVENIDA -->
         <div class="side-welcome">
-            <span class="chip"><i class="live-dot"></i> Sesión activa</span>
+            <div class="flex items-center gap-3">
+                <span class="avatar-empresa"><template x-if="empresa.logo"><img :src="empresa.logo" alt="Foto de la empresa"></template><template x-if="!empresa.logo"><span class="avatar-ini" x-text="inicialEmpresa"></span></template></span>
+                <div class="min-w-0">
+                    <span class="chip"><i class="live-dot"></i> Sesión activa</span>
+                </div>
+            </div>
             <p>¡<span x-text="saludo"></span> <span class="nom" x-text="usuario.nombre || 'Empresa'"></span>!</p>
         </div>
 
@@ -810,12 +819,15 @@
                 <input type="text" x-model="nombreTmp" @keydown.enter="guardarNombreEmpresa()" placeholder="Ej. Distribuidora Los Andes" class="field flex-1 min-w-0 px-4 py-2.5 text-xs">
                 <button @click="guardarNombreEmpresa()" class="btn-primary px-5 py-2.5 text-xs">Guardar</button>
             </div>
-            <div class="grid grid-cols-1"><div class="space-y-1 md:col-span-2"><label class="flabel">Logo (se ve en el encabezado del celular)</label>
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <span class="logo-cliente" x-show="empresa.logo" x-cloak><img :src="empresa.logo" alt="Logo" class="h-8 max-w-[10rem] object-contain"></span>
-                        <label class="btn-ghost px-4 py-2 text-xs cursor-pointer"><span x-text="empresa.logo ? 'Cambiar logo' : 'Subir logo'"></span><input type="file" accept="image/*" @change="subirLogo($event)" class="hidden"></label>
-                        <button type="button" x-show="empresa.logo" @click="quitarLogo()" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+            <div class="grid grid-cols-1"><div class="space-y-1 md:col-span-2"><label class="flabel">Foto o logo de la empresa (se ve en un círculo)</label>
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <span class="avatar-empresa lg"><template x-if="empresa.logo"><img :src="empresa.logo" alt="Foto de la empresa"></template><template x-if="!empresa.logo"><span class="avatar-ini" x-text="inicialEmpresa"></span></template></span>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <label class="btn-ghost px-4 py-2 text-xs cursor-pointer"><span x-text="empresa.logo ? 'Cambiar foto' : 'Subir foto'"></span><input type="file" accept="image/*" @change="subirLogo($event)" class="hidden"></label>
+                            <button type="button" x-show="empresa.logo" @click="quitarLogo()" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                        </div>
                     </div>
+                    <p class="text-[11px] text-slate-500">Al subirla podrá recortarla y acomodarla dentro del círculo.</p>
                     <p x-show="logoError" x-text="logoError" class="text-[11px]" style="color: var(--danger)"></p></div></div>
         </div>
 
@@ -1887,12 +1899,15 @@
                 <div class="space-y-1"><label class="flabel">RIF</label><input type="text" x-model="empresa.rif" placeholder="J-00000000-0" class="field w-full px-4 py-2.5 text-xs"></div>
                 <div class="space-y-1"><label class="flabel">Teléfono</label><input type="text" x-model="empresa.telefono" class="field w-full px-4 py-2.5 text-xs"></div>
                 <div class="space-y-1 md:col-span-2"><label class="flabel">Dirección</label><input type="text" x-model="empresa.direccion" class="field w-full px-4 py-2.5 text-xs"></div>
-                <div class="space-y-1 md:col-span-2"><label class="flabel">Logo (se ve en el encabezado del celular)</label>
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <span class="logo-cliente" x-show="empresa.logo" x-cloak><img :src="empresa.logo" alt="Logo" class="h-8 max-w-[10rem] object-contain"></span>
-                        <label class="btn-ghost px-4 py-2 text-xs cursor-pointer"><span x-text="empresa.logo ? 'Cambiar logo' : 'Subir logo'"></span><input type="file" accept="image/*" @change="subirLogo($event)" class="hidden"></label>
-                        <button type="button" x-show="empresa.logo" @click="quitarLogo()" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                <div class="space-y-1 md:col-span-2"><label class="flabel">Foto o logo de la empresa (se ve en un círculo)</label>
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <span class="avatar-empresa lg"><template x-if="empresa.logo"><img :src="empresa.logo" alt="Foto de la empresa"></template><template x-if="!empresa.logo"><span class="avatar-ini" x-text="inicialEmpresa"></span></template></span>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <label class="btn-ghost px-4 py-2 text-xs cursor-pointer"><span x-text="empresa.logo ? 'Cambiar foto' : 'Subir foto'"></span><input type="file" accept="image/*" @change="subirLogo($event)" class="hidden"></label>
+                            <button type="button" x-show="empresa.logo" @click="quitarLogo()" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                        </div>
                     </div>
+                    <p class="text-[11px] text-slate-500">Al subirla podrá recortarla y acomodarla dentro del círculo.</p>
                     <p x-show="logoError" x-text="logoError" class="text-[11px]" style="color: var(--danger)"></p></div>
             </div>
         </div>
@@ -1959,6 +1974,30 @@
         </template>
     </div>
 
+    <!-- MODAL: RECORTAR FOTO (círculo 1:1) -->
+    <div x-show="recorte.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" style="z-index: 90" role="dialog" aria-modal="true" aria-label="Recortar foto"
+         @keydown.escape.window="recorte.abierto && cerrarRecorte()">
+        <div class="card-box modal-card p-6 space-y-4" style="max-width: 22rem">
+            <h3 class="section-title"><span>Ajuste su foto</span></h3>
+            <p class="text-[11px] text-slate-500 text-center">Arrastre la imagen para centrarla. Acérquela con el control o pellizcando.</p>
+            <div class="flex justify-center">
+                <div style="width: 240px; height: 240px; border-radius: 9999px; overflow: hidden; position: relative; touch-action: none; cursor: grab; background: #e5e7eb; box-shadow: 0 0 0 3px var(--lime)"
+                     @pointerdown="recDown($event)" @pointermove="recMove($event)" @pointerup="recUp($event)" @pointercancel="recUp($event)" @wheel.prevent="recWheel($event)">
+                    <template x-if="recorte.abierto && recorte.src"><img :src="recorte.src" alt="" draggable="false" :style="recImgStyle()"></template>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 px-2">
+                <span class="text-sm font-bold" aria-hidden="true">−</span>
+                <input type="range" min="1" max="4" step="0.01" x-model.number="recorte.zoom" @input="$nextTick(() => ajustarRecorte())" class="flex-1" aria-label="Acercar">
+                <span class="text-sm font-bold" aria-hidden="true">+</span>
+            </div>
+            <div class="flex gap-2 pt-1">
+                <button @click="confirmarRecorte()" class="btn-primary flex-1 py-2.5 text-xs">Usar esta foto</button>
+                <button @click="cerrarRecorte()" class="btn-ghost px-5 py-2.5 text-xs">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL: DATOS DE LA EMPRESA -->
     <div x-show="datosEmpresaAbierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="datosEmpresaAbierto = false" @keydown.escape.window="datosEmpresaAbierto = false" role="dialog" aria-modal="true" aria-label="Datos de la empresa"
          x-effect="document.body.style.overflow = datosEmpresaAbierto ? 'hidden' : ''">
@@ -1974,12 +2013,15 @@
                 <div class="space-y-1"><label class="flabel">RIF</label><input type="text" x-model="empresa.rif" placeholder="J-00000000-0" class="field w-full px-4 py-2.5 text-xs"></div>
                 <div class="space-y-1"><label class="flabel">Teléfono</label><input type="text" x-model="empresa.telefono" class="field w-full px-4 py-2.5 text-xs"></div>
                 <div class="space-y-1 md:col-span-2"><label class="flabel">Dirección</label><input type="text" x-model="empresa.direccion" class="field w-full px-4 py-2.5 text-xs"></div>
-                <div class="space-y-1 md:col-span-2"><label class="flabel">Logo (se ve en el encabezado del celular)</label>
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <span class="logo-cliente" x-show="empresa.logo" x-cloak><img :src="empresa.logo" alt="Logo" class="h-8 max-w-[10rem] object-contain"></span>
-                        <label class="btn-ghost px-4 py-2 text-xs cursor-pointer"><span x-text="empresa.logo ? 'Cambiar logo' : 'Subir logo'"></span><input type="file" accept="image/*" @change="subirLogo($event)" class="hidden"></label>
-                        <button type="button" x-show="empresa.logo" @click="quitarLogo()" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                <div class="space-y-1 md:col-span-2"><label class="flabel">Foto o logo de la empresa (se ve en un círculo)</label>
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <span class="avatar-empresa lg"><template x-if="empresa.logo"><img :src="empresa.logo" alt="Foto de la empresa"></template><template x-if="!empresa.logo"><span class="avatar-ini" x-text="inicialEmpresa"></span></template></span>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <label class="btn-ghost px-4 py-2 text-xs cursor-pointer"><span x-text="empresa.logo ? 'Cambiar foto' : 'Subir foto'"></span><input type="file" accept="image/*" @change="subirLogo($event)" class="hidden"></label>
+                            <button type="button" x-show="empresa.logo" @click="quitarLogo()" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                        </div>
                     </div>
+                    <p class="text-[11px] text-slate-500">Al subirla podrá recortarla y acomodarla dentro del círculo.</p>
                     <p x-show="logoError" x-text="logoError" class="text-[11px]" style="color: var(--danger)"></p></div>
             </div>
             <div class="modal-actions"><button @click="datosEmpresaAbierto = false" class="btn-primary w-full py-2.5 text-xs">Listo</button></div>
@@ -2105,6 +2147,7 @@
         const CH = {}; // instancias de Chart.js (fuera del estado reactivo)
         // ====== NOMBRE COMERCIAL DE LA APP: cámbialo solo aquí ======
         const NOMBRE_APP = 'Mi Empresa';
+        let REC_IMG = null; // imagen que se está recortando (fuera del estado reactivo)
         function appData() {
             const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
             const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
@@ -2681,34 +2724,71 @@
                     this.logoError = '';
                     if (!f) return;
                     if (!/^image\//.test(f.type)) { this.logoError = 'Elija un archivo de imagen (PNG, JPG, SVG o WebP).'; return; }
-                    if (f.size > 5 * 1024 * 1024) { this.logoError = 'La imagen pesa más de 5 MB. Elija una más liviana.'; return; }
-                    const rd = new FileReader();
-                    rd.onerror = () => { this.logoError = 'No se pudo leer la imagen.'; };
-                    rd.onload = () => {
-                        const img = new Image();
-                        img.onerror = () => { this.logoError = 'No se pudo abrir la imagen. Pruebe con PNG o JPG.'; };
-                        img.onload = () => {
-                            try {
-                                let w = img.naturalWidth || 400, h = img.naturalHeight || 130;
-                                // se reduce a un tamaño pequeño para que la app siga liviana (máx. 480 x 160 px)
-                                let esc = Math.min(480 / w, 160 / h);
-                                if (f.type !== 'image/svg+xml') esc = Math.min(1, esc);
-                                const c = document.createElement('canvas');
-                                c.width = Math.max(1, Math.round(w * esc)); c.height = Math.max(1, Math.round(h * esc));
-                                const ctx = c.getContext('2d');
-                                ctx.drawImage(img, 0, 0, c.width, c.height);
-                                let url = c.toDataURL('image/png');
-                                if (url.length > 200000) {
-                                    ctx.globalCompositeOperation = 'destination-over';
-                                    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
-                                    url = c.toDataURL('image/jpeg', 0.85);
-                                }
-                                this.empresa.logo = url;
-                            } catch (e) { this.logoError = 'No se pudo procesar la imagen. Pruebe con PNG o JPG.'; }
-                        };
-                        img.src = rd.result;
+                    if (f.size > 15 * 1024 * 1024) { this.logoError = 'La imagen pesa más de 15 MB. Elija una más liviana.'; return; }
+                    const url = URL.createObjectURL(f);
+                    const img = new Image();
+                    img.onerror = () => { URL.revokeObjectURL(url); this.logoError = 'No se pudo abrir la imagen. Pruebe con PNG o JPG.'; };
+                    img.onload = () => {
+                        REC_IMG = img;
+                        const nw = img.naturalWidth || 512, nh = img.naturalHeight || 512, V = 240;
+                        this.recorte = { abierto: true, src: url, nw, nh, V, base: V / Math.min(nw, nh), zoom: 1, x: 0, y: 0 };
                     };
-                    rd.readAsDataURL(f);
+                    img.src = url;
+                },
+                cerrarRecorte() {
+                    if (this.recorte.src) URL.revokeObjectURL(this.recorte.src);
+                    this.recorte = { abierto: false, src: '', nw: 0, nh: 0, V: 240, base: 1, zoom: 1, x: 0, y: 0 };
+                    this._ptrs = {}; this._pinchD = 0; REC_IMG = null;
+                },
+                ajustarRecorte() {
+                    const r = this.recorte, s = r.base * r.zoom;
+                    const mx = Math.max(0, (r.nw * s - r.V) / 2), my = Math.max(0, (r.nh * s - r.V) / 2);
+                    r.x = Math.min(mx, Math.max(-mx, r.x));
+                    r.y = Math.min(my, Math.max(-my, r.y));
+                },
+                recImgStyle() {
+                    const r = this.recorte, s = r.base * r.zoom;
+                    return `position:absolute;left:50%;top:50%;width:${r.nw * s}px;height:${r.nh * s}px;max-width:none;transform:translate(-50%,-50%) translate(${r.x}px,${r.y}px);user-select:none;-webkit-user-drag:none;pointer-events:none;`;
+                },
+                recDown(e) {
+                    try { e.currentTarget.setPointerCapture(e.pointerId); } catch (x) {}
+                    this._ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+                    this._pinchD = 0;
+                },
+                recMove(e) {
+                    const P = this._ptrs, prev = P[e.pointerId];
+                    if (!prev) return;
+                    const ids = Object.keys(P);
+                    if (ids.length === 1) { this.recorte.x += e.clientX - prev.x; this.recorte.y += e.clientY - prev.y; }
+                    P[e.pointerId] = { x: e.clientX, y: e.clientY };
+                    if (ids.length === 2) {
+                        const a = P[ids[0]], b = P[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y);
+                        if (this._pinchD > 0) this.recorte.zoom = Math.min(4, Math.max(1, this.recorte.zoom * d / this._pinchD));
+                        this._pinchD = d;
+                    }
+                    this.ajustarRecorte();
+                },
+                recUp(e) { delete this._ptrs[e.pointerId]; this._pinchD = 0; },
+                recWheel(e) {
+                    this.recorte.zoom = Math.min(4, Math.max(1, this.recorte.zoom * (e.deltaY < 0 ? 1.08 : 0.92)));
+                    this.ajustarRecorte();
+                },
+                confirmarRecorte() {
+                    const r = this.recorte, img = REC_IMG;
+                    if (!img) return;
+                    try {
+                        const s = r.base * r.zoom, OUT = 256, lado = r.V / s;
+                        const cx = r.nw / 2 - r.x / s, cy = r.nh / 2 - r.y / s;
+                        const c = document.createElement('canvas');
+                        c.width = OUT; c.height = OUT;
+                        const ctx = c.getContext('2d');
+                        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, OUT, OUT);
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, cx - lado / 2, cy - lado / 2, lado, lado, 0, 0, OUT, OUT);
+                        this.empresa.logo = c.toDataURL('image/jpeg', 0.9);
+                        this.logoError = '';
+                        this.cerrarRecorte();
+                    } catch (e) { this.cerrarRecorte(); this.logoError = 'No se pudo procesar la imagen. Pruebe con PNG o JPG.'; }
                 },
                 slugNombre(t) {
                     const x = String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
@@ -3070,6 +3150,10 @@
                 nombreTmp: '',
                 empresa: { nombre: '', actividad: '', rif: '', telefono: '', direccion: '', logo: '' },
                 logoError: '',
+                recorte: { abierto: false, src: '', nw: 0, nh: 0, V: 240, base: 1, zoom: 1, x: 0, y: 0 },
+                _ptrs: {},
+                _pinchD: 0,
+                get inicialEmpresa() { return ((this.empresa.nombre || NOMBRE_APP).trim().charAt(0) || 'E').toUpperCase(); },
                 datosEmpresaAbierto: false,
                 factura: { abierto: false, formato: 'carta', editarEmpresa: false, d: null },
                 editTasa: null,
