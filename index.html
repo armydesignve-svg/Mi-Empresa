@@ -915,6 +915,7 @@
                         <p class="stat-label" x-text="'Ganancia neta real · ' + periodoLabel.toLowerCase()"></p>
                         <h4 class="stat-value" x-text="`$${gananciaNetaPeriodo.toFixed(2)}`"></h4>
                         <p class="stat-bs" x-show="gananciaNetaPeriodoBs !== 0" x-text="'≈ Bs. ' + fmtBs(gananciaNetaPeriodoBs)"></p>
+                        <p class="stat-bs" x-show="interesesPeriodo > 0" x-text="'Ya descuenta intereses de préstamos: −$' + interesesPeriodo.toFixed(2)"></p>
                     </div>
                     <span class="chip self-start" x-text="ventasPeriodo > 0 ? (gananciaNetaPeriodo / ventasPeriodo * 100).toFixed(1) + '% de margen s/ ventas del período' : 'Sin ventas en este período'"></span>
                     <span class="wm" aria-hidden="true">NETO</span>
@@ -946,6 +947,18 @@
                     </div>
                     <span class="chip self-start" x-text="periodoLabel"></span>
                 </div>
+            </div>
+
+            <!-- Desglose de la ganancia neta (incluye intereses de préstamos) -->
+            <div class="card-box p-5 md:p-6 space-y-4">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-account_balance_wallet"/></svg><span x-text="'Cómo se calcula la ganancia neta · ' + periodoLabel.toLowerCase()"></span></h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="panel-inset px-4 py-3"><p class="stat-label">Ganancia de ventas</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(serieFinanzas.tot.gananciaVentas)"></p><p class="text-[10px] text-slate-500">Ventas − costo de lo vendido</p></div>
+                    <div class="panel-inset px-4 py-3"><p class="stat-label">− Gastos operativos</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(Math.max(gastosPeriodo - interesesPeriodo, 0))"></p></div>
+                    <div class="panel-inset px-4 py-3"><p class="stat-label">− Intereses de préstamos</p><p class="font-display font-extrabold text-lg" style="color: var(--warn)" x-text="usd(interesesPeriodo)"></p><p class="text-[10px] text-slate-500" x-show="serieFinanzas.tot.interesesBs > 0" x-text="'≈ Bs. ' + fmtBs(serieFinanzas.tot.interesesBs)"></p></div>
+                    <div class="panel-inset px-4 py-3"><p class="stat-label">= Ganancia neta</p><p class="font-display font-extrabold text-lg" :style="gananciaNetaPeriodo < 0 ? 'color: var(--danger)' : 'color: var(--accent-text)'" x-text="usd(gananciaNetaPeriodo)"></p></div>
+                </div>
+                <p class="text-[11px] text-slate-500">Los intereses no se asignan a ninguna compra ni venta: se descuentan del período como costo financiero. Si el préstamo tiene fecha fin, solo se resta la parte proporcional a los días que caen dentro del rango elegido.</p>
             </div>
 
             <!-- Gráfica de finanzas -->
@@ -1259,7 +1272,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div class="card-box p-6 space-y-4 self-start">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-inventory_2"/></svg><span>Registrar Producto</span></h3>
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del producto</label><input type="text" x-model="form.producto.nombre" placeholder="Ej. Paleta, Chuleta"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Código</label><input type="text" x-model="form.producto.codigo" placeholder="Ej. PAL-001"  class="field w-full px-4 py-2.5 text-xs"></div></div>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del producto</label><input type="text" x-model="form.producto.nombre" placeholder="Ej. Paleta, Chuleta"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Código</label><input type="text" x-model="form.producto.codigo" placeholder="Ej. PAL-001"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-2 rounded-2xl p-3" style="border: 1px solid var(--line-2)"><label class="lg-check text-xs"><input type="checkbox" x-model="form.producto.porPeine"> Se puede reflejar por peine o pieza en los pedidos (opcional)</label><div class="space-y-1" x-show="form.producto.porPeine"><label class="flabel">Unidad</label><select x-model="form.producto.unidad" class="field w-full px-3 py-2.5 text-xs"><option value="Peine">Peine</option><option value="Pieza">Pieza</option></select><p class="text-[10px] text-slate-500 px-1">Solo se usa para anotar pedidos y estimar. Las ventas y facturas llevan únicamente los kilos totales.</p></div><div class="grid grid-cols-2 gap-3" x-show="form.producto.porPeine"><div class="space-y-1"><label class="flabel">Peso mín. por unidad (kg, opcional)</label><input type="number" min="0" step="0.1" x-model.number="form.producto.pesoMin" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Peso máx. por unidad (kg, opcional)</label><input type="number" min="0" step="0.1" x-model.number="form.producto.pesoMax" class="field w-full px-4 py-2.5 text-xs"></div></div></div></div>
                     <p x-show="err.producto" x-text="err.producto" class="text-xs font-medium" style="color: var(--danger)"></p>
                     <button @click="crear('producto')" class="btn-primary w-full py-2.5 text-xs">Guardar Producto</button>
                 </div>
@@ -1276,12 +1289,142 @@
                                     <tr>
 <td class="py-2.5 px-3 text-slate-500" x-text="r.codigo || '—'"></td>
 <td class="py-2.5 px-3 text-slate-900 font-medium" x-text="r.nombre"></td>
-<td class="py-2.5 px-3" :style="r.existencia < 0 ? 'color: var(--danger)' : ''" x-text="fmtKg(r.existencia) + ' kg'"></td><td class="py-2.5 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirModal('producto', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('producto', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td></tr>
+<td class="py-2.5 px-3"><span :style="r.existencia < 0 ? 'color: var(--danger)' : ''" x-text="fmtKg(r.existencia) + ' kg'"></span> <span class="badge ml-1" x-show="r.porPeine" x-text="(r.unidad || 'Peine') + (r.pesoMin > 0 ? ' ' + r.pesoMin + '–' + r.pesoMax + ' kg' : '')"></span></td><td class="py-2.5 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirModal('producto', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('producto', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td></tr>
                                 </template>
                             </tbody>
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- PEDIDOS (anotación interna, no afecta finanzas) -->
+        <div x-show="currentTab === 'pedidos'" x-cloak class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
+                <div class="card-box float stat-card card-lime">
+                    <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-assignment"/></svg></span>
+                    <div class="space-y-1.5 min-w-0">
+                        <p class="stat-label">Pedidos pendientes</p>
+                        <h4 class="stat-value" x-text="pedidosPendientes.length"></h4>
+                    </div>
+                    <span class="chip self-start" x-text="clientesConPedido + ' cliente(s)'"></span>
+                    <span class="wm" aria-hidden="true">PEDIDOS</span>
+                </div>
+                <div class="card-box float stat-card">
+                    <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-inventory_2"/></svg></span>
+                    <div class="space-y-1.5 min-w-0">
+                        <p class="stat-label">Kilos solicitados (aprox.)</p>
+                        <h4 class="stat-value" x-text="fmtKg(pedidosTotales.kg) + ' kg'"></h4>
+                    </div>
+                </div>
+                <div class="card-box float stat-card">
+                    <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-store"/></svg></span>
+                    <div class="space-y-1.5 min-w-0">
+                        <p class="stat-label">Peines / piezas aproximados</p>
+                        <h4 class="stat-value" x-text="pedidosTotales.peinesProm > 0 ? '≈ ' + Math.round(pedidosTotales.peinesProm) : '—'"></h4>
+                        <p class="stat-bs" x-show="pedidosTotales.peinesProm > 0" x-text="'Entre ' + Math.round(pedidosTotales.peinesMin) + ' y ' + Math.round(pedidosTotales.peinesMax) + ' unid.'"></p>
+                    </div>
+                </div>
+                <div class="card-box float stat-card">
+                    <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-receipt_long"/></svg></span>
+                    <div class="space-y-1.5 min-w-0">
+                        <p class="stat-label">Kg por comprar (vs. existencia)</p>
+                        <h4 class="stat-value" x-text="fmtKg(pedidosTotales.falta) + ' kg'"></h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-box p-5 md:p-6 space-y-5">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-bar_chart"/></svg><span>Kilos pedidos por producto</span></h3>
+                    <button type="button" @click="abrirPedido()" class="btn-primary px-5 py-2.5 text-xs no-print"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nuevo pedido</button>
+                </div>
+                <p class="text-[11px] text-slate-500">Solo pedidos pendientes. Es una anotación interna: no afecta inventario ni las estadísticas de finanzas hasta que genere la venta.</p>
+                <div x-show="resumenPedidos.length > 0" class="relative" :style="'height:' + Math.max(14, resumenPedidos.length * 4.2 + 5) + 'rem'"><canvas id="ch-pedidos"></canvas></div>
+                <div x-show="resumenPedidos.length === 0" x-cloak class="panel-inset p-8 text-center space-y-1">
+                    <p class="text-sm font-semibold text-slate-900">Sin pedidos pendientes</p>
+                    <p class="text-xs text-slate-500">Cree un pedido para ver aquí cuántos kilos se están solicitando.</p>
+                </div>
+                <div class="overflow-x-auto" x-show="resumenPedidos.length > 0">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2.5 px-3">Producto</th><th class="py-2.5 px-3">Kg pedidos</th><th class="py-2.5 px-3">Peines / piezas aprox.</th><th class="py-2.5 px-3">Existencia</th><th class="py-2.5 px-3">Falta por comprar</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100 text-xs">
+                            <template x-for="r in resumenPedidos" :key="r.id">
+                                <tr>
+                                    <td class="py-2.5 px-3 text-slate-900 font-medium" x-text="r.nombre"></td>
+                                    <td class="py-2.5 px-3 font-bold text-slate-900"><span x-text="fmtKg(r.kg) + ' kg'"></span><span class="block text-[10px] font-normal text-slate-500" x-show="r.porPeine && Math.abs(r.kgMax - r.kgMin) > 0.01" x-text="'(' + fmtKg(r.kgMin) + '–' + fmtKg(r.kgMax) + ' kg)'"></span></td>
+                                    <td class="py-2.5 px-3 text-slate-600"><span x-show="!r.porPeine">—</span><span x-show="r.porPeine" x-text="'≈ ' + Math.round(r.pProm) + ' (' + Math.round(r.pMin) + '–' + Math.round(r.pMax) + ')'"></span></td>
+                                    <td class="py-2.5 px-3" :style="r.existencia < 0 ? 'color: var(--danger)' : ''" x-text="fmtKg(r.existencia) + ' kg'"></td>
+                                    <td class="py-2.5 px-3"><span class="font-semibold" :style="r.falta > 0 ? 'color: var(--warn)' : 'color: var(--accent-text)'" x-text="r.falta > 0 ? fmtKg(r.falta) + ' kg' : 'Cubierto'"></span><span class="block text-[10px] text-slate-500" x-show="r.falta > 0 && r.pf" x-text="r.pf ? '≈ ' + Math.round(r.pf.prom) + ' peines (' + Math.round(r.pf.min) + '–' + Math.round(r.pf.max) + ')' : ''"></span></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card-box p-5 md:p-6 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-assignment"/></svg><span>Pedidos de clientes</span></h3>
+                    <div class="seg no-print" role="group" aria-label="Filtrar pedidos">
+                        <button type="button" @click="filtroPedido = 'pendiente'" :aria-pressed="filtroPedido === 'pendiente'">Pendientes</button>
+                        <button type="button" @click="filtroPedido = 'vendido'" :aria-pressed="filtroPedido === 'vendido'">Vendidos</button>
+                        <button type="button" @click="filtroPedido = 'todos'" :aria-pressed="filtroPedido === 'todos'">Todos</button>
+                    </div>
+                </div>
+                <template x-if="pedidosFiltrados.length === 0"><p class="py-5 text-center text-slate-400 italic text-xs">No hay pedidos en esta vista.</p></template>
+                <template x-for="p in pedidosFiltrados" :key="p.id">
+                    <div class="doc-card">
+                        <div class="doc-head">
+                            <div class="min-w-0 space-y-1">
+                                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Cliente</p>
+                                <p class="text-sm font-bold text-slate-900 truncate" x-text="clientePedido(p)"></p>
+                                <p class="text-[11px] text-slate-500" x-show="p.nota" x-text="'Nota: ' + p.nota"></p>
+                            </div>
+                            <div class="text-right space-y-1">
+                                <span class="chip">Pedido N° <b x-text="String(p.nro || 0).padStart(4, '0')"></b></span>
+                                <p class="text-xs text-slate-500 whitespace-nowrap" x-text="fmtFecha(p.fecha)"></p>
+                                <span class="badge" :class="p.estado === 'Vendido' ? 'badge-ok' : 'badge-warn'" x-text="p.estado === 'Vendido' ? 'Vendido' + (p.ventaNro ? ' · Factura N° ' + String(p.ventaNro).padStart(6, '0') : '') : 'Pendiente'"></span>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2 px-3">Producto</th><th class="py-2 px-3">Pedido</th><th class="py-2 px-3">Equivale a</th></tr></thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    <template x-for="(it, i) in p.items" :key="i">
+                                        <tr>
+                                            <td class="py-2 px-3 text-slate-900 font-medium" x-text="nombreProd(it.productoId)"></td>
+                                            <td class="py-2 px-3 font-semibold text-slate-900" x-text="textoPedido(it)"></td>
+                                            <td class="py-2 px-3 text-slate-600" x-text="textoEquivale(it)"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="doc-foot">
+                            <div class="doc-totales">
+                                <div><span class="k">Productos</span><span class="v" x-text="p.items.length"></span></div>
+                                <div><span class="k">Kg aprox.</span><span class="v" x-text="fmtKg(totalPedido(p).kg)"></span></div>
+                                <div x-show="totalPedido(p).peinesProm > 0"><span class="k">Unid. aprox.</span><span class="v" x-text="'≈ ' + Math.round(totalPedido(p).peinesProm)"></span></div>
+                            </div>
+                            <div class="no-print flex items-center gap-4 flex-wrap">
+                                <template x-if="p.estado !== 'Vendido'">
+                                    <div class="flex items-center gap-4 flex-wrap">
+                                        <button @click="abrirGenVenta(p)" class="text-emerald-600 hover:underline cursor-pointer font-medium text-xs">Generar venta</button>
+                                        <button @click="abrirPedido(p)" class="text-blue-600 hover:underline cursor-pointer font-medium text-xs">Editar pedido</button>
+                                    </div>
+                                </template>
+                                <template x-if="p.estado === 'Vendido'">
+                                    <div class="flex items-center gap-4 flex-wrap">
+                                        <button @click="irA('ventas')" class="text-emerald-600 hover:underline cursor-pointer font-medium text-xs">Ver en Ventas</button>
+                                        <button @click="reabrirPedido(p.id)" class="text-blue-600 hover:underline cursor-pointer font-medium text-xs">Reabrir como pendiente</button>
+                                    </div>
+                                </template>
+                                <button @click="eliminarPedido(p.id)" class="text-rose-600 hover:underline cursor-pointer font-medium text-xs">Eliminar</button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
             </div>
         </div>
 
@@ -1967,7 +2110,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div class="card-box p-6 space-y-4 self-start">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-credit_card"/></svg><span>Registrar Préstamo</span></h3>
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del prestamista</label><input type="text" x-model="form.prestamo.prestamista" placeholder="Persona o entidad"  class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Monto ($)</label><input type="number" x-model.number="form.prestamo.monto" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Interés (%)</label><input type="number" x-model.number="form.prestamo.interes" placeholder="0" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div></div><div class="space-y-1"><label class="flabel">Fecha del préstamo</label><input type="date" x-model="form.prestamo.fecha" @change="asegurarTasasFecha(form.prestamo.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Periodicidad de pago</label><select x-model="form.prestamo.periodicidad"  class="field w-full px-3 py-2.5 text-xs"><template x-for="pd in periodicidades" :key="pd"><option :value="pd" :selected="pd === form.prestamo.periodicidad" x-text="pd"></option></template></select></div><p class="text-[11px] text-slate-500 px-1" x-text="Number(form.prestamo.monto) > 0 ? 'Interés: ' + usd(interesDe(form.prestamo)) + ' · Total a devolver: ' + usd(Number(form.prestamo.monto) + interesDe(form.prestamo)) : ''"></p></div>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del prestamista</label><input type="text" x-model="form.prestamo.prestamista" placeholder="Persona o entidad"  class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Monto ($)</label><input type="number" x-model.number="form.prestamo.monto" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Interés (%)</label><input type="number" x-model.number="form.prestamo.interes" placeholder="0" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div></div><div class="space-y-1"><label class="flabel">Fecha del préstamo</label><input type="date" x-model="form.prestamo.fecha" @change="asegurarTasasFecha(form.prestamo.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Fecha fin / vencimiento (opcional)</label><input type="date" x-model="form.prestamo.fechaFin" :min="form.prestamo.fecha || null" class="field w-full px-4 py-2 text-xs"><p class="text-[10px] text-slate-500 px-1">Con fecha fin, el interés se reparte día a día entre el inicio y el fin, y cada período de Estadísticas descuenta solo la parte que le corresponde. Sin fecha fin, todo el interés se descuenta en la fecha de inicio.</p></div><div class="space-y-1"><label class="flabel">Periodicidad de pago</label><select x-model="form.prestamo.periodicidad"  class="field w-full px-3 py-2.5 text-xs"><template x-for="pd in periodicidades" :key="pd"><option :value="pd" :selected="pd === form.prestamo.periodicidad" x-text="pd"></option></template></select></div><p class="text-[11px] text-slate-500 px-1" x-text="Number(form.prestamo.monto) > 0 ? 'Interés: ' + usd(interesDe(form.prestamo)) + ' · Total a devolver: ' + usd(Number(form.prestamo.monto) + interesDe(form.prestamo)) : ''"></p></div>
                     <p x-show="err.prestamo" x-text="err.prestamo" class="text-xs font-medium" style="color: var(--danger)"></p>
                     <button @click="crear('prestamo')" class="btn-primary w-full py-2.5 text-xs">Registrar Préstamo</button>
                 </div>
@@ -1975,7 +2118,7 @@
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-credit_card"/></svg><span>Préstamos Recibidos</span></h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
-                            <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2.5 px-3">Prestamista</th><th class="py-2.5 px-3">Fecha</th><th class="py-2.5 px-3">Monto</th><th class="py-2.5 px-3">Interés</th><th class="py-2.5 px-3">A devolver</th><th class="py-2.5 px-3">Periodicidad</th><th class="py-2.5 px-3 text-right no-print">Acción</th></tr></thead>
+                            <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2.5 px-3">Prestamista</th><th class="py-2.5 px-3">Vigencia</th><th class="py-2.5 px-3">Monto</th><th class="py-2.5 px-3">Interés</th><th class="py-2.5 px-3">A devolver</th><th class="py-2.5 px-3">Periodicidad</th><th class="py-2.5 px-3 text-right no-print">Acción</th></tr></thead>
                             <tbody class="divide-y divide-slate-100 text-xs">
                                 <template x-if="prestamosOrdenados.length === 0">
                                     <tr><td colspan="7" class="py-5 text-center text-slate-400 italic">No se han registrado préstamos.</td></tr>
@@ -1983,7 +2126,7 @@
                                 <template x-for="r in prestamosOrdenados" :key="r.id">
                                     <tr>
 <td class="py-2.5 px-3 text-slate-900 font-medium" x-text="r.prestamista"></td>
-<td class="py-2.5 px-3 text-slate-500 whitespace-nowrap" x-text="fmtFecha(r.fecha)"></td>
+<td class="py-2.5 px-3 text-slate-500 whitespace-nowrap"><span x-text="fmtFecha(r.fecha)"></span><span class="block text-[10px]" x-text="r.fechaFin ? 'hasta ' + fmtFecha(r.fechaFin) + ' · interés repartido' : 'interés en un solo cargo'"></span></td>
 <td class="py-2.5 px-3 text-slate-900"><span class="block" x-text="usd(r.monto)"></span><span class="block text-[10px] text-slate-500" x-text="bsPrestamoFijo(r) > 0 ? 'Bs. ' + fmtBs(bsPrestamoFijo(r)) : ''"></span><span class="block text-[10px] text-slate-400" x-show="bsPrestamoFijo(r) > 0" x-text="'Tasa ' + fmtTasa(r.tasa) + ' · ' + fmtFecha(r.tasaFecha || r.fecha)"></span></td>
 <td class="py-2.5 px-3 text-slate-600" x-text="`${r.interes}% · ${usd(interesDe(r))}`"></td>
 <td class="py-2.5 px-3 text-slate-900 font-semibold" x-text="usd(Number(r.monto) + interesDe(r))"></td>
@@ -2238,7 +2381,7 @@
                     <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del cliente</label><input type="text" x-model="modal.data.nombre" placeholder="Nombre del cliente / contacto"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Nombre del negocio</label><input type="text" x-model="modal.data.negocio" placeholder="Nombre del negocio"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">RIF</label><input type="text" x-model="modal.data.rif" placeholder="J-12345678-0"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Teléfono (WhatsApp)</label><input type="text" x-model="modal.data.telefono" placeholder="0414-1234567" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Dirección comercial</label><input type="text" x-model="modal.data.direccion" placeholder="Dirección del negocio"  class="field w-full px-4 py-2.5 text-xs"></div></div>
                 </template>
                 <template x-if="modal.abierto && modal.tipo === 'producto'">
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del producto</label><input type="text" x-model="modal.data.nombre" placeholder="Ej. Paleta, Chuleta"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Código</label><input type="text" x-model="modal.data.codigo" placeholder="Ej. PAL-001"  class="field w-full px-4 py-2.5 text-xs"></div></div>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del producto</label><input type="text" x-model="modal.data.nombre" placeholder="Ej. Paleta, Chuleta"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Código</label><input type="text" x-model="modal.data.codigo" placeholder="Ej. PAL-001"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-2 rounded-2xl p-3" style="border: 1px solid var(--line-2)"><label class="lg-check text-xs"><input type="checkbox" x-model="modal.data.porPeine"> Se puede reflejar por peine o pieza en los pedidos (opcional)</label><div class="space-y-1" x-show="modal.data.porPeine"><label class="flabel">Unidad</label><select x-model="modal.data.unidad" class="field w-full px-3 py-2.5 text-xs"><option value="Peine">Peine</option><option value="Pieza">Pieza</option></select><p class="text-[10px] text-slate-500 px-1">Solo se usa para anotar pedidos y estimar. Las ventas y facturas llevan únicamente los kilos totales.</p></div><div class="grid grid-cols-2 gap-3" x-show="modal.data.porPeine"><div class="space-y-1"><label class="flabel">Peso mín. por unidad (kg, opcional)</label><input type="number" min="0" step="0.1" x-model.number="modal.data.pesoMin" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Peso máx. por unidad (kg, opcional)</label><input type="number" min="0" step="0.1" x-model.number="modal.data.pesoMax" class="field w-full px-4 py-2.5 text-xs"></div></div></div></div>
                 </template>
                 <template x-if="modal.abierto && modal.tipo === 'compra'">
                     <div class="space-y-3"><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="modal.data.fecha" @change="cambioFechaModal()" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Proveedor</label><select x-model="modal.data.proveedorId"  class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione proveedor...</option><template x-for="p in proveedores" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(modal.data.proveedorId)" x-text="nombreProveedor(p)"></option></template></select></div><div class="space-y-1"><label class="flabel">Producto</label><select x-model="modal.data.productoId"  class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option><template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(modal.data.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="modal.data.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="modal.data.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="modal.data.metodo" @change="aplicarTasa(modal.data)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === modal.data.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="modal.data.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(modal.data.metodo, modal.data.fecha) > 0 ? fmtTasa(tasaOperacion(modal.data.metodo, modal.data.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(Number(modal.data.precioKg) * Number(modal.data.cantidadKg), modal.data)"></p><div class="space-y-1"><label class="flabel">Condición de pago</label><select x-model="modal.data.tipoPago" :disabled="modalTieneAbonos" class="field w-full px-3 py-2.5 text-xs"><option value="Contado">Contado</option><option value="Credito">Crédito (Cuenta por Pagar)</option></select></div><div class="space-y-1" x-show="modal.data.tipoPago === 'Credito'"><label class="flabel">Días de crédito</label><input type="number" x-model.number="modal.data.diasCredito" placeholder="Opcional" min="0" :disabled="modalTieneAbonos" class="field w-full px-4 py-2.5 text-xs"></div><p x-show="modalTieneAbonos" class="text-[11px] text-slate-500 px-1">Esta compra ya tiene pagos registrados: su condición de pago no puede cambiarse.</p></div>
@@ -2250,12 +2393,116 @@
                     <div class="space-y-3"><div class="space-y-1"><label class="flabel">Título del gasto</label><input type="text" x-model="modal.data.titulo" placeholder="Ej. Gasolina, Flete San Juan"  class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Monto ($)</label><input type="number" x-model.number="modal.data.monto" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="modal.data.fecha" @change="cambioFechaModal()" placeholder=""  class="field w-full px-3 py-2 text-xs"></div></div><div class="space-y-1"><label class="flabel">Categoría</label><input type="text" x-model="modal.data.categoria" placeholder="Seleccione o escriba una" list="dl-categorias" class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="modal.data.metodo" @change="aplicarTasa(modal.data)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosGasto" :key="mt"><option :value="mt" :selected="mt === modal.data.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="modal.data.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(modal.data.metodo, modal.data.fecha) > 0 ? fmtTasa(tasaOperacion(modal.data.metodo, modal.data.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(Number(modal.data.monto), modal.data)"></p></div>
                 </template>
                 <template x-if="modal.abierto && modal.tipo === 'prestamo'">
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del prestamista</label><input type="text" x-model="modal.data.prestamista" placeholder="Persona o entidad"  class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Monto ($)</label><input type="number" x-model.number="modal.data.monto" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Interés (%)</label><input type="number" x-model.number="modal.data.interes" placeholder="0" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div></div><div class="space-y-1"><label class="flabel">Fecha del préstamo</label><input type="date" x-model="modal.data.fecha" @change="cambioFechaModal()" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Periodicidad de pago</label><select x-model="modal.data.periodicidad"  class="field w-full px-3 py-2.5 text-xs"><template x-for="pd in periodicidades" :key="pd"><option :value="pd" :selected="pd === modal.data.periodicidad" x-text="pd"></option></template></select></div><p class="text-[11px] text-slate-500 px-1" x-text="Number(modal.data.monto) > 0 ? 'Interés: ' + usd(interesDe(modal.data)) + ' · Total a devolver: ' + usd(Number(modal.data.monto) + interesDe(modal.data)) : ''"></p></div>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del prestamista</label><input type="text" x-model="modal.data.prestamista" placeholder="Persona o entidad"  class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Monto ($)</label><input type="number" x-model.number="modal.data.monto" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Interés (%)</label><input type="number" x-model.number="modal.data.interes" placeholder="0" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div></div><div class="space-y-1"><label class="flabel">Fecha del préstamo</label><input type="date" x-model="modal.data.fecha" @change="cambioFechaModal()" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Fecha fin / vencimiento (opcional)</label><input type="date" x-model="modal.data.fechaFin" :min="modal.data.fecha || null" class="field w-full px-4 py-2 text-xs"><p class="text-[10px] text-slate-500 px-1">Con fecha fin, el interés se reparte día a día entre el inicio y el fin, y cada período de Estadísticas descuenta solo la parte que le corresponde. Sin fecha fin, todo el interés se descuenta en la fecha de inicio.</p></div><div class="space-y-1"><label class="flabel">Periodicidad de pago</label><select x-model="modal.data.periodicidad"  class="field w-full px-3 py-2.5 text-xs"><template x-for="pd in periodicidades" :key="pd"><option :value="pd" :selected="pd === modal.data.periodicidad" x-text="pd"></option></template></select></div><p class="text-[11px] text-slate-500 px-1" x-text="Number(modal.data.monto) > 0 ? 'Interés: ' + usd(interesDe(modal.data)) + ' · Total a devolver: ' + usd(Number(modal.data.monto) + interesDe(modal.data)) : ''"></p></div>
                 </template>
             <p x-show="modal.error" x-text="modal.error" class="text-xs font-medium" style="color: var(--danger)"></p>
             <div class="flex gap-2 pt-1 modal-actions">
                 <button @click="guardarModal()" class="btn-primary flex-1 py-2.5 text-xs">Guardar cambios</button>
                 <button @click="cerrarModal()" class="btn-ghost px-5 py-2.5 text-xs">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NUEVO / EDITAR PEDIDO -->
+    <div x-show="mp.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="cerrarPedido()" @keydown.escape.window="cerrarPedido()" role="dialog" aria-modal="true" aria-label="Pedido"
+         x-effect="document.body.style.overflow = (mp.abierto || gv.abierto) ? 'hidden' : ''">
+        <div class="card-box modal-card p-6 space-y-5">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-assignment"/></svg><span x-text="mp.id ? 'Editar pedido' : 'Nuevo pedido'"></span></h3>
+                <button @click="cerrarPedido()" aria-label="Cerrar" class="btn-circle w-9! h-9!"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+            </div>
+            <template x-if="mp.abierto">
+                <div class="space-y-3">
+                    <p x-show="clientes.length === 0 || productos.length === 0" class="text-[11px] px-1" style="color: var(--warn)">Registre primero al menos un cliente y un producto en el menú Registro.</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1"><label class="flabel">Fecha del pedido</label><input type="date" x-model="mp.data.fecha" class="field w-full px-4 py-2 text-xs"></div>
+                        <div class="space-y-1"><label class="flabel">Cliente</label>
+                            <select x-model="mp.data.clienteId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione cliente...</option>
+                                <template x-for="c in clientes" :key="c.id"><option :value="c.id" :selected="String(c.id) === String(mp.data.clienteId)" x-text="nombreCliente(c)"></option></template></select></div>
+                    </div>
+                    <div class="space-y-3">
+                        <template x-for="(it, i) in mp.data.items" :key="it.k">
+                            <div class="rounded-2xl p-3 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
+                                <div class="flex items-center justify-between">
+                                    <span class="flabel" x-text="'Producto ' + (i + 1)"></span>
+                                    <button type="button" x-show="mp.data.items.length > 1" @click="mp.data.items.splice(i, 1)" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                                </div>
+                                <select x-model="it.productoId" @change="alElegirProdPedido(it)" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option>
+                                    <template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(it.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre + (p.porPeine ? (p.unidad === 'Pieza' ? ' (por piezas)' : ' (por peines)') : '')"></option></template></select>
+                                <div x-show="esPeine(it.productoId)" class="space-y-1">
+                                    <label class="flabel">El cliente lo pide en…</label>
+                                    <div class="seg" role="group">
+                                        <button type="button" @click="it.modo = 'kg'" :aria-pressed="it.modo !== 'peines'">Kilos</button>
+                                        <button type="button" @click="it.modo = 'peines'" :aria-pressed="it.modo === 'peines'" x-text="unidadCap(it.productoId)"></button>
+                                    </div>
+                                </div>
+                                <div class="space-y-1"><label class="flabel" x-text="it.modo === 'peines' && esPeine(it.productoId) ? 'Cantidad (' + unidadDe(it.productoId, true) + ')' : 'Cantidad (kg)'"></label>
+                                    <input type="number" x-model.number="it.cantidad" placeholder="0" min="0" step="any" class="field w-full px-4 py-2.5 text-xs"></div>
+                                <p class="text-[11px]" style="color: var(--accent-text)" x-show="esPeine(it.productoId) && Number(it.cantidad) > 0" x-text="textoEstimado(it)"></p>
+                                <p class="text-[10px] text-slate-500" x-show="esPeine(it.productoId) && pesoPeine(it.productoId)" x-text="'Peso de referencia por ' + unidadDe(it.productoId) + ': ' + pesoPeine(it.productoId).min + '–' + pesoPeine(it.productoId).max + ' kg (promedio ' + pesoPeine(it.productoId).prom + ' kg)'"></p>
+                            </div>
+                        </template>
+                        <button type="button" @click="mp.data.items.push(itemPedidoVacio())" class="btn-ghost w-full py-2 text-xs">+ Agregar otro producto</button>
+                    </div>
+                    <div class="space-y-1"><label class="flabel">Nota (opcional)</label><input type="text" x-model="mp.data.nota" placeholder="Ej. entrega el jueves" class="field w-full px-4 py-2.5 text-xs"></div>
+                    <p class="text-[11px] text-slate-500 px-1" x-text="'Total estimado: ' + fmtKg(totalPedido(mp.data).kg) + ' kg' + (totalPedido(mp.data).peinesProm > 0 ? ' · ≈ ' + Math.round(totalPedido(mp.data).peinesProm) + ' unid.' : '')"></p>
+                    <p class="text-[11px] text-slate-500 px-1">Aquí no se anotan precios; los ingresará al generar la venta.</p>
+                </div>
+            </template>
+            <p x-show="mp.error" x-text="mp.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+            <div class="flex gap-2 pt-1 modal-actions">
+                <button @click="guardarPedido()" class="btn-primary flex-1 py-2.5 text-xs">Guardar pedido</button>
+                <button @click="cerrarPedido()" class="btn-ghost px-5 py-2.5 text-xs">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GENERAR VENTA DESDE PEDIDO -->
+    <div x-show="gv.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="gv.abierto = false" @keydown.escape.window="gv.abierto = false" role="dialog" aria-modal="true" aria-label="Generar venta">
+        <div class="card-box modal-card p-6 space-y-5">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-shopping_cart"/></svg><span>Generar venta del pedido</span></h3>
+                <button @click="gv.abierto = false" aria-label="Cerrar" class="btn-circle w-9! h-9!"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+            </div>
+            <template x-if="gv.abierto">
+                <div class="space-y-3">
+                    <p class="text-[11px] text-slate-500">Ingrese los precios de venta y confirme los kilos reales. La venta se enviará al módulo Venta, donde podrá seguir editándola.</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1"><label class="flabel">Fecha de la venta</label><input type="date" x-model="gv.data.fecha" @change="asegurarTasasFecha(gv.data.fecha)" class="field w-full px-4 py-2 text-xs"></div>
+                        <div class="space-y-1"><label class="flabel">Cliente</label>
+                            <select x-model="gv.data.clienteId" class="field w-full px-3 py-2.5 text-xs">
+                                <template x-for="c in clientes" :key="c.id"><option :value="c.id" :selected="String(c.id) === String(gv.data.clienteId)" x-text="nombreCliente(c)"></option></template></select></div>
+                    </div>
+                    <div class="space-y-3">
+                        <template x-for="(it, i) in gv.data.items" :key="it.k">
+                            <div class="rounded-2xl p-3 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
+                                <div class="space-y-0.5">
+                                    <p class="text-xs font-bold text-slate-900" x-text="nombreProd(it.productoId)"></p>
+                                    <p class="text-[11px] text-slate-500" x-text="'Pedido: ' + it.hint"></p>
+                                    <p class="text-[11px] px-0" :style="existenciaDe(Number(it.productoId), null) < kgEnForm(gv.data.items, it.productoId) ? 'color: var(--warn)' : 'color: var(--muted)'" x-text="'Existencia: ' + fmtKg(existenciaDe(Number(it.productoId), null)) + ' kg'"></p>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="it.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div>
+                                    <div class="space-y-1"><label class="flabel">Cantidad real (kg)</label><input type="number" x-model.number="it.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div>
+                                </div>
+                                <p class="text-[11px] text-slate-500 text-right" x-show="Number(it.precioKg) > 0 && Number(it.cantidadKg) > 0" x-text="'Subtotal: ' + usd(Number(it.precioKg) * Number(it.cantidadKg))"></p>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1"><label class="flabel">Método de pago</label>
+                            <select x-model="gv.data.metodo" @change="aplicarTasa(gv.data)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === gv.data.metodo" x-text="mt"></option></template></select></div>
+                        <div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label>
+                            <input type="number" x-model.number="gv.data.tasa" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(gv.data.metodo, gv.data.fecha) > 0 ? fmtTasa(tasaOperacion(gv.data.metodo, gv.data.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(totalItems(gv.data), gv.data)"></p>
+                    <div class="space-y-1"><label class="flabel">Días de crédito (0 = contado)</label><input type="number" x-model.number="gv.data.diasCredito" placeholder="0" min="0" class="field w-full px-4 py-2.5 text-xs"></div>
+                </div>
+            </template>
+            <p x-show="gv.error" x-text="gv.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+            <div class="flex gap-2 pt-1 modal-actions">
+                <button @click="confirmarGenVenta()" class="btn-primary flex-1 py-2.5 text-xs">Generar venta</button>
+                <button @click="gv.abierto = false" class="btn-ghost px-5 py-2.5 text-xs">Cancelar</button>
             </div>
         </div>
     </div>
@@ -2271,8 +2518,8 @@
             const DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
             // método de pago -> tasa que se usa para el equivalente en Bs. (null = sin conversión)
             const RATE = { 'BCV': 'usd', 'Pago móvil': 'usd', 'Transferencia': 'usd', 'Tarjeta': 'usd', 'EUR': 'usd', 'USDT': 'usdt', 'Efectivo': null };
-            const LISTAS = { proveedor: 'proveedores', cliente: 'clientes', producto: 'productos', compra: 'compras', venta: 'ventas', gasto: 'gastos', prestamo: 'prestamos' };
-            const NOMBRES = { proveedor: 'Proveedor', cliente: 'Cliente', producto: 'Producto', compra: 'Compra', venta: 'Venta', gasto: 'Gasto', prestamo: 'Préstamo' };
+            const LISTAS = { proveedor: 'proveedores', cliente: 'clientes', producto: 'productos', compra: 'compras', venta: 'ventas', gasto: 'gastos', prestamo: 'prestamos', pedido: 'pedidos' };
+            const NOMBRES = { proveedor: 'Proveedor', cliente: 'Cliente', producto: 'Producto', compra: 'Compra', venta: 'Venta', gasto: 'Gasto', prestamo: 'Préstamo', pedido: 'Pedido' };
             const CLAVE_DATOS = 'mn_datos_v3';
 
             return {
@@ -2288,6 +2535,7 @@
                         { id: 'clientes', name: 'Clientes', icon: 'store' },
                         { id: 'productos', name: 'Productos', icon: 'inventory_2' }
                     ] },
+                    { id: 'pedidos', name: 'Pedidos', icon: 'assignment' },
                     { id: 'compras', name: 'Compra', icon: 'receipt_long' },
                     { id: 'ventas', name: 'Venta', icon: 'shopping_cart' },
                     { id: 'finanzas', name: 'Finanzas', icon: 'account_balance_wallet', children: [
@@ -2353,13 +2601,13 @@
                 form: {
                     proveedor: { nombre: '', apellido: '', telefono: '', tipoPago: 'Contado', diasCredito: '' },
                     cliente: { nombre: '', negocio: '', rif: '', direccion: '', telefono: '' },
-                    producto: { nombre: '', codigo: '' },
+                    producto: { nombre: '', codigo: '', porPeine: false, unidad: 'Peine', pesoMin: 4.5, pesoMax: 6.5 },
                     compra: { fecha: '', proveedorId: '', items: [{ k: 0, productoId: '', precioKg: '', cantidadKg: '' }], metodo: 'BCV', tasa: '', tipoPago: 'Contado', diasCredito: '' },
                     venta: { fecha: '', clienteId: '', items: [{ k: 0, productoId: '', precioKg: '', cantidadKg: '' }], metodo: 'BCV', tasa: '', diasCredito: '' },
                     gasto: { titulo: '', monto: '', fecha: '', categoria: '', metodo: 'Efectivo', tasa: '' },
-                    prestamo: { prestamista: '', monto: '', interes: '', fecha: '', periodicidad: 'Mensual' }
+                    prestamo: { prestamista: '', monto: '', interes: '', fecha: '', fechaFin: '', periodicidad: 'Mensual' }
                 },
-                err: { proveedor: '', cliente: '', producto: '', compra: '', venta: '', gasto: '', prestamo: '' },
+                err: { proveedor: '', cliente: '', producto: '', compra: '', venta: '', gasto: '', prestamo: '', pedido: '' },
                 modal: { abierto: false, tipo: '', id: null, data: {}, error: '' },
                 // Editor de factura completa (compra o venta con todos sus productos)
                 modalDoc: { abierto: false, tipo: '', ids: [], nro: null, data: { items: [] }, ini: {}, bloqueado: false, error: '' },
@@ -2373,11 +2621,11 @@
                     const base = {
                         proveedor: { nombre: '', apellido: '', telefono: '', tipoPago: 'Contado', diasCredito: '' },
                         cliente: { nombre: '', negocio: '', rif: '', direccion: '', telefono: '' },
-                        producto: { nombre: '', codigo: '' },
+                        producto: { nombre: '', codigo: '', porPeine: false, unidad: 'Peine', pesoMin: 4.5, pesoMax: 6.5 },
                         compra: { fecha: h, proveedorId: '', items: [this.itemVacio()], metodo: 'BCV', tasa: '', tipoPago: 'Contado', diasCredito: '' },
                         venta: { fecha: h, clienteId: '', items: [this.itemVacio()], metodo: 'BCV', tasa: '', diasCredito: '' },
                         gasto: { titulo: '', monto: '', fecha: h, categoria: '', metodo: 'Efectivo', tasa: '' },
-                        prestamo: { prestamista: '', monto: '', interes: '', fecha: h, periodicidad: 'Mensual' }
+                        prestamo: { prestamista: '', monto: '', interes: '', fecha: h, fechaFin: '', periodicidad: 'Mensual' }
                     };
                     return base[tipo];
                 },
@@ -2401,6 +2649,7 @@
                             const otros = this.productos.filter(p => p.id !== selfId);
                             if (otros.some(p => p.nombre.trim().toLowerCase() === txt(d.nombre).toLowerCase())) return 'Ya existe un producto con ese nombre.';
                             if (txt(d.codigo) && otros.some(p => (p.codigo || '').trim().toLowerCase() === txt(d.codigo).toLowerCase())) return 'Ya existe un producto con ese código.';
+                            if (d.porPeine && (txt(d.pesoMin) !== '' || txt(d.pesoMax) !== '') && !(num(d.pesoMin) > 0 && num(d.pesoMax) >= num(d.pesoMin))) return 'Si indica el peso de referencia, escriba mínimo y máximo (el máximo no puede ser menor). También puede dejarlo vacío.';
                             return '';
                         }
                         case 'compra':
@@ -2424,6 +2673,7 @@
                             if (!(num(d.monto) > 0)) return 'Ingrese el monto del préstamo.';
                             if (d.interes !== '' && d.interes != null && !(num(d.interes) >= 0)) return 'El interés no es válido.';
                             if (!d.fecha) return 'Indique la fecha del préstamo.';
+                            if (d.fechaFin && d.fechaFin < d.fecha) return 'La fecha fin no puede ser anterior a la fecha de inicio.';
                             return '';
                     }
                     return '';
@@ -2459,7 +2709,7 @@
                         case 'cliente':
                             return { nombre: txt(d.nombre), negocio: txt(d.negocio), rif: txt(d.rif), direccion: txt(d.direccion), telefono: txt(d.telefono) };
                         case 'producto':
-                            return { nombre: txt(d.nombre), codigo: txt(d.codigo) };
+                            return { nombre: txt(d.nombre), codigo: txt(d.codigo), porPeine: !!d.porPeine, unidad: d.unidad === 'Pieza' ? 'Pieza' : 'Peine', pesoMin: d.porPeine && Number(d.pesoMin) > 0 ? Number(d.pesoMin) : '', pesoMax: d.porPeine && Number(d.pesoMax) > 0 ? Number(d.pesoMax) : '' };
                         case 'compra': {
                             const bloqueado = prev && (prev.abonos || []).length > 0;
                             const credito = bloqueado ? prev.tipoPago === 'Credito' : d.tipoPago === 'Credito';
@@ -2486,7 +2736,7 @@
                         case 'gasto':
                             return { titulo: txt(d.titulo), monto: Number(d.monto), fecha: d.fecha, categoria: txt(d.categoria) || 'Sin categoría', metodo: d.metodo, ...congelarMonto(Number(d.monto)) };
                         case 'prestamo':
-                            return { prestamista: txt(d.prestamista), monto: Number(d.monto), interes: Number(d.interes || 0), fecha: d.fecha, periodicidad: d.periodicidad, ...congelarPrestamo() };
+                            return { prestamista: txt(d.prestamista), monto: Number(d.monto), interes: Number(d.interes || 0), fecha: d.fecha, periodicidad: d.periodicidad, fechaFin: d.fechaFin && d.fechaFin > d.fecha ? d.fechaFin : '', montoTotalDevolver: this.r2(Number(d.monto) + this.interesDe({ monto: d.monto, interes: d.interes || 0 })), ...congelarPrestamo() };
                     }
                     return d;
                 },
@@ -2697,8 +2947,8 @@
                 usosDe(tipo, id) {
                     const n = (arr, k) => arr.filter(x => x[k] === id).length;
                     if (tipo === 'proveedor') return n(this.compras, 'proveedorId');
-                    if (tipo === 'cliente') return n(this.ventas, 'clienteId');
-                    if (tipo === 'producto') return n(this.compras, 'productoId') + n(this.ventas, 'productoId');
+                    if (tipo === 'cliente') return n(this.ventas, 'clienteId') + n(this.pedidos, 'clienteId');
+                    if (tipo === 'producto') return n(this.compras, 'productoId') + n(this.ventas, 'productoId') + this.pedidos.filter(p => (p.items || []).some(i => i.productoId === id)).length;
                     return 0;
                 },
                 eliminar(tipo, id) {
@@ -2771,7 +3021,7 @@
                     return {
                         version: 3,
                         proveedores: this.proveedores, clientes: this.clientes, productos: this.productos,
-                        compras: this.compras, ventas: this.ventas, gastos: this.gastos, prestamos: this.prestamos,
+                        compras: this.compras, ventas: this.ventas, gastos: this.gastos, prestamos: this.prestamos, pedidos: this.pedidos,
                         tasas: { usd: this.tasas.usd, eur: this.tasas.eur, usdt: this.tasas.usdt, refer: this.tasas.refer },
                         historialTasas: this.historialTasas,
                         empresa: this.empresa, papelera: this.papelera
@@ -2792,7 +3042,7 @@
                     if (p && p.version >= 3) {
                         return {
                             proveedores: p.proveedores || [], clientes: p.clientes || [], productos: p.productos || [],
-                            compras: p.compras || [], ventas: p.ventas || [], gastos: p.gastos || [], prestamos: p.prestamos || [], tasas: p.tasas, historialTasas: p.historialTasas || {}, empresa: p.empresa, papelera: p.papelera || []
+                            compras: p.compras || [], ventas: p.ventas || [], gastos: p.gastos || [], prestamos: p.prestamos || [], pedidos: p.pedidos || [], tasas: p.tasas, historialTasas: p.historialTasas || {}, empresa: p.empresa, papelera: p.papelera || []
                         };
                     }
                     const hoy = this.hoy();
@@ -2830,7 +3080,7 @@
                 aplicarDatos(parsed, guardar = true) {
                     const d = this.migrarDatos(parsed);
                     this.proveedores = d.proveedores; this.clientes = d.clientes; this.productos = d.productos;
-                    this.compras = d.compras; this.ventas = d.ventas; this.gastos = d.gastos; this.prestamos = d.prestamos;
+                    this.compras = d.compras; this.ventas = d.ventas; this.gastos = d.gastos; this.prestamos = d.prestamos; this.pedidos = d.pedidos || [];
                     this.historialTasas = { ...this.historialTasas, ...(d.historialTasas || {}) };
                     if (d.empresa) Object.assign(this.empresa, d.empresa);
                     this.papelera = d.papelera || [];
@@ -2952,6 +3202,177 @@
                     reader.readAsText(file, "UTF-8");
                 },
 
+                // ===================== PEDIDOS (anotación interna; no toca finanzas ni inventario) =====================
+                pedidos: [],       // { id, nro, fecha, clienteId, nota, estado: 'Pendiente'|'Vendido', ventaDocId, ventaNro, items: [{ productoId, modo: 'kg'|'peines', cantidad }] }
+                filtroPedido: 'pendiente',
+                mp: { abierto: false, id: null, data: { fecha: '', clienteId: '', nota: '', items: [] }, error: '' },
+                gv: { abierto: false, pedidoId: null, data: { fecha: '', clienteId: '', items: [], metodo: 'BCV', tasa: '', diasCredito: '' }, error: '' },
+                prodDe(id) { return this.productos.find(p => String(p.id) === String(id)) || null; },
+                nombreProd(id) { const p = this.prodDe(id); return p ? p.nombre : 'N/D'; },
+                esPeine(id) { const p = this.prodDe(id); return !!(p && p.porPeine); },
+                pesoPeine(id) {
+                    const p = this.prodDe(id) || {};
+                    const mn = Number(p.pesoMin), mx = Number(p.pesoMax);
+                    if (!(mn > 0 && mx >= mn)) return null; /* peso de referencia opcional */
+                    return { min: mn, max: mx, prom: Math.round((mn + mx) / 2 * 100) / 100 };
+                },
+                unidadDe(id, plural) { const p = this.prodDe(id), u = p && p.unidad === 'Pieza' ? 'pieza' : 'peine'; return plural ? u + 's' : u; },
+                unidadCap(id) { const u = this.unidadDe(id, true); return u.charAt(0).toUpperCase() + u.slice(1); },
+                // kg y peines equivalentes de una línea (rango mínimo / máximo / promedio)
+                itemCalc(it) {
+                    const q = Number(it.cantidad) || 0;
+                    if (!this.esPeine(it.productoId)) return { kg: { min: q, max: q, prom: q }, peines: null };
+                    const w = this.pesoPeine(it.productoId);
+                    if (it.modo === 'peines') return w ? { kg: { min: q * w.min, max: q * w.max, prom: q * w.prom }, peines: { min: q, max: q, prom: q } } : { kg: { min: 0, max: 0, prom: 0 }, peines: { min: q, max: q, prom: q } };
+                    return w ? { kg: { min: q, max: q, prom: q }, peines: { min: q / w.max, max: q / w.min, prom: q / w.prom } } : { kg: { min: q, max: q, prom: q }, peines: null };
+                },
+                textoPedido(it) { return it.modo === 'peines' && this.esPeine(it.productoId) ? `${this.fmtKg(it.cantidad)} ${this.unidadDe(it.productoId, true)}` : `${this.fmtKg(it.cantidad)} kg`; },
+                textoEquivale(it) {
+                    if (!this.esPeine(it.productoId)) return '—';
+                    if (!this.pesoPeine(it.productoId)) return it.modo === 'peines' ? 'sin peso de referencia (indique los kg al facturar)' : '—';
+                    const c = this.itemCalc(it), u = this.unidadDe(it.productoId, true);
+                    if (it.modo === 'peines') return `≈ ${this.fmtKg(Math.round(c.kg.min))}–${this.fmtKg(Math.round(c.kg.max))} kg (prom. ${this.fmtKg(Math.round(c.kg.prom))} kg)`;
+                    return `≈ ${Math.round(c.peines.min)}–${Math.round(c.peines.max)} ${u} (prom. ${Math.round(c.peines.prom)})`;
+                },
+                textoEstimado(it) { return `${this.textoPedido(it)} ${this.textoEquivale(it)}`; },
+                totalPedido(p) {
+                    const t = { kg: 0, peinesMin: 0, peinesMax: 0, peinesProm: 0 };
+                    (p.items || []).forEach(it => {
+                        if (!(Number(it.cantidad) > 0) || (it.productoId === '' || it.productoId == null)) return;
+                        const c = this.itemCalc(it);
+                        t.kg += c.kg.prom;
+                        if (c.peines) { t.peinesMin += c.peines.min; t.peinesMax += c.peines.max; t.peinesProm += c.peines.prom; }
+                    });
+                    return t;
+                },
+                get pedidosPendientes() { return this.pedidos.filter(p => p.estado !== 'Vendido'); },
+                get pedidosFiltrados() {
+                    const f = this.filtroPedido;
+                    return this.pedidos.filter(p => f === 'todos' || (f === 'vendido' ? p.estado === 'Vendido' : p.estado !== 'Vendido'))
+                        .slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.id - a.id);
+                },
+                get clientesConPedido() { return new Set(this.pedidosPendientes.map(p => String(p.clienteId))).size; },
+                clientePedido(p) { const c = this.clientes.find(x => x.id === p.clienteId); return c ? this.nombreCliente(c) : 'Cliente desconocido'; },
+                // Resumen por producto de los pedidos pendientes (para la gráfica y la tabla)
+                get resumenPedidos() {
+                    const m = {};
+                    this.pedidosPendientes.forEach(p => (p.items || []).forEach(it => {
+                        const c = this.itemCalc(it), k = String(it.productoId), pr = this.prodDe(it.productoId);
+                        const r = m[k] || (m[k] = { id: it.productoId, nombre: pr ? pr.nombre : 'N/D', porPeine: !!(pr && pr.porPeine), kg: 0, kgMin: 0, kgMax: 0, pMin: 0, pMax: 0, pProm: 0 });
+                        r.kg += c.kg.prom; r.kgMin += c.kg.min; r.kgMax += c.kg.max;
+                        if (c.peines) { r.pMin += c.peines.min; r.pMax += c.peines.max; r.pProm += c.peines.prom; }
+                    }));
+                    return Object.values(m).map(r => {
+                        const ex = this.existenciaDe(Number(r.id), null), falta = Math.max(this.r2(r.kg - ex), 0);
+                        let pf = null;
+                        if (r.porPeine) { const w = this.pesoPeine(r.id); if (w) pf = { min: falta / w.max, max: falta / w.min, prom: falta / w.prom }; }
+                        return { ...r, kg: this.r2(r.kg), existencia: ex, falta, pf };
+                    }).sort((a, b) => b.kg - a.kg);
+                },
+                get pedidosTotales() {
+                    const t = { kg: 0, falta: 0, peinesMin: 0, peinesMax: 0, peinesProm: 0 };
+                    this.resumenPedidos.forEach(r => { t.kg += r.kg; t.falta += r.falta; t.peinesMin += r.pMin; t.peinesMax += r.pMax; t.peinesProm += r.pProm; });
+                    return { ...t, kg: this.r2(t.kg), falta: this.r2(t.falta) };
+                },
+                itemPedidoVacio() { this._kLinea = (this._kLinea || 0) + 1; return { k: this._kLinea, productoId: '', modo: 'kg', cantidad: '' }; },
+                alElegirProdPedido(it) { if (!this.esPeine(it.productoId)) it.modo = 'kg'; },
+                abrirPedido(p) {
+                    if (p) {
+                        this.mp = { abierto: true, id: p.id, error: '', data: { fecha: p.fecha, clienteId: p.clienteId, nota: p.nota || '', items: p.items.map(i => ({ ...this.itemPedidoVacio(), productoId: i.productoId, modo: i.modo || 'kg', cantidad: i.cantidad })) } };
+                    } else {
+                        this.mp = { abierto: true, id: null, error: '', data: { fecha: this.hoy(), clienteId: '', nota: '', items: [this.itemPedidoVacio()] } };
+                    }
+                },
+                cerrarPedido() { this.mp.abierto = false; this.mp.error = ''; },
+                guardarPedido() {
+                    const mp = this.mp, d = mp.data;
+                    if (!d.fecha) { mp.error = 'Indique la fecha del pedido.'; return; }
+                    if (d.clienteId === '' || d.clienteId == null) { mp.error = 'Seleccione un cliente.'; return; }
+                    if (!d.items.length) { mp.error = 'Agregue al menos un producto.'; return; }
+                    for (let i = 0; i < d.items.length; i++) {
+                        const it = d.items[i], pre = d.items.length > 1 ? `Producto ${i + 1}: ` : '';
+                        if (it.productoId === '' || it.productoId == null) { mp.error = pre + 'Seleccione un producto.'; return; }
+                        if (!(Number(it.cantidad) > 0)) { mp.error = pre + 'Ingrese la cantidad.'; return; }
+                    }
+                    const items = d.items.map(it => ({ productoId: Number(it.productoId), modo: this.esPeine(it.productoId) && it.modo === 'peines' ? 'peines' : 'kg', cantidad: Number(it.cantidad) }));
+                    const base = { fecha: d.fecha, clienteId: Number(d.clienteId), nota: String(d.nota || '').trim(), items };
+                    if (mp.id) {
+                        const o = this.pedidos.find(x => x.id === mp.id);
+                        if (o) Object.assign(o, base);
+                    } else {
+                        const nro = this.pedidos.reduce((m, x) => Math.max(m, Number(x.nro) || 0), 0) + 1;
+                        this.pedidos.push({ id: this.nuevoId(), nro, ...base, estado: 'Pendiente' });
+                    }
+                    this.cerrarPedido();
+                },
+                eliminarPedido(id) {
+                    const p = this.pedidos.find(x => x.id === id);
+                    if (!p || !confirm('¿Eliminar este pedido? Podrá recuperarlo desde la Papelera.')) return;
+                    this.aPapelera('pedido', [p]);
+                    this.pedidos = this.pedidos.filter(x => x.id !== id);
+                },
+                reabrirPedido(id) {
+                    const p = this.pedidos.find(x => x.id === id);
+                    if (!p || !confirm('El pedido volverá a Pendientes. La venta ya generada NO se elimina (hágalo desde Venta si hace falta). ¿Continuar?')) return;
+                    p.estado = 'Pendiente'; delete p.ventaDocId; delete p.ventaNro;
+                },
+                abrirGenVenta(p) {
+                    const items = p.items.map(it => {
+                        const c = this.itemCalc(it);
+                        const v = this.itemVacio();
+                        v.productoId = it.productoId; v.cantidadKg = c.kg.prom > 0 ? Math.round(c.kg.prom * 1000) / 1000 : '';
+                        v.hint = this.textoPedido(it) + (this.esPeine(it.productoId) ? ' ' + this.textoEquivale(it) : '');
+                        return v;
+                    });
+                    this.gv = { abierto: true, pedidoId: p.id, error: '', data: { fecha: this.hoy(), clienteId: p.clienteId, items, metodo: 'BCV', tasa: '', diasCredito: '' } };
+                },
+                async confirmarGenVenta() {
+                    const g = this.gv, d = g.data;
+                    const p = this.pedidos.find(x => x.id === g.pedidoId);
+                    if (!p) { g.abierto = false; return; }
+                    const e = this.validarEntidad('venta', d, null);
+                    if (e) { g.error = e; return; }
+                    if (!this.confirmarStockItems(d.items)) return;
+                    if (this._guardando) return;
+                    this._guardando = true;
+                    try { await this.asegurarTasasFecha(d.fecha); } finally { this._guardando = false; }
+                    const docId = this.nuevoId();
+                    d.items.forEach(it => {
+                        const linea = { ...d, productoId: it.productoId, precioKg: it.precioKg, cantidadKg: it.cantidadKg };
+                        this.ventas.push({ id: this.nuevoId(), docId, ...this.normalizarEntidad('venta', linea, null), abonos: [] });
+                    });
+                    this.asegurarNumeros();
+                    const l = this.ventas.find(v => v.docId === docId);
+                    p.estado = 'Vendido'; p.ventaDocId = docId; p.ventaNro = l ? l.nro : null;
+                    g.abierto = false;
+                    this.irA('ventas');
+                },
+                renderChartPedidos() {
+                    if (CH['ch-pedidos']) { CH['ch-pedidos'].destroy(); delete CH['ch-pedidos']; }
+                    const el = document.getElementById('ch-pedidos'), R = this.resumenPedidos;
+                    if (!el || !R.length) return;
+                    const T = this.theme === 'light'
+                        ? { text: '#6b6b66', grid: 'rgba(0,0,0,0.07)', tipBg: '#ffffff', tipBorder: 'rgba(0,0,0,0.12)', tipTitle: '#0a0a0a', tipBody: '#3f3f3a', lime: '#65a30d', amber: '#d97706' }
+                        : { text: '#9a9a9a', grid: 'rgba(255,255,255,0.06)', tipBg: '#0a0a0a', tipBorder: 'rgba(255,255,255,0.14)', tipTitle: '#ffffff', tipBody: '#d4d4d4', lime: '#a3e635', amber: '#fbbf24' };
+                    Chart.defaults.color = T.text; Chart.defaults.borderColor = T.grid;
+                    Object.assign(Chart.defaults.plugins.tooltip, { backgroundColor: T.tipBg, borderColor: T.tipBorder, borderWidth: 1, padding: 12, cornerRadius: 12, titleColor: T.tipTitle, bodyColor: T.tipBody, boxPadding: 4 });
+                    CH['ch-pedidos'] = new Chart(el, {
+                        type: 'bar',
+                        data: { labels: R.map(r => r.nombre), datasets: [
+                            { label: 'Kg pedidos', data: R.map(r => r.kg), backgroundColor: T.lime, borderRadius: 6, maxBarThickness: 26 },
+                            { label: 'Existencia actual (kg)', data: R.map(r => Math.max(r.existencia, 0)), backgroundColor: T.amber, borderRadius: 6, maxBarThickness: 26 }
+                        ] },
+                        options: {
+                            indexAxis: 'y', responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                            plugins: { legend: { labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 } } }, tooltip: { callbacks: {
+                                label: c => ' ' + c.dataset.label + ': ' + this.fmtKg(c.parsed.x) + ' kg',
+                                afterLabel: c => { const r = R[c.dataIndex]; return c.datasetIndex === 0 && r.porPeine ? '   ≈ ' + Math.round(r.pProm) + ' peines (' + Math.round(r.pMin) + '–' + Math.round(r.pMax) + ')' : ''; }
+                            } } },
+                            scales: { x: { grid: { color: T.grid }, border: { display: false }, ticks: { callback: v => v + ' kg' } }, y: { grid: { display: false }, border: { display: false } } }
+                        }
+                    });
+                },
+
                 // ===================== INVENTARIO (promedio ponderado) =====================
                 get inventarioCalc() {
                     const ev = [];
@@ -3056,22 +3477,36 @@
 
                 // ===================== FINANZAS =====================
                 interesDe(p) { return this.r2(Number(p.monto) * Number(p.interes || 0) / 100); },
+                // Interés de préstamos devengado: sin fecha fin = un solo cargo en la fecha de inicio;
+                // con fecha fin = se reparte en partes iguales por día (inicio y fin incluidos).
+                get interesesDevengados() {
+                    const out = [];
+                    this.prestamos.forEach(p => {
+                        const total = this.interesDe(p), totalBs = this.interesBsDe(p), ini = p.fecha, fin = p.fechaFin;
+                        if (!ini || !(total > 0 || totalBs > 0)) return;
+                        if (!fin || fin <= ini) { out.push({ fecha: ini, monto: total, bs: totalBs, id: p.id }); return; }
+                        const n = Math.min(this.diasEntre(ini, fin) + 1, 3660);
+                        const d = new Date(ini + 'T12:00:00');
+                        for (let i = 0; i < n; i++) { out.push({ fecha: this.isoDe(d), monto: total / n, bs: totalBs / n, id: p.id }); d.setDate(d.getDate() + 1); }
+                    });
+                    return out;
+                },
                 get egresos() {
                     return [
                         ...this.gastos.map(g => ({ fecha: g.fecha, monto: Number(g.monto), bs: this.bsGasto(g) })),
-                        ...this.prestamos.map(p => ({ fecha: p.fecha, monto: this.interesDe(p), bs: this.interesBsDe(p) }))
+                        ...this.interesesDevengados.map(e => ({ fecha: e.fecha, monto: e.monto, bs: e.bs }))
                     ];
                 },
                 get mesKey() { return this.hoy().slice(0, 7); },
                 get gastosMes() { return this.r2(this.egresos.filter(e => (e.fecha || '').startsWith(this.mesKey)).reduce((a, e) => a + e.monto, 0)); },
-                get interesesMes() { return this.r2(this.prestamos.filter(p => (p.fecha || '').startsWith(this.mesKey)).reduce((a, p) => a + this.interesDe(p), 0)); },
+                get interesesMes() { return this.r2(this.interesesDevengados.filter(e => (e.fecha || '').startsWith(this.mesKey)).reduce((a, e) => a + e.monto, 0)); },
                 get ventasMes() { return this.r2(this.ventasList.filter(v => (v.fecha || '').startsWith(this.mesKey)).reduce((a, v) => a + v.total, 0)); },
                 get gananciaVentasMes() { return this.r2(this.ventasList.filter(v => (v.fecha || '').startsWith(this.mesKey)).reduce((a, v) => a + v.ganancia, 0)); },
                 get gananciaNetaMes() { return this.r2(this.gananciaVentasMes - this.gastosMes); },
                 get gananciaVentasMesBs() { return this.r2(this.ventasList.filter(v => (v.fecha || '').startsWith(this.mesKey)).reduce((a, v) => a + v.gananciaBs, 0)); },
                 get gastosMesBs() { return this.r2(this.egresos.filter(e => (e.fecha || '').startsWith(this.mesKey)).reduce((a, e) => a + e.bs, 0)); },
                 get gananciaNetaMesBs() { return this.r2(this.gananciaVentasMesBs - this.gastosMesBs); },
-                get interesesMesBs() { return this.r2(this.prestamos.filter(p => (p.fecha || '').startsWith(this.mesKey)).reduce((a, p) => a + this.interesBsDe(p), 0)); },
+                get interesesMesBs() { return this.r2(this.interesesDevengados.filter(e => (e.fecha || '').startsWith(this.mesKey)).reduce((a, e) => a + e.bs, 0)); },
                 get gastosAcumuladosBs() { return this.r2(this.gastos.reduce((a, g) => a + this.bsGasto(g), 0)); },
                 get totalPrestadoBs() { return this.r2(this.prestamos.reduce((a, p) => a + this.bsPrestamo(p), 0)); },
                 get totalInteresesBs() { return this.r2(this.prestamos.reduce((a, p) => a + this.interesBsDe(p), 0)); },
@@ -3150,7 +3585,7 @@
                     const ex = { gv: 0, gvBs: 0, int: 0, intBs: 0 };
                     this.ventasList.forEach(v => { const i = k(v.fecha); if (i !== undefined) { S.ventas[i] += v.total; S.ganancia[i] += v.ganancia; bsT.ventas += v.totalBsEst; ex.gv += v.ganancia; ex.gvBs += v.gananciaBs; } });
                     this.comprasList.forEach(c => { const i = k(c.fecha); if (i !== undefined) { S.compras[i] += c.total; bsT.compras += c.totalBsEst; } });
-                    this.prestamos.forEach(p => { const i = k(p.fecha); if (i !== undefined) { ex.int += this.interesDe(p); ex.intBs += this.interesBsDe(p); } });
+                    this.interesesDevengados.forEach(e => { const i = k(e.fecha); if (i !== undefined) { ex.int += e.monto; ex.intBs += e.bs; } });
                     this.egresos.forEach(e => { const i = k(e.fecha); if (i !== undefined) { S.gastos[i] += e.monto; S.ganancia[i] -= e.monto; bsT.gastos += e.bs; } });
                     ['ventas', 'compras', 'gastos', 'ganancia'].forEach(key => { S[key] = S[key].map(v => this.r2(v)); });
                     const sum = a => this.r2(a.reduce((x, y) => x + y, 0));
@@ -3964,6 +4399,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                 aPapelera(tipo, items) { this.papelera = [{ pid: this.nuevoId(), tipo, fecha: new Date().toISOString(), items: JSON.parse(JSON.stringify(items)) }].concat(this.papelera).slice(0, 50); },
                 resumenPapelera(e) {
                     const x = e.items[0] || {};
+                    if (e.tipo === 'pedido') return 'Pedido N° ' + String(x.nro || 0).padStart(4, '0') + ' · ' + this.fmtFecha(x.fecha);
                     if (e.tipo === 'compra' || e.tipo === 'venta') return `${e.items.length} ${e.items.length === 1 ? 'producto' : 'productos'} · ${this.usd(e.items.reduce((a, l) => a + (Number(l.precioKg) || 0) * (Number(l.cantidadKg) || 0), 0))} · ${this.fmtFecha(x.fecha)}`;
                     return x.nombre || x.descripcion || x.concepto || ('#' + x.id);
                 },
@@ -4122,7 +4558,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                         document.addEventListener('touchend', (e) => {
                             if (!activo || window.innerWidth >= 1024) return;
                             activo = false;
-                            if (this.modal.abierto || this.modalDoc.abierto || this.datosEmpresaAbierto || this.factura.abierto || this.escaner.abierto) return;
+                            if (this.modal.abierto || this.modalDoc.abierto || this.datosEmpresaAbierto || this.factura.abierto || this.escaner.abierto || this.mp.abierto || this.gv.abierto) return;
                             const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
                             if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
                             if (!this.sidebarOpen && tx < 30 && dx > 0) this.sidebarOpen = true;
@@ -4167,7 +4603,9 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                     this._chartTimer = setTimeout(() => this.renderCharts(), 80);
                 },
                 renderCharts() {
-                    if (this.currentTab !== 'estadisticas' || typeof Chart === 'undefined') return;
+                    if (typeof Chart === 'undefined') return;
+                    if (this.currentTab === 'pedidos') { this.renderChartPedidos(); return; }
+                    if (this.currentTab !== 'estadisticas') return;
                     Chart.defaults.font.family = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
                     const T = this.theme === 'light'
                         ? { text: '#6b6b66', grid: 'rgba(0,0,0,0.07)', tipBg: '#ffffff', tipBorder: 'rgba(0,0,0,0.12)', tipTitle: '#0a0a0a', tipBody: '#3f3f3a', lime: '#65a30d', amber: '#d97706', neg: '#e11d48', line: '#0a0a0a' }
