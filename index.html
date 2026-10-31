@@ -655,15 +655,11 @@
                 </div>
                 <p x-show="escaner.aviso" x-text="escaner.aviso" class="text-[11px] font-medium" style="color: var(--warn)"></p>
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="space-y-1 col-span-2"><label class="flabel">Tipo de pago</label><select x-model="escaner.metodo" @change="recalcularEscaneo()" class="field w-full px-3 py-2.5 text-xs"><option value="Pago móvil">Pago móvil</option><option value="Transferencia">Transferencia</option></select></div>
-                    <div class="space-y-1 col-span-2"><label class="flabel">Referencia</label><input type="text" x-model class="field w-full px-4 py-2.5 text-xs"></div>
-                    <div class="space-y-1 "><label class="flabel">Monto (Bs)</label><input type="number" x-model class="field w-full px-4 py-2.5 text-xs"></div>
-                    <div class="space-y-1 "><label class="flabel">Banco</label><input type="text" x-model class="field w-full px-4 py-2.5 text-xs"></div>
-                    <div class="space-y-1 "><label class="flabel">Fecha</label><input type="date" x-model class="field w-full px-4 py-2.5 text-xs"></div>
-                    <div class="space-y-1 "><label class="flabel">Hora</label><input type="time" x-model class="field w-full px-4 py-2.5 text-xs"></div>
-                    <div class="space-y-1 "><label class="flabel">Teléfono</label><input type="text" x-model class="field w-full px-4 py-2.5 text-xs"></div>
-                    <div class="space-y-1 "><label class="flabel">Cédula / RIF</label><input type="text" x-model class="field w-full px-4 py-2.5 text-xs"></div>
-                    <div class="space-y-1 col-span-2"><label class="flabel">Concepto</label><input type="text" x-model class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 col-span-2"><label class="flabel">Referencia del pago</label><input type="text" inputmode="numeric" x-model="escaner.f.referencia" class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 "><label class="flabel">Fecha</label><input type="date" x-model="escaner.f.fecha" @change="recalcularEscaneo()" class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 "><label class="flabel">Banco del depósito</label><input type="text" x-model="escaner.f.banco" class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 "><label class="flabel">Monto (Bs.)</label><input type="number" min="0" step="0.01" x-model.number="escaner.f.montoBs" @input="calcularUsdEscaneo()" class="field w-full px-4 py-2.5 text-xs"></div>
+                    <div class="space-y-1 "><label class="flabel">Tasa BCV (Bs. por $)</label><input type="number" min="0" step="0.0001" x-model.number="escaner.tasa" @input="calcularUsdEscaneo()" class="field w-full px-4 py-2.5 text-xs"></div>
                 </div>
                 <div class="space-y-1"><label class="flabel" x-text="escaner.kind === 'cxp' ? 'Proveedor al que se pagó' : 'Cliente que pagó'"></label>
                     <select x-model="escaner.clienteId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione...</option>
@@ -672,8 +668,7 @@
                 </div>
                 <div class="space-y-1"><label class="flabel">Monto a aplicar ($)</label>
                     <div class="flex gap-2"><input type="number" min="0" step="0.01" x-model="escaner.montoUsd" class="field flex-1 px-4 py-2.5 text-xs"><button type="button" @click="escaner.montoUsd = escSaldo || ''" :disabled="!escGrupo" class="btn-ghost px-3 py-2.5 text-xs whitespace-nowrap">Saldo total</button></div>
-                    <p class="text-[11px] text-slate-500 px-1" x-show="escaner.tasa > 0" x-text="'Tasa ' + escaner.metodo + ' del ' + fmtFecha(escaner.f.fecha) + ': Bs. ' + fmtTasa(escaner.tasa) + ' por $'"></p>
-                    <p class="text-[11px] px-1" x-show="escaner.f.usdConcepto > 0" style="color: var(--muted)">El concepto menciona <b x-text="usd(escaner.f.usdConcepto)"></b>. <button type="button" class="underline cursor-pointer" style="color: var(--accent-text)" @click="escaner.montoUsd = escaner.f.usdConcepto">Usar este monto</button></p>
+                    <p class="text-[11px] text-slate-500 px-1">Se calcula con la tasa BCV de la fecha del pago (Monto Bs. ÷ Tasa). Puedes ajustarla si hace falta.</p>
                 </div>
                 <div x-show="escGrupo && Number(escaner.montoUsd) > 0" class="doc-resumen text-xs space-y-1">
                     <p><span class="badge badge-info" x-text="escTipo === 'completo' ? 'Pago completo' : 'Abono'"></span></p>
@@ -691,6 +686,63 @@
                 <p class="text-base font-extrabold" style="color: var(--accent-text)">¡Pago registrado!</p>
                 <p class="text-xs text-slate-500" x-text="escaner.resultado"></p>
                 <div class="grid grid-cols-2 gap-3"><button type="button" @click="abrirEscaner()" class="btn-ghost py-2.5 text-xs">Escanear otro</button><button type="button" @click="cerrarEscaner()" class="btn-primary py-2.5 text-xs">Cerrar</button></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDITAR FACTURA COMPLETA -->
+    <div class="esc-overlay no-print" x-show="docEdit.abierto" x-cloak @keydown.escape.window="docEdit.abierto = false" @click.self="docEdit.abierto = false">
+        <div class="esc-panel card-box p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3"><h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-receipt_long"/></svg><span x-text="docEdit.tipo === 'venta' ? 'Editar factura de venta' : 'Editar compra'"></span></h3><button type="button" @click="docEdit.abierto = false" class="btn-circle w-10! h-10!" aria-label="Cerrar"><svg class="ic text-xl" aria-hidden="true"><use href="#ic-close"/></svg></button></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="docEdit.fecha" class="field w-full px-4 py-2.5 text-xs"></div>
+                <div class="space-y-1"><label class="flabel" x-text="docEdit.tipo === 'venta' ? 'Cliente' : 'Proveedor'"></label><select x-model="docEdit.entidadId" class="field w-full px-3 py-2.5 text-xs"><template x-for="p in (docEdit.tipo === 'venta' ? clientes : proveedores)" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(docEdit.entidadId)" x-text="p.nombre"></option></template></select></div>
+            </div>
+            <div class="space-y-3">
+            <template x-for="(it, i) in docEdit.items" :key="it.k">
+                <div class="rounded-2xl p-3 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
+                    <div class="flex items-center justify-between"><span class="flabel" x-text="'Producto ' + (i + 1)"></span><button type="button" x-show="docEdit.items.length > 1" @click="docEdit.items.splice(i, 1)" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button></div>
+                    <select x-model="it.productoId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option><template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(it.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select>
+                    <div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="it.precioKg" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="it.cantidadKg" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div></div>
+                </div>
+            </template>
+            <button type="button" @click="docEdit.items.push(itemVacio())" class="btn-ghost w-full py-2 text-xs">+ Agregar otro producto</button>
+            </div>
+            <p class="text-xs font-bold text-right" x-text="'Total: ' + usd(totalItems(docEdit))"></p>
+            <p class="text-[11px] text-slate-500">El método de pago, el crédito y la tasa se conservan. Si cambias la fecha, la tasa se recalcula.</p>
+            <p x-show="docEdit.error" x-text="docEdit.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+            <div class="grid grid-cols-2 gap-3"><button type="button" @click="docEdit.abierto = false" class="btn-ghost py-2.5 text-xs">Cancelar</button><button type="button" @click="guardarDocEdit()" class="btn-primary py-2.5 text-xs">Guardar cambios</button></div>
+        </div>
+    </div>
+
+    <!-- PAPELERA -->
+    <div class="esc-overlay no-print" x-show="papeleraAbierta" x-cloak @keydown.escape.window="papeleraAbierta = false" @click.self="papeleraAbierta = false">
+        <div class="esc-panel card-box p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3"><h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-assignment"/></svg><span>Papelera</span></h3><button type="button" @click="papeleraAbierta = false" class="btn-circle w-10! h-10!" aria-label="Cerrar"><svg class="ic text-xl" aria-hidden="true"><use href="#ic-close"/></svg></button></div>
+            <p x-show="papelera.length === 0" class="text-center text-slate-400 italic text-xs py-4">La papelera está vacía.</p>
+            <div class="space-y-2">
+                <template x-for="e in papelera" :key="e.pid"><div class="flex items-center justify-between gap-3 rounded-xl p-3" style="border: 1px solid var(--line-2)">
+                    <div class="min-w-0"><p class="text-xs font-bold text-slate-900 truncate" x-text="nombreTipo(e.tipo) + ': ' + resumenPapelera(e)"></p><p class="text-[10px] text-slate-500" x-text="'Eliminado el ' + new Date(e.fecha).toLocaleString('es-VE')"></p></div>
+                    <button type="button" @click="restaurarPapelera(e.pid)" class="btn-ghost px-3 py-1.5 text-xs whitespace-nowrap">Restaurar</button>
+                </div></template>
+            </div>
+            <button type="button" x-show="papelera.length > 0" @click="if (confirm('¿Vaciar la papelera? No se podrá recuperar.')) papelera = []" class="text-rose-600 hover:underline cursor-pointer text-xs font-medium">Vaciar papelera</button>
+        </div>
+    </div>
+
+    <!-- HISTORIAL DE RESPALDOS -->
+    <div class="esc-overlay no-print" x-show="historial.abierto" x-cloak @keydown.escape.window="historial.abierto = false" @click.self="historial.abierto = false">
+        <div class="esc-panel card-box p-6 space-y-4">
+            <div class="flex items-center justify-between gap-3"><h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-file_download"/></svg><span>Historial de respaldos</span></h3><button type="button" @click="historial.abierto = false" class="btn-circle w-10! h-10!" aria-label="Cerrar"><svg class="ic text-xl" aria-hidden="true"><use href="#ic-close"/></svg></button></div>
+            <p class="text-[11px] text-slate-500">Se guarda una versión cada 30 minutos de uso (las últimas 15). Al restaurar una, tus datos actuales se reemplazan.</p>
+            <p x-show="historial.cargando" class="text-center text-xs text-slate-500 py-3">Cargando…</p>
+            <p x-show="historial.error" x-text="historial.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+            <p x-show="!historial.cargando && !historial.error && historial.lista.length === 0" class="text-center text-slate-400 italic text-xs py-3">Aún no hay versiones guardadas.</p>
+            <div class="space-y-2">
+                <template x-for="v in historial.lista" :key="v.id"><div class="flex items-center justify-between gap-3 rounded-xl p-3" style="border: 1px solid var(--line-2)">
+                    <div class="min-w-0"><p class="text-xs font-bold text-slate-900" x-text="new Date(v.created_at).toLocaleString('es-VE')"></p><p class="text-[10px] text-slate-500" x-text="resumenVersion(v.resumen)"></p></div>
+                    <button type="button" @click="restaurarVersion(v.id)" class="btn-ghost px-3 py-1.5 text-xs whitespace-nowrap">Restaurar</button>
+                </div></template>
             </div>
         </div>
     </div>
@@ -780,7 +832,11 @@
                         <button type="button" @click="descargaAbierta = false; descargarPDFEstadisticas()" class="w-full text-left px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[var(--lime-soft)] transition-colors">
                             <span class="block text-xs font-bold" style="color: var(--text)">Reporte de estadísticas</span>
                             <span class="block text-[10px]" style="color: var(--muted)">PDF imprimible</span>
-                        </button>
+                    </button>
+                    <div class="px-3 pt-1 pb-1"><span class="block text-[10px] font-bold" style="color: var(--muted)">EXCEL (CSV)</span>
+                        <div class="flex gap-1.5 mt-1.5"><button type="button" @click="descargaAbierta = false; exportarExcel('compras')" class="btn-ghost px-2.5 py-1 text-[11px]">Compras</button><button type="button" @click="descargaAbierta = false; exportarExcel('ventas')" class="btn-ghost px-2.5 py-1 text-[11px]">Ventas</button><button type="button" @click="descargaAbierta = false; exportarExcel('cobranzas')" class="btn-ghost px-2.5 py-1 text-[11px]">Cobranzas</button></div></div>
+                    <button type="button" @click="descargaAbierta = false; abrirHistorial()" class="w-full text-left px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[var(--lime-soft)] transition-colors"><span class="block text-xs font-bold" style="color: var(--text)">Historial de respaldos</span><span class="block text-[10px]" style="color: var(--muted)">Restaurar una versión anterior</span></button>
+                    <button type="button" @click="descargaAbierta = false; papeleraAbierta = true" class="w-full text-left px-3 py-2.5 rounded-xl cursor-pointer hover:bg-[var(--lime-soft)] transition-colors"><span class="block text-xs font-bold" style="color: var(--text)" x-text="'Papelera (' + papelera.length + ')'"></span><span class="block text-[10px]" style="color: var(--muted)">Recuperar lo eliminado</span></button>
                     </div>
                 </div>
                 <label class="btn-side">
@@ -840,6 +896,15 @@
                 <h2 style="font-size: 20px; font-weight: 800" x-text="(empresa.nombre || nombreApp) + ' — Reporte de estadísticas'"></h2>
                 <p style="font-size: 12px" x-text="'Generado el ' + fmtFecha(hoy()) + (usuario.nombre ? ' · ' + usuario.nombre : '')"></p>
             </div>
+            <div class="card-box p-5 space-y-3">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-bar_chart"/></svg><span>Diferencial cambiario</span></h3>
+                <div class="doc-totales">
+                    <div><span class="k">En cobros</span><span class="v" x-text="sgnBs(difCambiario.cobros.bs)"></span></div>
+                    <div><span class="k">En pagos</span><span class="v" x-text="sgnBs(difCambiario.pagos.bs)"></span></div>
+                    <div><span class="k">Neto</span><span class="v" :style="difCambiario.neto.bs < 0 ? 'color: var(--danger)' : 'color: var(--accent-text)'" x-text="sgnBs(difCambiario.neto.bs) + ' (≈ ' + usd(difCambiario.neto.usd) + ')'"></span></div>
+                </div>
+                <p class="text-[11px] text-slate-500">Diferencia entre la tasa del día de la operación a crédito y la del día en que se cobró o pagó (solo abonos en Bs).</p>
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
                 <div class="card-box float stat-card card-lime">
@@ -885,11 +950,16 @@
             <div class="card-box p-5 md:p-6 space-y-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-trending_up"/></svg><span>Gráfica de Finanzas</span></h3>
-                    <div class="seg no-print" role="group" aria-label="Período de la gráfica">
+                    <div class="seg no-print max-w-full overflow-x-auto" role="group" aria-label="Período de la gráfica">
                         <template x-for="p in periodos" :key="p.id">
                             <button @click="periodo = p.id" :aria-pressed="periodo === p.id" x-text="p.label"></button>
                         </template>
                     </div>
+                </div>
+                <div x-show="periodo === 'custom'" x-cloak class="flex flex-wrap items-end gap-3 no-print">
+                    <div class="space-y-1"><label class="flabel">Desde</label><input type="date" x-model="rangoDesde" :max="rangoHasta || null" class="field px-4 py-2 text-xs"></div>
+                    <div class="space-y-1"><label class="flabel">Hasta</label><input type="date" x-model="rangoHasta" :min="rangoDesde || null" class="field px-4 py-2 text-xs"></div>
+                    <p class="text-[11px] text-slate-500 pb-2">Las tarjetas y la gráfica miden solo esos días.</p>
                 </div>
                 <div x-show="hayMovimientos" class="relative h-72 sm:h-80"><canvas id="ch-finanzas"></canvas></div>
                 <div x-show="!hayMovimientos" x-cloak class="panel-inset p-8 text-center space-y-1">
@@ -1142,7 +1212,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                 <div class="card-box p-6 space-y-4 self-start">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-store"/></svg><span>Registrar Cliente</span></h3>
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del cliente</label><input type="text" x-model="form.cliente.nombre" placeholder="Nombre del cliente / contacto"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Nombre del negocio</label><input type="text" x-model="form.cliente.negocio" placeholder="Nombre del negocio"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">RIF</label><input type="text" x-model="form.cliente.rif" placeholder="J-12345678-0"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Dirección comercial</label><input type="text" x-model="form.cliente.direccion" placeholder="Dirección del negocio"  class="field w-full px-4 py-2.5 text-xs"></div></div>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del cliente</label><input type="text" x-model="form.cliente.nombre" placeholder="Nombre del cliente / contacto"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Nombre del negocio</label><input type="text" x-model="form.cliente.negocio" placeholder="Nombre del negocio"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">RIF</label><input type="text" x-model="form.cliente.rif" placeholder="J-12345678-0"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Teléfono (WhatsApp)</label><input type="text" x-model="form.cliente.telefono" placeholder="0414-1234567" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Dirección comercial</label><input type="text" x-model="form.cliente.direccion" placeholder="Dirección del negocio"  class="field w-full px-4 py-2.5 text-xs"></div></div>
                     <p x-show="err.cliente" x-text="err.cliente" class="text-xs font-medium" style="color: var(--danger)"></p>
                     <button @click="crear('cliente')" class="btn-primary w-full py-2.5 text-xs">Guardar Cliente</button>
                 </div>
@@ -1250,6 +1320,7 @@
                     <div class="card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-assignment"/></svg><span>Registro de Compras</span></h3>
                     <div class="space-y-4">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 no-print"><input type="search" x-model="filtro.compra.q" placeholder="Buscar proveedor o producto…" class="field col-span-2 px-4 py-2 text-xs"><input type="date" x-model="filtro.compra.desde" title="Desde" class="field px-3 py-2 text-xs"><input type="date" x-model="filtro.compra.hasta" title="Hasta" class="field px-3 py-2 text-xs"></div>
                         <template x-if="comprasDocs.length === 0"><p class="py-5 text-center text-slate-400 italic text-xs">No se han registrado compras.</p></template>
                         <template x-for="doc in comprasDocs" :key="doc.key">
                             <div class="doc-card">
@@ -1293,6 +1364,7 @@
                                     <div class="no-print flex items-center gap-4">
                                         
                                         <button @click="abrirDoc('compra', doc.key)" class="text-blue-600 hover:underline cursor-pointer font-medium text-xs">Editar compra completa</button>
+                                        <button @click="abrirDocEdit('compra', doc.key)" class="text-blue-600 hover:underline cursor-pointer font-medium text-xs">Editar compra</button>
                                         <button @click="eliminarDoc('compra', doc.key)" class="text-rose-600 hover:underline cursor-pointer font-medium text-xs">Eliminar compra completa</button>
                                     </div>
                                 </div>
@@ -1343,6 +1415,7 @@
                 <div class="lg:col-span-2 card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-bar_chart"/></svg><span>Ventas Registradas</span></h3>
                     <div class="space-y-4">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 no-print"><input type="search" x-model="filtro.venta.q" placeholder="Buscar cliente o producto…" class="field col-span-2 px-4 py-2 text-xs"><input type="date" x-model="filtro.venta.desde" title="Desde" class="field px-3 py-2 text-xs"><input type="date" x-model="filtro.venta.hasta" title="Hasta" class="field px-3 py-2 text-xs"></div>
                         <template x-if="ventasDocs.length === 0"><p class="py-5 text-center text-slate-400 italic text-xs">No se han registrado ventas.</p></template>
                         <template x-for="doc in ventasDocs" :key="doc.key">
                             <div class="doc-card">
@@ -1390,6 +1463,7 @@
                                     <div class="no-print flex items-center gap-4">
                                         <button @click="abrirFactura(doc.lineas[0])" class="text-emerald-600 hover:underline cursor-pointer font-medium text-xs">Generar Factura</button>
                                         <button @click="abrirDoc('venta', doc.key)" class="text-blue-600 hover:underline cursor-pointer font-medium text-xs">Editar factura completa</button>
+                                        <button @click="abrirDocEdit('venta', doc.key)" class="text-blue-600 hover:underline cursor-pointer font-medium text-xs">Editar factura</button>
                                         <button @click="eliminarDoc('venta', doc.key)" class="text-rose-600 hover:underline cursor-pointer font-medium text-xs">Eliminar factura completa</button>
                                     </div>
                                 </div>
@@ -1649,6 +1723,30 @@
 
         <!-- FINANZAS: COBRANZAS (CUENTAS POR COBRAR) -->
         <div x-show="currentTab === 'cobranzas'" x-cloak class="space-y-6">
+            <div class="card-box p-6 space-y-4">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_received"/></svg><span>Antigüedad de la deuda de clientes</span></h3>
+                    <button type="button" @click="exportarExcel('cobranzas')" class="btn-ghost px-4 py-2 text-xs no-print">Exportar Excel</button>
+                </div>
+                <p x-show="cxcAntiguedad.filas.length === 0" class="text-center text-slate-400 italic text-xs py-3">No hay deudas pendientes de clientes.</p>
+                <div class="overflow-x-auto" x-show="cxcAntiguedad.filas.length > 0">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2 px-3">Cliente</th><th class="py-2 px-3">0–30 días</th><th class="py-2 px-3">31–60 días</th><th class="py-2 px-3">+60 días</th><th class="py-2 px-3">Total</th><th class="py-2 px-3 text-right no-print">Acciones</th></tr></thead>
+                        <tbody class="divide-y divide-slate-100 text-xs">
+                            <template x-for="f in cxcAntiguedad.filas" :key="f.id"><tr>
+                                <td class="py-2.5 px-3 font-medium text-slate-900" x-text="f.nombre"></td>
+                                <td class="py-2.5 px-3" x-text="f.b0 > 0 ? usd(f.b0) : '—'"></td>
+                                <td class="py-2.5 px-3" x-text="f.b30 > 0 ? usd(f.b30) : '—'"></td>
+                                <td class="py-2.5 px-3 font-semibold" :style="f.b60 > 0 ? 'color: var(--danger)' : ''" x-text="f.b60 > 0 ? usd(f.b60) : '—'"></td>
+                                <td class="py-2.5 px-3 font-bold text-slate-900" x-text="usd(f.total)"></td>
+                                <td class="py-2.5 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="recordatorioWA(f.id)" class="text-emerald-600 hover:underline cursor-pointer font-medium">WhatsApp</button><button @click="estadoCuenta(f.id)" class="text-blue-600 hover:underline cursor-pointer font-medium">Estado de cuenta</button></td>
+                            </tr></template>
+                        </tbody>
+                        <tfoot><tr class="border-t border-slate-300 text-xs font-bold"><td class="py-2.5 px-3">Total</td><td class="py-2.5 px-3" x-text="usd(cxcAntiguedad.t.b0)"></td><td class="py-2.5 px-3" x-text="usd(cxcAntiguedad.t.b30)"></td><td class="py-2.5 px-3" x-text="usd(cxcAntiguedad.t.b60)"></td><td class="py-2.5 px-3" x-text="usd(cxcAntiguedad.t.total)"></td><td class="no-print"></td></tr></tfoot>
+                    </table>
+                </div>
+                <p class="text-[11px] text-slate-500">La antigüedad se cuenta desde la fecha de la factura. Para que el botón de WhatsApp abra el chat directo, guarda el teléfono del cliente (en Registro → Clientes).</p>
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
                 <div class="card-box float stat-card card-lime">
@@ -1891,6 +1989,7 @@
             <button @click="factura.formato = 'carta'" :class="factura.formato === 'carta' ? 'btn-primary' : 'btn-ghost'" class="px-4 py-2 text-xs">Tamaño carta</button>
             <button @click="factura.formato = 'termica'" :class="factura.formato === 'termica' ? 'btn-primary' : 'btn-ghost'" class="px-4 py-2 text-xs">Térmica 80 mm</button>
             <button @click="imprimirFactura()" class="btn-primary px-4 py-2 text-xs">Imprimir / Guardar PDF</button>
+            <button @click="descargarFacturaPNG()" class="btn-ghost px-4 py-2 text-xs">Descargar PNG</button>
             <button @click="factura.editarEmpresa = !factura.editarEmpresa" class="btn-ghost px-4 py-2 text-xs">Datos de la empresa</button>
             <button @click="cerrarFactura()" aria-label="Cerrar" class="btn-circle ml-auto"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
         </div>
@@ -2120,7 +2219,7 @@
                     <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre</label><input type="text" x-model="modal.data.nombre" placeholder="Nombre"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Apellido</label><input type="text" x-model="modal.data.apellido" placeholder="Apellido"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Teléfono</label><input type="tel" x-model="modal.data.telefono" placeholder="0414-0000000"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="modal.data.tipoPago"  class="field w-full px-3 py-2.5 text-xs"><option value="Contado">Contado</option><option value="Credito">Crédito</option></select></div><div class="space-y-1" x-show="modal.data.tipoPago === 'Credito'"><label class="flabel">Plazo de crédito (días)</label><input type="number" x-model.number="modal.data.diasCredito" placeholder="Ej. 15" min="1" class="field w-full px-4 py-2.5 text-xs"></div></div>
                 </template>
                 <template x-if="modal.abierto && modal.tipo === 'cliente'">
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del cliente</label><input type="text" x-model="modal.data.nombre" placeholder="Nombre del cliente / contacto"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Nombre del negocio</label><input type="text" x-model="modal.data.negocio" placeholder="Nombre del negocio"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">RIF</label><input type="text" x-model="modal.data.rif" placeholder="J-12345678-0"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Dirección comercial</label><input type="text" x-model="modal.data.direccion" placeholder="Dirección del negocio"  class="field w-full px-4 py-2.5 text-xs"></div></div>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del cliente</label><input type="text" x-model="modal.data.nombre" placeholder="Nombre del cliente / contacto"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Nombre del negocio</label><input type="text" x-model="modal.data.negocio" placeholder="Nombre del negocio"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">RIF</label><input type="text" x-model="modal.data.rif" placeholder="J-12345678-0"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Teléfono (WhatsApp)</label><input type="text" x-model="modal.data.telefono" placeholder="0414-1234567" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Dirección comercial</label><input type="text" x-model="modal.data.direccion" placeholder="Dirección del negocio"  class="field w-full px-4 py-2.5 text-xs"></div></div>
                 </template>
                 <template x-if="modal.abierto && modal.tipo === 'producto'">
                     <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del producto</label><input type="text" x-model="modal.data.nombre" placeholder="Ej. Paleta, Chuleta"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Código</label><input type="text" x-model="modal.data.codigo" placeholder="Ej. PAL-001"  class="field w-full px-4 py-2.5 text-xs"></div></div>
@@ -2210,6 +2309,10 @@
                 _ultimoId: 0,
                 nube: { estado: '', ultima: null },
                 usuario: { nombre: '', femenino: false },
+                docEdit: { abierto: false, tipo: '', key: '', fecha: '', entidadId: '', items: [], error: '' },
+                filtro: { compra: { q: '', desde: '', hasta: '' }, venta: { q: '', desde: '', hasta: '' } },
+                papelera: [], papeleraAbierta: false,
+                historial: { abierto: false, lista: [], cargando: false, error: '' },
                 descargaAbierta: false,
                 ajustesAbierto: false,
                 get saludo() { return this.usuario.nombre ? (this.usuario.femenino ? 'Bienvenida' : 'Bienvenido') : 'Bienvenido a Mi'; },
@@ -2233,7 +2336,7 @@
 
                 form: {
                     proveedor: { nombre: '', apellido: '', telefono: '', tipoPago: 'Contado', diasCredito: '' },
-                    cliente: { nombre: '', negocio: '', rif: '', direccion: '' },
+                    cliente: { nombre: '', negocio: '', rif: '', direccion: '', telefono: '' },
                     producto: { nombre: '', codigo: '' },
                     compra: { fecha: '', proveedorId: '', items: [{ k: 0, productoId: '', precioKg: '', cantidadKg: '' }], metodo: 'BCV', tasa: '', tipoPago: 'Contado', diasCredito: '' },
                     venta: { fecha: '', clienteId: '', items: [{ k: 0, productoId: '', precioKg: '', cantidadKg: '' }], metodo: 'BCV', tasa: '', diasCredito: '' },
@@ -2253,7 +2356,7 @@
                     const h = this.hoy();
                     const base = {
                         proveedor: { nombre: '', apellido: '', telefono: '', tipoPago: 'Contado', diasCredito: '' },
-                        cliente: { nombre: '', negocio: '', rif: '', direccion: '' },
+                        cliente: { nombre: '', negocio: '', rif: '', direccion: '', telefono: '' },
                         producto: { nombre: '', codigo: '' },
                         compra: { fecha: h, proveedorId: '', items: [this.itemVacio()], metodo: 'BCV', tasa: '', tipoPago: 'Contado', diasCredito: '' },
                         venta: { fecha: h, clienteId: '', items: [this.itemVacio()], metodo: 'BCV', tasa: '', diasCredito: '' },
@@ -2338,7 +2441,7 @@
                         case 'proveedor':
                             return { nombre: txt(d.nombre), apellido: txt(d.apellido), telefono: txt(d.telefono), tipoPago: d.tipoPago === 'Credito' ? 'Credito' : 'Contado', diasCredito: d.tipoPago === 'Credito' ? Number(d.diasCredito) : '' };
                         case 'cliente':
-                            return { nombre: txt(d.nombre), negocio: txt(d.negocio), rif: txt(d.rif), direccion: txt(d.direccion) };
+                            return { nombre: txt(d.nombre), negocio: txt(d.negocio), rif: txt(d.rif), direccion: txt(d.direccion), telefono: txt(d.telefono) };
                         case 'producto':
                             return { nombre: txt(d.nombre), codigo: txt(d.codigo) };
                         case 'compra': {
@@ -2589,6 +2692,7 @@
                     const conAbonos = item && (item.abonos || []).length > 0;
                     const msg = conAbonos ? 'Esta operación tiene abonos registrados. ¿Eliminarla junto con sus abonos?' : `¿Eliminar este registro de ${NOMBRES[tipo].toLowerCase()}?`;
                     if (!confirm(msg)) return;
+                    if (item) this.aPapelera(tipo, [item]);
                     this[LISTAS[tipo]] = this[LISTAS[tipo]].filter(x => x.id !== id);
                 },
                 alElegirProveedor(d) {
@@ -2654,7 +2758,7 @@
                         compras: this.compras, ventas: this.ventas, gastos: this.gastos, prestamos: this.prestamos,
                         tasas: { usd: this.tasas.usd, eur: this.tasas.eur, usdt: this.tasas.usdt, refer: this.tasas.refer },
                         historialTasas: this.historialTasas,
-                        empresa: this.empresa
+                        empresa: this.empresa, papelera: this.papelera
                     };
                 },
                 guardarTodo() {
@@ -2672,7 +2776,7 @@
                     if (p && p.version >= 3) {
                         return {
                             proveedores: p.proveedores || [], clientes: p.clientes || [], productos: p.productos || [],
-                            compras: p.compras || [], ventas: p.ventas || [], gastos: p.gastos || [], prestamos: p.prestamos || [], tasas: p.tasas, historialTasas: p.historialTasas || {}, empresa: p.empresa
+                            compras: p.compras || [], ventas: p.ventas || [], gastos: p.gastos || [], prestamos: p.prestamos || [], tasas: p.tasas, historialTasas: p.historialTasas || {}, empresa: p.empresa, papelera: p.papelera || []
                         };
                     }
                     const hoy = this.hoy();
@@ -2713,6 +2817,7 @@
                     this.compras = d.compras; this.ventas = d.ventas; this.gastos = d.gastos; this.prestamos = d.prestamos;
                     this.historialTasas = { ...this.historialTasas, ...(d.historialTasas || {}) };
                     if (d.empresa) Object.assign(this.empresa, d.empresa);
+                    this.papelera = d.papelera || [];
                     this.asegurarNumeros();
                     if (d.tasas) {
                         ['usd', 'eur', 'usdt'].forEach(k => { if (d.tasas[k]) Object.assign(this.tasas[k], d.tasas[k], { vivo: false }); });
@@ -2909,8 +3014,8 @@
                     docs.forEach(d => { t.productos += d.nProductos; t.kg += d.totalKg; t.total += d.total; t.totalBs += d.totalBs; t.costo += d.costo; t.ganancia += d.ganancia; });
                     return { ...t, kg: Math.round(t.kg * 1000) / 1000, total: this.r2(t.total), totalBs: this.r2(t.totalBs), costo: this.r2(t.costo), ganancia: this.r2(t.ganancia) };
                 },
-                get comprasDocs() { return this.agruparDocs(this.comprasList, 'compra'); },
-                get ventasDocs() { return this.agruparDocs(this.ventasList, 'venta'); },
+                get comprasDocs() { return this.agruparDocs(this.comprasList, 'compra').filter(d => this.pasaFiltro(d, 'compra')); },
+                get ventasDocs() { return this.agruparDocs(this.ventasList, 'venta').filter(d => this.pasaFiltro(d, 'venta')); },
                 get comprasTotales() { return this.totalesDocs(this.comprasDocs); },
                 get ventasTotales() { return this.totalesDocs(this.ventasDocs); },
                 eliminarDoc(tipo, key) {
@@ -2921,6 +3026,7 @@
                     const conAbonos = grupo.some(x => (x.abonos || []).length > 0);
                     const msg = `¿Eliminar toda la ${nombre} (${grupo.length} ${grupo.length === 1 ? 'producto' : 'productos'})${conAbonos ? ' junto con sus abonos registrados' : ''}?`;
                     if (!confirm(msg)) return;
+                    this.aPapelera(tipo, grupo);
                     this[LISTAS[tipo]] = lista.filter(x => this.claveDoc(x) !== key);
                 },
                 get productosRentabilidad() {
@@ -2965,18 +3071,44 @@
 
                 // ---- Período de la gráfica ----
                 periodo: 'mes',
+                rangoDesde: '', rangoHasta: '',
                 periodos: [
                     { id: 'anio', label: 'Año actual' },
                     { id: '6m', label: 'Últimos 6 meses' },
                     { id: 'mes', label: 'Mes actual' },
-                    { id: 'semana', label: 'Semana actual' }
+                    { id: 'semana', label: 'Semana actual' },
+                    { id: '7d', label: 'Últimos 7 días' },
+                    { id: '30d', label: 'Últimos 30 días' },
+                    { id: 'custom', label: 'Personalizado' }
                 ],
-                get periodoLabel() { return (this.periodos.find(p => p.id === this.periodo) || {}).label || ''; },
+                get periodoLabel() {
+                    if (this.periodo === 'custom') { const r = this.rangoPeriodo('custom'); return this.fmtFecha(r.desde) + ' → ' + this.fmtFecha(r.hasta); }
+                    return (this.periodos.find(p => p.id === this.periodo) || {}).label || '';
+                },
                 rangoPeriodo(p) {
                     const hoy = new Date(); hoy.setHours(12, 0, 0, 0);
                     const y = hoy.getFullYear(), m = hoy.getMonth();
                     const buckets = []; let modo = 'dia';
                     const mk = (yy, mm) => `${yy}-${String(mm + 1).padStart(2, '0')}`;
+                    if (p === '7d' || p === '30d') {
+                        const n = p === '7d' ? 7 : 30;
+                        for (let i = n - 1; i >= 0; i--) { const d = new Date(y, m, hoy.getDate() - i); buckets.push({ key: this.isoDe(d), label: n === 7 ? `${DIAS[d.getDay()]} ${d.getDate()}` : `${d.getDate()}/${d.getMonth() + 1}` }); }
+                        return { modo, buckets };
+                    }
+                    if (p === 'custom') {
+                        let a = this.rangoDesde, b = this.rangoHasta;
+                        if (!a || !b) { a = this.isoDe(new Date(y, m, hoy.getDate() - 29)); b = this.isoDe(hoy); }
+                        if (a > b) [a, b] = [b, a];
+                        const da = new Date(a + 'T12:00:00'), db = new Date(b + 'T12:00:00');
+                        const dias = Math.round((db - da) / 86400000) + 1;
+                        if (dias <= 92) {
+                            for (let i = 0; i < dias; i++) { const d = new Date(da.getFullYear(), da.getMonth(), da.getDate() + i); buckets.push({ key: this.isoDe(d), label: `${d.getDate()}/${d.getMonth() + 1}` }); }
+                        } else {
+                            modo = 'mes';
+                            for (let d = new Date(da.getFullYear(), da.getMonth(), 1); d <= db && buckets.length < 120; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) buckets.push({ key: mk(d.getFullYear(), d.getMonth()), label: MESES[d.getMonth()] + ` '${String(d.getFullYear()).slice(2)}` });
+                        }
+                        return { modo, buckets, desde: a, hasta: b };
+                    }
                     if (p === 'anio') {
                         modo = 'mes';
                         for (let i = 0; i < 12; i++) buckets.push({ key: mk(y, i), label: MESES[i] });
@@ -2993,11 +3125,11 @@
                     return { modo, buckets };
                 },
                 get serieFinanzas() {
-                    const { modo, buckets } = this.rangoPeriodo(this.periodo);
+                    const { modo, buckets, desde, hasta } = this.rangoPeriodo(this.periodo);
                     const idx = {}; buckets.forEach((b, i) => { idx[b.key] = i; });
                     const z = () => Array(buckets.length).fill(0);
                     const S = { labels: buckets.map(b => b.label), ventas: z(), compras: z(), gastos: z(), ganancia: z() };
-                    const k = f => idx[modo === 'mes' ? (f || '').slice(0, 7) : f];
+                    const k = f => (desde && !((f || '') >= desde && (f || '') <= hasta)) ? undefined : idx[modo === 'mes' ? (f || '').slice(0, 7) : f];
                     const bsT = { ventas: 0, compras: 0, gastos: 0 };
                     this.ventasList.forEach(v => { const i = k(v.fecha); if (i !== undefined) { S.ventas[i] += v.total; S.ganancia[i] += v.ganancia; bsT.ventas += v.totalBsEst; } });
                     this.comprasList.forEach(c => { const i = k(c.fecha); if (i !== undefined) { S.compras[i] += c.total; bsT.compras += c.totalBsEst; } });
@@ -3489,12 +3621,23 @@
                     if (this._nubePushing) { this._nubeRepetir = true; return; }
                     this._nubePushing = true; this.nube.estado = 'guardando';
                     try {
+                        const meta = await SB.leerMeta(), ultimo = localStorage.getItem('mn_nube_sync') || '';
+                        if (meta && ultimo && meta.updated_at !== ultimo && confirm('Otro equipo guardó cambios en la nube después de tu última sincronización.\n\nAceptar: descargar los de la nube (se pierden los cambios de este equipo que aún no se respaldaron).\nCancelar: conservar los de ESTE equipo y reemplazar la nube.')) {
+                            const remoto = await SB.leer();
+                            try { localStorage.setItem('mn_local_previo', JSON.stringify(this.snapshot())); } catch (e) {}
+                            this.aplicarDatos(remoto.datos);
+                            this._nubeJson = JSON.stringify(this.snapshot());
+                            try { localStorage.setItem('mn_nube_sync', remoto.updated_at); localStorage.setItem('mn_nube_sucio', '0'); } catch (e) {}
+                            this.nube.estado = 'ok'; this.nube.ultima = new Date(remoto.updated_at);
+                            return;
+                        }
                         const json = JSON.stringify(this.snapshot());
                         const fila = await SB.guardar(JSON.parse(json));
                         try { localStorage.setItem('mn_nube_sync', fila.updated_at); } catch (e) {}
                         this._nubeJson = json;
                         if (JSON.stringify(this.snapshot()) === json) { try { localStorage.setItem('mn_nube_sucio', '0'); } catch (e) {} }
                         this.nube.estado = 'ok'; this.nube.ultima = new Date();
+                        this.nubeArchivar(json);
                     } catch (e) { this.nubeError(e); }
                     finally {
                         this._nubePushing = false;
@@ -3560,7 +3703,7 @@
                     const e = this.escaner;
                     const r = (pre && pre.referencia !== undefined) ? pre : window.parsearPagoMovil(e.texto);
                     /* Cobro a cliente: interesa el banco que recibió. Pago a proveedor: el banco desde el que se pagó. */
-                    e.f = { banco: (e.kind === 'cxp' ? r.bancoOrigen : r.bancoDestino) || r.banco || '', referencia: r.referencia, montoBs: r.montoBs, fecha: r.fecha || this.hoy(), hora: r.hora, telefono: r.telefono, cedula: r.cedula, concepto: r.concepto, usdConcepto: r.usdConcepto };
+                    e.f = { banco: r.bancoDestino || r.banco || '', referencia: r.referencia, montoBs: r.montoBs, fecha: r.fecha || this.hoy(), cedula: r.cedula }; /* solo se conservan los datos que se registran; la cédula se usa únicamente para sugerir al cliente/proveedor */
                     if (r.metodo) e.metodo = r.metodo;
                     const faltan = [];
                     if (!r.referencia) faltan.push('la referencia');
@@ -3575,9 +3718,12 @@
                     const e = this.escaner;
                     if (!e.f.fecha) return;
                     await this.asegurarTasasFecha(e.f.fecha);
-                    e.tasa = this.tasaPorMetodo(e.metodo, e.f.fecha) || 0;
-                    const bs = Number(e.f.montoBs);
-                    if (bs > 0 && e.tasa > 0) e.montoUsd = this.r2(bs / e.tasa);
+                    e.tasa = this.tasaPorMetodo('BCV', e.f.fecha) || 0;
+                    this.calcularUsdEscaneo();
+                },
+                calcularUsdEscaneo() {
+                    const e = this.escaner, bs = Number(e.f.montoBs), t = Number(e.tasa);
+                    if (bs > 0 && t > 0) e.montoUsd = this.r2(bs / t);
                 },
                 sugerirClienteEscaneo() {
                     const e = this.escaner;
@@ -3623,8 +3769,8 @@
                     if (!e.f.fecha) { e.error = 'Indique la fecha del pago.'; return; }
                     const g = this.escGrupo, antes = g ? g.saldo : 0, nombre = g ? g.nombre : '';
                     const f = this.carteraForm[e.kind];
-                    Object.assign(f, { contraId: e.clienteId, docId: '', monto: usd, fecha: e.f.fecha, referencia: e.f.referencia, metodo: e.metodo, tasa: e.tasa > 0 ? e.tasa : '', error: '',
-                        extra: { montoBs: Number(e.f.montoBs) || 0, hora: e.f.hora, banco: e.f.banco } });
+                    Object.assign(f, { contraId: e.clienteId, docId: '', monto: usd, fecha: e.f.fecha, referencia: e.f.referencia, metodo: e.metodo, tasa: Number(e.tasa) > 0 ? Number(e.tasa) : '', error: '',
+                        extra: { montoBs: Number(e.f.montoBs) || 0, banco: e.f.banco } });
                     await this.registrarAbono(e.kind);
                     f.extra = null;
                     if (f.error) { e.error = f.error; return; }
@@ -3634,6 +3780,266 @@
                     e.fase = 'listo';
                 },
 
+                // ===================== MEJORAS: cobranza, factura, historial, papelera, Excel =====================
+                sgnBs(v) { return (v >= 0 ? '+' : '−') + 'Bs. ' + this.fmtBs(Math.abs(v)); },
+                nombreTipo(t) { return NOMBRES[t] || t; },
+                pasaFiltro(d, t) {
+                    const f = this.filtro[t], norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                    if (f.desde && d.fecha < f.desde) return false;
+                    if (f.hasta && d.fecha > f.hasta) return false;
+                    const q = norm(f.q).trim();
+                    return !q || norm([d.contraparte].concat(d.lineas.map(l => l.producto + ' ' + (l.referencia || ''))).join(' ')).includes(q);
+                },
+                // --- Excel (CSV que abre en Excel) ---
+                descargarCSV(nombre, filas) {
+                    const csv = '\ufeff' + filas.map(f => f.map(c => { c = String(c == null ? '' : c); return /[;"\n]/.test(c) ? '"' + c.replace(/"/g, '""') + '"' : c; }).join(';')).join('\r\n');
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+                    a.download = `${nombre}_${this.hoy()}.csv`; a.click();
+                    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+                },
+                exportarExcel(que) {
+                    const n = v => String(Number(v) || 0).replace('.', ',');
+                    if (que === 'compras') this.descargarCSV('compras', [['Fecha', 'Proveedor', 'Producto', 'Kg', '$/kg', 'Total $', 'Total Bs', 'Método', 'Pago', 'Vence']].concat(this.comprasList.map(r => [r.fecha, r.proveedorNombre, r.producto, n(r.cantidadKg), n(r.precioKg), n(r.total), n(r.totalBs), r.metodo, r.tipoPago, r.vence || ''])));
+                    else if (que === 'ventas') this.descargarCSV('ventas', [['Factura', 'Fecha', 'Cliente', 'Producto', 'Kg', '$/kg', 'Total $', 'Total Bs', 'Costo $', 'Ganancia $', 'Método', 'Pago', 'Vence']].concat(this.ventasList.map(r => [String(r.nro || '').padStart(6, '0'), r.fecha, r.clienteNombre, r.producto, n(r.cantidadKg), n(r.precioKg), n(r.total), n(r.totalBs), n(r.costo), n(r.ganancia), r.metodo, r.tipoPago, r.vence || ''])));
+                    else this.descargarCSV('cobranzas', [['Cliente', 'Fecha', 'Vence', 'Producto', 'Total $', 'Abonado $', 'Saldo $', 'Estado']].concat(this.cxcDocs.map(d => [d.contraNombre, d.fecha, d.vence || '', d.producto, n(d.total), n(d.abonado), n(d.saldo), d.estado])));
+                },
+                // --- Cobranza: antigüedad, WhatsApp, estado de cuenta ---
+                get cxcAntiguedad() {
+                    const hoy = this.hoy(), m = {};
+                    this.cxcDocs.filter(d => d.saldo > 0.004).forEach(d => {
+                        const g = m[d.contraId] || (m[d.contraId] = { id: d.contraId, nombre: d.contraNombre, b0: 0, b30: 0, b60: 0, total: 0 });
+                        const e = this.diasEntre(d.fecha, hoy);
+                        if (e <= 30) g.b0 += d.saldo; else if (e <= 60) g.b30 += d.saldo; else g.b60 += d.saldo;
+                        g.total += d.saldo;
+                    });
+                    const filas = Object.values(m).map(g => ({ ...g, b0: this.r2(g.b0), b30: this.r2(g.b30), b60: this.r2(g.b60), total: this.r2(g.total) })).sort((a, b) => b.b60 - a.b60 || b.total - a.total);
+                    const t = { b0: 0, b30: 0, b60: 0, total: 0 };
+                    filas.forEach(f => { t.b0 += f.b0; t.b30 += f.b30; t.b60 += f.b60; t.total += f.total; });
+                    return { filas, t: { b0: this.r2(t.b0), b30: this.r2(t.b30), b60: this.r2(t.b60), total: this.r2(t.total) } };
+                },
+                recordatorioWA(id) {
+                    const c = this.clientes.find(x => String(x.id) === String(id)) || {};
+                    const docs = this.cxcDocs.filter(d => String(d.contraId) === String(id) && d.saldo > 0.004);
+                    const total = this.r2(docs.reduce((a, d) => a + d.saldo, 0));
+                    const lineas = docs.map(d => `• ${this.fmtFecha(d.fecha)} ${d.producto}: ${this.usd(d.saldo)}${d.vencido ? ' (vencida)' : ''}`).join('\n');
+                    const msg = `Hola ${c.nombre || ''}, le saludamos de Mi Empresa. Le recordamos que tiene un saldo pendiente de ${this.usd(total)}:\n${lineas}\n\nQuedamos atentos a su pago. ¡Gracias!`;
+                    let tel = String(c.telefono || '').replace(/\D/g, '');
+                    if (tel.startsWith('0')) tel = '58' + tel.slice(1); else if (tel.length === 10) tel = '58' + tel;
+                    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
+                },
+                estadoCuenta(id) {
+                    const g = this.cxcGrupos.find(x => String(x.id) === String(id));
+                    if (!g) return;
+                    const esc = v => String(v == null ? '' : v).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+                    const filas = g.docs.map(d => `<tr><td>${this.fmtFecha(d.fecha)}</td><td>${esc(d.producto)}</td><td>${d.vence ? this.fmtFecha(d.vence) : '—'}</td><td class="n">${this.usd(d.total)}</td><td class="n">${this.usd(d.abonado)}</td><td class="n">${this.usd(d.saldo)}</td><td>${d.estado}</td></tr>`).join('');
+                    const pagos = g.abonos.slice().sort((a, b) => (a.fecha || '').localeCompare(b.fecha || '')).map(a => `<tr><td>${this.fmtFecha(a.fecha)}</td><td>${esc(a.ref)}</td><td>${esc(a.metodo || '')}</td><td>${esc(a.referencia || '')}</td><td class="n">${this.usd(a.monto)}</td></tr>`).join('') || '<tr><td colspan="5">Sin pagos registrados</td></tr>';
+                    const w = window.open('', '_blank');
+                    if (!w) { alert('Permite las ventanas emergentes para generar el estado de cuenta.'); return; }
+                    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Estado de cuenta - ${esc(g.nombre)}</title><style>body{font:13px Arial,sans-serif;color:#111;margin:32px}h1{font-size:20px;margin:0}h2{font-size:14px;margin:22px 0 6px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#f3f3f3}.n{text-align:right}.tot{font-size:16px;font-weight:bold;margin-top:14px}</style></head><body><h1>Mi Empresa — Estado de cuenta</h1><p>Cliente: <b>${esc(g.nombre)}</b><br>Fecha de emisión: ${this.fmtFecha(this.hoy())}</p><h2>Facturas a crédito</h2><table><tr><th>Fecha</th><th>Producto</th><th>Vence</th><th class="n">Total</th><th class="n">Abonado</th><th class="n">Saldo</th><th>Estado</th></tr>${filas}</table><h2>Pagos recibidos</h2><table><tr><th>Fecha</th><th>Aplicado a</th><th>Método</th><th>Referencia</th><th class="n">Monto</th></tr>${pagos}</table><p class="tot">Saldo pendiente: ${this.usd(g.saldo)}</p><script>window.onload=function(){window.print()}<\/script></body></html>`);
+                    w.document.close();
+                },
+                // --- Diferencial cambiario ---
+                get difCambiario() {
+                    const calc = (lista, signo) => {
+                        let bs = 0, usd = 0;
+                        lista.filter(r => r.tipoPago === 'Credito' && Number(r.tasa) > 0).forEach(r => (r.abonos || []).forEach(a => {
+                            if (!(Number(a.tasa) > 0) || (RATE[a.metodo] || 'usd') !== (RATE[r.metodo] || 'usd')) return;
+                            const d = signo * Number(a.monto) * (Number(a.tasa) - Number(r.tasa));
+                            bs += d; usd += d / Number(a.tasa);
+                        }));
+                        return { bs: this.r2(bs), usd: this.r2(usd) };
+                    };
+                    const c = calc(this.ventas, 1), p = calc(this.compras, -1);
+                    return { cobros: c, pagos: p, neto: { bs: this.r2(c.bs + p.bs), usd: this.r2(c.usd + p.usd) } };
+                },
+                // --- Editar factura completa ---
+                abrirDocEdit(tipo, key) {
+                    const lineas = this[LISTAS[tipo]].filter(x => this.claveDoc(x) === key).sort((a, b) => a.id - b.id);
+                    if (!lineas.length) return;
+                    const p = lineas[0];
+                    this.docEdit = { abierto: true, tipo, key, fecha: p.fecha, entidadId: tipo === 'venta' ? p.clienteId : p.proveedorId, error: '',
+                        items: lineas.map(l => ({ ...this.itemVacio(), id: l.id, productoId: l.productoId, precioKg: l.precioKg, cantidadKg: l.cantidadKg })) };
+                },
+                async guardarDocEdit() {
+                    const de = this.docEdit, tipo = de.tipo, lista = this[LISTAS[tipo]];
+                    const lineas = lista.filter(x => this.claveDoc(x) === de.key);
+                    if (!de.fecha) { de.error = 'Indique la fecha.'; return; }
+                    if (de.entidadId === '' || de.entidadId == null) { de.error = tipo === 'venta' ? 'Seleccione un cliente.' : 'Seleccione un proveedor.'; return; }
+                    const ev = this.validarLineas({ items: de.items });
+                    if (ev) { de.error = ev; return; }
+                    const quitadas = lineas.filter(l => !de.items.some(it => it.id === l.id));
+                    if (quitadas.some(l => (l.abonos || []).length) && !confirm('Un producto que quitas tiene abonos registrados y se eliminarán con él. ¿Continuar?')) return;
+                    await this.asegurarTasasFecha(de.fecha);
+                    const campo = tipo === 'venta' ? 'clienteId' : 'proveedorId', p = lineas[0];
+                    const docId = p.docId != null ? p.docId : this.nuevoId(), nuevas = [];
+                    de.items.forEach(it => {
+                        const orig = it.id != null ? lineas.find(l => l.id === it.id) : null;
+                        const data = { ...(orig || p), fecha: de.fecha, [campo]: de.entidadId, productoId: it.productoId, precioKg: it.precioKg, cantidadKg: it.cantidadKg };
+                        if (!orig) data.tasa = '';
+                        const nuevo = this.normalizarEntidad(tipo, data, orig);
+                        if (orig) Object.assign(orig, nuevo, { docId });
+                        else nuevas.push({ id: this.nuevoId(), docId, ...nuevo, abonos: [] });
+                    });
+                    if (quitadas.length) this.aPapelera(tipo, quitadas);
+                    this[LISTAS[tipo]] = lista.filter(x => !quitadas.includes(x)).concat(nuevas);
+                    if (tipo === 'venta') this.asegurarNumeros();
+                    de.abierto = false;
+                },
+                // --- Papelera ---
+                aPapelera(tipo, items) { this.papelera = [{ pid: this.nuevoId(), tipo, fecha: new Date().toISOString(), items: JSON.parse(JSON.stringify(items)) }].concat(this.papelera).slice(0, 50); },
+                resumenPapelera(e) {
+                    const x = e.items[0] || {};
+                    if (e.tipo === 'compra' || e.tipo === 'venta') return `${e.items.length} ${e.items.length === 1 ? 'producto' : 'productos'} · ${this.usd(e.items.reduce((a, l) => a + (Number(l.precioKg) || 0) * (Number(l.cantidadKg) || 0), 0))} · ${this.fmtFecha(x.fecha)}`;
+                    return x.nombre || x.descripcion || x.concepto || ('#' + x.id);
+                },
+                restaurarPapelera(pid) {
+                    const e = this.papelera.find(x => x.pid === pid);
+                    if (!e) return;
+                    const lista = this[LISTAS[e.tipo]];
+                    e.items.forEach(it => { if (!lista.some(x => x.id === it.id)) lista.push(it); });
+                    if (e.tipo === 'venta') this.asegurarNumeros();
+                    this.papelera = this.papelera.filter(x => x.pid !== pid);
+                },
+                // --- Historial de respaldos y conflictos ---
+                async abrirHistorial() {
+                    this.historial = { abierto: true, lista: [], cargando: true, error: '' };
+                    try { this.historial.lista = (await SB.historial()) || []; }
+                    catch (e) { this.historial.error = e && e.offline ? 'Sin conexión a internet.' : 'No se pudo leer el historial. ¿Ya creaste la tabla respaldos_historial en Supabase?'; }
+                    this.historial.cargando = false;
+                },
+                resumenVersion(r) { const x = r || {}; return `${x.compras || 0} compras · ${x.ventas || 0} ventas · ${x.clientes || 0} clientes · ${x.productos || 0} productos`; },
+                async restaurarVersion(id) {
+                    if (!confirm('Se reemplazarán TODOS los datos actuales por esta versión del respaldo (antes se guarda una copia local por seguridad). ¿Continuar?')) return;
+                    try {
+                        const datos = await SB.version(id);
+                        if (!datos) throw new Error('vacía');
+                        try { localStorage.setItem('mn_local_previo', JSON.stringify(this.snapshot())); } catch (e) {}
+                        this.aplicarDatos(datos);
+                        this.historial.abierto = false;
+                    } catch (e) { this.historial.error = 'No se pudo restaurar esa versión.'; }
+                },
+                async nubeArchivar(json) {
+                    if (Date.now() - Number(localStorage.getItem('mn_hist_ts') || 0) < 30 * 60 * 1000) return;
+                    try {
+                        const d = JSON.parse(json);
+                        await SB.archivar(d, { compras: d.compras.length, ventas: d.ventas.length, clientes: d.clientes.length, productos: d.productos.length });
+                        localStorage.setItem('mn_hist_ts', String(Date.now()));
+                        await SB.podar(15);
+                    } catch (e) { try { localStorage.setItem('mn_hist_ts', String(Date.now() - 20 * 60 * 1000)); } catch (x) {} }
+                },
+                async nubeRevisar() {
+                    if (!window.SB || !SB.tieneSesion() || !this._nubeListo || this._nubePushing || localStorage.getItem('mn_nube_sucio') === '1') return;
+                    try {
+                        const meta = await SB.leerMeta();
+                        if (meta && meta.updated_at !== (localStorage.getItem('mn_nube_sync') || '')) {
+                            const remoto = await SB.leer();
+                            this.aplicarDatos(remoto.datos);
+                            this._nubeJson = JSON.stringify(this.snapshot());
+                            try { localStorage.setItem('mn_nube_sync', remoto.updated_at); } catch (e) {}
+                            this.nube.estado = 'ok'; this.nube.ultima = new Date(remoto.updated_at);
+                        }
+                    } catch (e) {}
+                },
+
+                // ---------- Factura emitida -> imagen PNG ----------
+                async descargarFacturaPNG() {
+                    const d = this.factura.d;
+                    if (!d) return;
+                    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+                    const term = this.factura.formato === 'termica';
+                    const W = term ? 380 : 840, P = term ? 18 : 40, S = 2, TW = W - 2 * P;
+                    const fam = getComputedStyle(document.body).fontFamily || 'Arial, sans-serif';
+                    const E = this.empresa || {};
+                    const logo = E.logo ? await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = E.logo; }) : null;
+                    const INK = '#111111', MUT = '#555555', LINE = '#d9d9d4', BOX = '#f4f4f0';
+                    const dibujar = (ctx) => {
+                        let y = P;
+                        const fnt = (sz, w) => { ctx.font = `${w || 400} ${sz}px ${fam}`; };
+                        const txt = (t, x, yb, sz, w, c, al) => { fnt(sz, w); ctx.fillStyle = c || INK; ctx.textAlign = al || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(String(t), x, yb); };
+                        const parte = (t, mw, sz, w) => { fnt(sz, w); const out = []; let cur = ''; String(t).split(/\s+/).forEach(p => { const n = cur ? cur + ' ' + p : p; if (cur && ctx.measureText(n).width > mw) { out.push(cur); cur = p; } else cur = n; }); if (cur) out.push(cur); return out; };
+                        const rr = (x, yy, w, h, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, yy, w, h, r); else ctx.rect(x, yy, w, h); };
+                        const regla = (yy) => { ctx.strokeStyle = LINE; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(P, yy + .5); ctx.lineTo(W - P, yy + .5); ctx.stroke(); };
+                        // --- Encabezado ---
+                        const emp = [{ t: E.nombre || this.nombreApp || 'Mi Empresa', sz: term ? 16 : 19, w: 800 }];
+                        if (E.actividad) emp.push({ t: E.actividad }); if (E.rif) emp.push({ t: 'RIF: ' + E.rif }); if (E.telefono) emp.push({ t: 'Tel.: ' + E.telefono }); if (E.direccion) emp.push({ t: E.direccion });
+                        const L = term ? 48 : 56;
+                        const dibLogo = (x, yy) => { if (!logo) return; ctx.save(); ctx.beginPath(); ctx.arc(x + L / 2, yy + L / 2, L / 2, 0, Math.PI * 2); ctx.clip(); const k = Math.max(L / logo.width, L / logo.height); ctx.drawImage(logo, x + (L - logo.width * k) / 2, yy + (L - logo.height * k) / 2, logo.width * k, logo.height * k); ctx.restore(); };
+                        const docTit = [['Factura / Nota de entrega', 14, 800], ['N° ' + d.nro, 13, 700], ['Fecha: ' + this.fmtFecha(d.fecha), 11.5, 400]];
+                        if (term) {
+                            if (logo) { dibLogo((W - L) / 2, y); y += L + 10; }
+                            emp.forEach((l, i) => { parte(l.t, TW, l.sz || 11, l.w).forEach(ln => { txt(ln, W / 2, y + (l.sz || 11), l.sz || 11, l.w, i ? MUT : INK, 'center'); y += (l.sz || 11) + 4; }); });
+                            y += 6; docTit.forEach(a => { txt(a[0], W / 2, y + a[1], a[1], a[2], INK, 'center'); y += a[1] + 5; });
+                        } else {
+                            const x0 = P + (logo ? L + 14 : 0), y0 = y; dibLogo(P, y0);
+                            let yl = y0;
+                            emp.forEach((l, i) => { parte(l.t, TW * 0.55 - (logo ? L + 14 : 0), l.sz || 11.5, l.w).forEach(ln => { txt(ln, x0, yl + (l.sz || 11.5), l.sz || 11.5, l.w, i ? MUT : INK); yl += (l.sz || 11.5) + 4; }); });
+                            let yr = y0; docTit.forEach(a => { txt(a[0], W - P, yr + a[1], a[1], a[2], INK, 'right'); yr += a[1] + 5; });
+                            y = Math.max(yl, yr, y0 + (logo ? L : 0));
+                        }
+                        y += 12; regla(y); y += 14;
+                        // --- Cajas: cliente y detalles ---
+                        const c = d.cliente || {};
+                        const cli = [{ t: c.negocio || c.nombre || 'Cliente', b: 1 }]; if (c.negocio && c.nombre) cli.push({ t: 'Contacto: ' + c.nombre }); if (c.rif) cli.push({ t: 'RIF: ' + c.rif }); if (c.direccion) cli.push({ t: 'Dirección: ' + c.direccion });
+                        const det = [{ t: 'Pedido / Factura N° ' + d.nro }, { t: 'Fecha del pedido: ' + this.fmtFecha(d.fecha) }];
+                        if (d.tasa > 0) { det.push({ t: `Tasa ${d.tasaEtiqueta}: Bs. ${this.fmtTasa(d.tasa)} por $1` }); det.push({ t: 'Tasa del día: ' + this.fmtFecha(d.tasaFecha) }); } else det.push({ t: 'Tasa de cambio: no registrada' });
+                        const alto = (items, w) => 34 + items.reduce((a, it) => a + parte(it.t, w - 24, 11.5, it.b ? 700 : 400).length * 15, 0) + 6;
+                        const caja = (x, yy, w, h, tit, items) => {
+                            rr(x, yy, w, h, 10); ctx.fillStyle = BOX; ctx.fill();
+                            txt(tit.toUpperCase(), x + 12, yy + 20, 9.5, 800, MUT); let yc = yy + 24;
+                            items.forEach(it => parte(it.t, w - 24, 11.5, it.b ? 700 : 400).forEach(ln => { txt(ln, x + 12, yc + 12, 11.5, it.b ? 700 : 400, INK); yc += 15; }));
+                        };
+                        if (term) { const h1 = alto(cli, TW); caja(P, y, TW, h1, 'Cliente', cli); y += h1 + 8; const h2 = alto(det, TW); caja(P, y, TW, h2, 'Detalles de la operación', det); y += h2 + 14; }
+                        else { const bw = (TW - 14) / 2, h = Math.max(alto(cli, bw), alto(det, bw)); caja(P, y, bw, h, 'Cliente', cli); caja(P + bw + 14, y, bw, h, 'Detalles de la operación', det); y += h + 18; }
+                        // --- Tabla de productos ---
+                        const items = d.items || [];
+                        if (term) {
+                            items.forEach(it => {
+                                parte(it.producto, TW, 12, 700).forEach(ln => { txt(ln, P, y + 12, 12, 700, INK); y += 16; });
+                                txt(`${this.fmtKg(it.cantidadKg)} kg × ${this.usd(it.precioKg)}`, P, y + 11, 11, 400, MUT); txt(this.usd(it.total), W - P, y + 11, 12, 700, INK, 'right'); y += 15;
+                                if (it.totalBs > 0) { txt('Bs. ' + this.fmtBs(it.totalBs), W - P, y + 10, 10.5, 400, MUT, 'right'); y += 14; }
+                                y += 4; regla(y); y += 10;
+                            });
+                        } else {
+                            const cr = [P + 8, P + 365, P + 490, P + 620, W - P - 8];
+                            rr(P, y, TW, 28, 8); ctx.fillStyle = BOX; ctx.fill();
+                            txt('PRODUCTO', cr[0], y + 18, 10, 800, MUT); txt('CANT. (KG)', cr[1], y + 18, 10, 800, MUT, 'right'); txt('PRECIO $/KG', cr[2], y + 18, 10, 800, MUT, 'right'); txt('SUBTOTAL $', cr[3], y + 18, 10, 800, MUT, 'right'); txt('SUBTOTAL BS.', cr[4], y + 18, 10, 800, MUT, 'right'); y += 36;
+                            items.forEach(it => {
+                                const ls = parte(it.producto, 270, 12, 600);
+                                ls.forEach((ln, i) => txt(ln, cr[0], y + 12 + i * 16, 12, 600, INK));
+                                txt(this.fmtKg(it.cantidadKg), cr[1], y + 12, 12, 400, INK, 'right'); txt(this.usd(it.precioKg), cr[2], y + 12, 12, 400, INK, 'right');
+                                txt(this.usd(it.total), cr[3], y + 12, 12, 700, INK, 'right'); txt(it.totalBs > 0 ? 'Bs. ' + this.fmtBs(it.totalBs) : '—', cr[4], y + 12, 12, 400, INK, 'right');
+                                y += Math.max(ls.length * 16, 18) + 8; regla(y); y += 8;
+                            });
+                        }
+                        // --- Totales ---
+                        y += 6;
+                        txt('Total $', W - P - (term ? 110 : 200), y + 16, 13, 700, INK, term ? 'left' : 'right'); txt(this.usd(d.total), W - P, y + 16, 16, 800, INK, 'right'); y += 26;
+                        if (d.totalBs > 0) { txt('Total Bs.', W - P - (term ? 110 : 200), y + 13, 12, 600, MUT, term ? 'left' : 'right'); txt('Bs. ' + this.fmtBs(d.totalBs), W - P, y + 13, 13, 700, INK, 'right'); y += 24; }
+                        y += 8;
+                        // --- Condiciones ---
+                        const con = [{ t: 'Condición: ' + d.condicion }]; if (d.vence) con.push({ t: 'Fecha de vencimiento: ' + this.fmtFecha(d.vence) }); con.push({ t: 'Método de pago: ' + d.metodo });
+                        const hc = alto(con, TW); caja(P, y, TW, hc, 'Condiciones comerciales', con); y += hc + 14;
+                        // --- Firmas y nota ---
+                        if (!term) {
+                            y += 30; const fw = (TW - 60) / 2;
+                            [['Entregado por', P], ['Recibido conforme', P + fw + 60]].forEach(a => { ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(a[1], y + .5); ctx.lineTo(a[1] + fw, y + .5); ctx.stroke(); txt(a[0], a[1] + fw / 2, y + 16, 11, 400, MUT, 'center'); });
+                            y += 34;
+                        }
+                        if (d.tasa > 0) parte(`Los montos en bolívares se calcularon con la tasa del ${this.fmtFecha(d.tasaFecha)} y no cambian con variaciones posteriores.`, TW, 10, 400).forEach(ln => { txt(ln, P, y + 10, 10, 400, MUT); y += 14; });
+                        return y + P;
+                    };
+                    const medir = document.createElement('canvas').getContext('2d');
+                    const H = Math.ceil(dibujar(medir));
+                    const cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+                    const ctx = cv.getContext('2d'); ctx.scale(S, S); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+                    dibujar(ctx);
+                    cv.toBlob(b => {
+                        if (!b) { alert('No se pudo generar la imagen.'); return; }
+                        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `Factura_${d.nro}.png`; a.click();
+                        setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+                    }, 'image/png');
+                },
                 // ===================== INICIO =====================
                 init() {
                     {
@@ -3663,12 +4069,17 @@
                     this.$watch(() => JSON.stringify(this.snapshot()), (v) => { this.guardarTodoDiferido(); this.scheduleCharts(); this.nubeCambio(v); });
                     window.addEventListener('online', () => { if (this._nubeListo) this.nubePush(); else this.nubeIniciar(); });
                     document.addEventListener('visibilitychange', () => {
-                        if (document.visibilityState === 'hidden' && this._nubeListo && localStorage.getItem('mn_nube_sucio') === '1') this.nubePush();
+                        if (document.visibilityState === 'visible') this.nubeRevisar();
+                        else if (this._nubeListo && localStorage.getItem('mn_nube_sucio') === '1') this.nubePush();
                     });
                     this.cargarUsuario();
                     this.nubeIniciar();
                     this.$watch('currentTab', () => { window.scrollTo({ top: 0 }); this.scheduleCharts(); });
-                    this.$watch('periodo', () => this.scheduleCharts());
+                    this.$watch('periodo', v => {
+                        if (v === 'custom' && (!this.rangoDesde || !this.rangoHasta)) { const h = new Date(); h.setHours(12, 0, 0, 0); this.rangoDesde = this.isoDe(new Date(h.getFullYear(), h.getMonth(), h.getDate() - 29)); this.rangoHasta = this.isoDe(h); }
+                        this.scheduleCharts();
+                    });
+                    this.$watch(() => this.rangoDesde + '|' + this.rangoHasta, () => this.scheduleCharts());
                     this.scheduleCharts();
                 },
                 guardarTodoDiferido() {
@@ -3934,6 +4345,14 @@
                 leer: async function () {
                     var r = await rest('/rest/v1/respaldos?select=datos,updated_at&limit=1', { method: 'GET' });
                     return (r && r[0]) || null;
+                },
+                leerMeta: async function () { var r = await rest('/rest/v1/respaldos?select=updated_at&limit=1', { method: 'GET' }); return (r && r[0]) || null; },
+                historial: function () { return rest('/rest/v1/respaldos_historial?select=id,created_at,resumen&order=created_at.desc&limit=20', { method: 'GET' }); },
+                version: async function (id) { var r = await rest('/rest/v1/respaldos_historial?select=datos&id=eq.' + encodeURIComponent(id), { method: 'GET' }); return r && r[0] ? r[0].datos : null; },
+                archivar: async function (datos, resumen) { var s = await token(); await rest('/rest/v1/respaldos_historial', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ user_id: s.user_id, datos: datos, resumen: resumen }) }); },
+                podar: async function (mantener) {
+                    var r = await rest('/rest/v1/respaldos_historial?select=id&order=created_at.desc&offset=' + mantener + '&limit=200', { method: 'GET' });
+                    if (r && r.length) await rest('/rest/v1/respaldos_historial?id=in.(' + r.map(function (x) { return x.id; }).join(',') + ')', { method: 'DELETE' });
                 },
                 guardar: async function (datos) {
                     var s = await token();
