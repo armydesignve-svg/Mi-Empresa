@@ -896,6 +896,7 @@
                 <h2 style="font-size: 20px; font-weight: 800" x-text="(empresa.nombre || nombreApp) + ' — Reporte de estadísticas'"></h2>
                 <p style="font-size: 12px" x-text="'Generado el ' + fmtFecha(hoy()) + (usuario.nombre ? ' · ' + usuario.nombre : '')"></p>
             </div>
+            <!-- Tarjeta "Diferencial cambiario" oculta por el momento (para volver a mostrarla, quite este comentario)
             <div class="card-box p-5 space-y-3">
                 <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-bar_chart"/></svg><span>Diferencial cambiario</span></h3>
                 <div class="doc-totales">
@@ -905,6 +906,7 @@
                 </div>
                 <p class="text-[11px] text-slate-500">Diferencia entre la tasa del día de la operación a crédito y la del día en que se cobró o pagó (solo abonos en Bs).</p>
             </div>
+            -->
 
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
                 <div class="card-box float stat-card card-lime">
@@ -984,6 +986,20 @@
                         </button>
                     </div>
 
+                    <div x-show="esFinDeSemana" x-cloak class="panel-inset p-4 space-y-2 no-print">
+                        <p class="text-xs font-semibold" x-text="'Fin de semana · se factura con la tasa BCV del lunes ' + fmtFecha(proximoLunes)"></p>
+                        <p class="text-[11px] text-slate-500">Las facturas que genere y los saldos pendientes de Cobranzas y Pagos se calculan con esa tasa, para que el ajuste del lunes no afecte el fin de semana. Si el BCV aún no la publicó, puede fijarla usted.</p>
+                        <div class="space-y-2">
+                            <template x-for="k in ['usd', 'eur']" :key="k">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="text-xs font-semibold" x-text="(k === 'usd' ? 'Dólar BCV' : 'Euro BCV') + ': ' + (tasaFacturacion(k) > 0 ? 'Bs. ' + fmtTasa(tasaFacturacion(k)) : 'Sin dato')"></span>
+                                    <span class="badge" :class="tasaFacturacionInfo(k).origen === 'manual' ? 'badge-warn' : 'badge-info'" x-text="tasaFacturacionInfo(k).origen === 'manual' ? 'Fijada por usted' : 'Última publicada'"></span>
+                                    <button type="button" @click="fijarTasaLunes(k)" class="btn-ghost px-3 py-1.5 text-[11px]">Fijar tasa del lunes</button>
+                                    <button type="button" x-show="tasaFacturacionInfo(k).origen === 'manual'" @click="quitarTasaLunes(k)" class="btn-ghost px-3 py-1.5 text-[11px]">Quitar</button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="rate-card">
                         <div class="flex items-start justify-between gap-2">
@@ -1494,7 +1510,7 @@
                     <div class="space-y-1.5 min-w-0">
                         <p class="stat-label">Total por pagar</p>
                         <h4 class="stat-value" x-text="`$${cxpResumen.saldo.toFixed(2)}`"></h4>
-                        <p class="stat-bs" x-show="tasaRef > 0" x-text="'≈ Bs. ' + fmtBs(cxpResumen.saldo * tasaRef)"></p>
+                        <p class="stat-bs" x-show="tasaRef > 0" x-text="'≈ Bs. ' + fmtBs(cxpResumen.saldo * tasaRef) + (esFinDeSemana ? ' · tasa del lunes' : '')"></p>
                     </div>
                     <span class="chip self-start" x-text="`${cxpResumen.deudores} proveedor(s) con deuda`"></span>
                     <span class="wm" aria-hidden="true">PAGAR</span>
@@ -1754,7 +1770,7 @@
                     <div class="space-y-1.5 min-w-0">
                         <p class="stat-label">Total por cobrar</p>
                         <h4 class="stat-value" x-text="`$${cxcResumen.saldo.toFixed(2)}`"></h4>
-                        <p class="stat-bs" x-show="tasaRef > 0" x-text="'≈ Bs. ' + fmtBs(cxcResumen.saldo * tasaRef)"></p>
+                        <p class="stat-bs" x-show="tasaRef > 0" x-text="'≈ Bs. ' + fmtBs(cxcResumen.saldo * tasaRef) + (esFinDeSemana ? ' · tasa del lunes' : '')"></p>
                     </div>
                     <span class="chip self-start" x-text="`${cxcResumen.deudores} cliente(s) con deuda`"></span>
                     <span class="wm" aria-hidden="true">COBRAR</span>
@@ -2042,7 +2058,7 @@
                         <div x-text="'Pedido / Factura N° ' + factura.d.nro"></div>
                         <div x-text="'Fecha del pedido: ' + fmtFecha(factura.d.fecha)"></div>
                         <div x-show="factura.d.tasa > 0" x-text="'Tasa ' + factura.d.tasaEtiqueta + ': Bs. ' + fmtTasa(factura.d.tasa) + ' por $1'"></div>
-                        <div x-show="factura.d.tasa > 0" x-text="'Tasa del día: ' + fmtFecha(factura.d.tasaFecha)"></div>
+                        <div x-show="factura.d.tasa > 0" x-text="(factura.d.tasaLunes ? 'Tasa vigente desde el lunes: ' : 'Tasa del día: ') + fmtFecha(factura.d.tasaFecha)"></div>
                         <div x-show="!(factura.d.tasa > 0)">Tasa de cambio: no registrada</div>
                     </div>
                 </div>
@@ -2071,7 +2087,7 @@
                     <div x-text="'Método de pago: ' + factura.d.metodo"></div>
                 </div>
                 <div class="fx-firmas"><div>Entregado por</div><div>Recibido conforme</div></div>
-                <p class="fx-nota" x-show="factura.d.tasa > 0" x-text="'Los montos en bolívares se calcularon con la tasa del día de emisión de esta factura (' + fmtFecha(factura.d.tasaFecha) + ').'"></p>
+                <p class="fx-nota" x-show="factura.d.tasa > 0" x-text="factura.d.tasaLunes ? 'Los montos en bolívares se calcularon con la tasa BCV del próximo lunes (' + fmtFecha(factura.d.tasaFecha) + '), aplicable desde el fin de semana.' : 'Los montos en bolívares se calcularon con la tasa del día de emisión de esta factura (' + fmtFecha(factura.d.tasaFecha) + ').'"></p>
             </div>
         </template>
     </div>
@@ -3281,8 +3297,8 @@
 
                 // ===================== TASAS DE CAMBIO =====================
                 tasas: {
-                    usd: { api: null, manual: null, modo: 'auto', actualizado: null, vivo: false },
-                    eur: { api: null, manual: null, modo: 'auto', actualizado: null, vivo: false },
+                    usd: { api: null, manual: null, modo: 'auto', actualizado: null, vivo: false, lunes: null, lunesFecha: null },
+                    eur: { api: null, manual: null, modo: 'auto', actualizado: null, vivo: false, lunes: null, lunesFecha: null },
                     usdt: { api: null, manual: null, modo: 'auto', actualizado: null, vivo: false },
                     refer: 'usd',
                     estado: 'idle',
@@ -3402,9 +3418,11 @@
                     try { if (typeof navigator === 'undefined' || navigator.onLine !== false) await Promise.race([this.cargarTasas(), new Promise(ok => setTimeout(ok, 3000))]); } catch (e) {}
                     try { await this.asegurarTasasFecha(hoy); } catch (e) {}
                     const info = this.tasaInfoOperacion(v.metodo, hoy);
+                    const fin = this.tasaFacturacionInfo(RATE[v.metodo] || 'usd');
+                    const usarLunes = fin.lunes && Number(fin.tasa) > 0;
                     const hoyOk = Number(info.tasa) > 0;
-                    const tasa = hoyOk ? Number(info.tasa) : (Number(v.tasa) > 0 ? Number(v.tasa) : 0);
-                    const tasaFecha = hoyOk ? (info.fecha || hoy) : (v.tasaFecha || v.fecha);
+                    const tasa = usarLunes ? Number(fin.tasa) : (hoyOk ? Number(info.tasa) : (Number(v.tasa) > 0 ? Number(v.tasa) : 0));
+                    const tasaFecha = usarLunes ? this.proximoLunes : (hoyOk ? (info.fecha || hoy) : (v.tasaFecha || v.fecha));
                     const items = lineas.map(l => ({ producto: l.producto, cantidadKg: l.cantidadKg, precioKg: l.precioKg, precioKgBs: tasa ? this.r2(Number(l.precioKg) * tasa) : 0, total: l.total, totalBs: tasa ? this.r2(Number(l.total) * tasa) : 0 }));
                     this.factura.d = {
                         nro: String(v.nro || 0).padStart(6, '0'),
@@ -3412,7 +3430,7 @@
                         cliente: { nombre: c.nombre || '', negocio: c.negocio || '', rif: c.rif || '', direccion: c.direccion || '' },
                         items,
                         total: this.r2(lineas.reduce((a, l) => a + l.total, 0)), totalBs: this.r2(items.reduce((a, i) => a + i.totalBs, 0)),
-                        tasa, tasaFecha,
+                        tasa, tasaFecha, tasaLunes: usarLunes,
                         tasaEtiqueta: RATE[v.metodo] === 'usdt' ? 'USDT' : 'BCV',
                         condicion: credito ? `Crédito a ${Number(v.diasCredito)} días` : 'Contado',
                         metodo: v.metodo
@@ -3459,7 +3477,33 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                     return this.r2(this.interesDe(p) * this.tasaEfectiva(p));
                 },
                 aplicarTasa(d) { d.tasa = ''; },
-                get tasaRef() { return this.tasaVigente(this.tasas.refer) || this.tasaVigente('usd') || this.tasaVigente('usdt') || 0; },
+                // ---- Fin de semana: sábado y domingo se factura con la tasa BCV del próximo lunes ----
+                get esFinDeSemana() { const d = new Date().getDay(); return d === 6 || d === 0; },
+                get proximoLunes() {
+                    const n = new Date(); n.setHours(12, 0, 0, 0);
+                    n.setDate(n.getDate() + ((8 - n.getDay()) % 7 || 7));
+                    return this.isoDe(n);
+                },
+                // Tasa para facturar y para valorar lo pendiente: entre semana la vigente; sábado y domingo la del lunes
+                // (la fijada por el usuario para ese lunes o, si no, la última tasa BCV publicada, que ya es la del lunes).
+                tasaFacturacionInfo(k) {
+                    const v = this.tasaVigente(k);
+                    if (!this.esFinDeSemana || (k !== 'usd' && k !== 'eur')) return { tasa: v, lunes: false, origen: '' };
+                    const t = this.tasas[k];
+                    if (Number(t.lunes) > 0 && t.lunesFecha === this.proximoLunes) return { tasa: Number(t.lunes), lunes: true, origen: 'manual' };
+                    return { tasa: v, lunes: true, origen: 'bcv' };
+                },
+                tasaFacturacion(k) { return this.tasaFacturacionInfo(k).tasa; },
+                fijarTasaLunes(k) {
+                    const txt = prompt(`Tasa BCV del lunes ${this.fmtFecha(this.proximoLunes)} (Bs. por 1 ${k === 'usd' ? 'USD' : 'EUR'}):`, this.tasaFacturacion(k) > 0 ? String(this.tasaFacturacion(k)) : '');
+                    if (txt === null) return;
+                    const v = Number(String(txt).replace(',', '.'));
+                    if (!(v > 0)) { alert('Ingrese una tasa válida mayor a cero.'); return; }
+                    this.tasas[k].lunes = v; this.tasas[k].lunesFecha = this.proximoLunes;
+                    this.guardarTasas();
+                },
+                quitarTasaLunes(k) { this.tasas[k].lunes = null; this.tasas[k].lunesFecha = null; this.guardarTasas(); },
+                get tasaRef() { return this.tasaFacturacion(this.tasas.refer) || this.tasaFacturacion('usd') || this.tasaVigente('usdt') || 0; },
                 origenTasa(k) {
                     const t = this.tasas[k];
                     if (t.modo === 'manual' && t.manual > 0) return 'Manual';
@@ -3508,7 +3552,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                 },
                 guardarTasas() {
                     try {
-                        const t = this.tasas, pick = x => ({ api: x.api, manual: x.manual, modo: x.modo, actualizado: x.actualizado });
+                        const t = this.tasas, pick = x => ({ api: x.api, manual: x.manual, modo: x.modo, actualizado: x.actualizado, lunes: x.lunes, lunesFecha: x.lunesFecha });
                         localStorage.setItem('mn_tasas', JSON.stringify({ usd: pick(t.usd), eur: pick(t.eur), usdt: pick(t.usdt), refer: t.refer, ultimaConsulta: t.ultimaConsulta }));
                     } catch (e) { /* almacenamiento no disponible */ }
                 },
@@ -4012,7 +4056,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                         const c = d.cliente || {};
                         const cli = [{ t: c.negocio || c.nombre || 'Cliente', b: 1 }]; if (c.negocio && c.nombre) cli.push({ t: 'Contacto: ' + c.nombre }); if (c.rif) cli.push({ t: 'RIF: ' + c.rif }); if (c.direccion) cli.push({ t: 'Dirección: ' + c.direccion });
                         const det = [{ t: 'Pedido / Factura N° ' + d.nro }, { t: 'Fecha del pedido: ' + this.fmtFecha(d.fecha) }];
-                        if (d.tasa > 0) { det.push({ t: `Tasa ${d.tasaEtiqueta}: Bs. ${this.fmtTasa(d.tasa)} por $1` }); det.push({ t: 'Tasa del día: ' + this.fmtFecha(d.tasaFecha) }); } else det.push({ t: 'Tasa de cambio: no registrada' });
+                        if (d.tasa > 0) { det.push({ t: `Tasa ${d.tasaEtiqueta}: Bs. ${this.fmtTasa(d.tasa)} por $1` }); det.push({ t: (d.tasaLunes ? 'Tasa vigente desde el lunes: ' : 'Tasa del día: ') + this.fmtFecha(d.tasaFecha) }); } else det.push({ t: 'Tasa de cambio: no registrada' });
                         const alto = (items, w) => 34 + items.reduce((a, it) => a + parte(it.t, w - 24, 11.5, it.b ? 700 : 400).length * 15, 0) + 6;
                         const caja = (x, yy, w, h, tit, items) => {
                             rr(x, yy, w, h, 10); ctx.fillStyle = BOX; ctx.fill();
