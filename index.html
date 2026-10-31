@@ -910,20 +910,20 @@
                 <div class="card-box float stat-card card-lime">
                     <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-account_balance_wallet"/></svg></span>
                     <div class="space-y-1.5 min-w-0">
-                        <p class="stat-label">Ganancia neta real · mes actual</p>
-                        <h4 class="stat-value" x-text="`$${gananciaNetaMes.toFixed(2)}`"></h4>
-                        <p class="stat-bs" x-show="gananciaNetaMesBs !== 0" x-text="'≈ Bs. ' + fmtBs(gananciaNetaMesBs)"></p>
+                        <p class="stat-label" x-text="'Ganancia neta real · ' + periodoLabel.toLowerCase()"></p>
+                        <h4 class="stat-value" x-text="`$${gananciaNetaPeriodo.toFixed(2)}`"></h4>
+                        <p class="stat-bs" x-show="gananciaNetaPeriodoBs !== 0" x-text="'≈ Bs. ' + fmtBs(gananciaNetaPeriodoBs)"></p>
                     </div>
-                    <span class="chip self-start" x-text="ventasMes > 0 ? (gananciaNetaMes / ventasMes * 100).toFixed(1) + '% de margen s/ ventas del mes' : 'Sin ventas este mes'"></span>
+                    <span class="chip self-start" x-text="ventasPeriodo > 0 ? (gananciaNetaPeriodo / ventasPeriodo * 100).toFixed(1) + '% de margen s/ ventas del período' : 'Sin ventas en este período'"></span>
                     <span class="wm" aria-hidden="true">NETO</span>
                 </div>
                 <div class="card-box float stat-card">
                     <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-local_shipping"/></svg></span>
                     <div class="space-y-1.5 min-w-0">
-                        <p class="stat-label">Gastos · mes actual</p>
-                        <h4 class="stat-value" x-text="`$${gastosMes.toFixed(2)}`"></h4>
-                        <p class="stat-bs" x-show="gastosMesBs !== 0" x-text="'≈ Bs. ' + fmtBs(gastosMesBs)"></p>
-                        <p class="stat-bs" x-show="interesesMes > 0" x-text="'Incluye intereses de préstamos: $' + interesesMes.toFixed(2)"></p>
+                        <p class="stat-label" x-text="'Gastos · ' + periodoLabel.toLowerCase()"></p>
+                        <h4 class="stat-value" x-text="`$${gastosPeriodo.toFixed(2)}`"></h4>
+                        <p class="stat-bs" x-show="gastosPeriodoBs !== 0" x-text="'≈ Bs. ' + fmtBs(gastosPeriodoBs)"></p>
+                        <p class="stat-bs" x-show="interesesPeriodo > 0" x-text="'Incluye intereses de préstamos: $' + interesesPeriodo.toFixed(2)"></p>
                     </div>
                 </div>
                 <div class="card-box float stat-card">
@@ -2071,7 +2071,7 @@
                     <div x-text="'Método de pago: ' + factura.d.metodo"></div>
                 </div>
                 <div class="fx-firmas"><div>Entregado por</div><div>Recibido conforme</div></div>
-                <p class="fx-nota" x-show="factura.d.tasa > 0" x-text="'Los montos en bolívares se calcularon con la tasa del ' + fmtFecha(factura.d.tasaFecha) + ' y no cambian con variaciones posteriores.'"></p>
+                <p class="fx-nota" x-show="factura.d.tasa > 0" x-text="'Los montos en bolívares se calcularon con la tasa del día de emisión de esta factura (' + fmtFecha(factura.d.tasaFecha) + ').'"></p>
             </div>
         </template>
     </div>
@@ -3131,18 +3131,25 @@
                     const S = { labels: buckets.map(b => b.label), ventas: z(), compras: z(), gastos: z(), ganancia: z() };
                     const k = f => (desde && !((f || '') >= desde && (f || '') <= hasta)) ? undefined : idx[modo === 'mes' ? (f || '').slice(0, 7) : f];
                     const bsT = { ventas: 0, compras: 0, gastos: 0 };
-                    this.ventasList.forEach(v => { const i = k(v.fecha); if (i !== undefined) { S.ventas[i] += v.total; S.ganancia[i] += v.ganancia; bsT.ventas += v.totalBsEst; } });
+                    const ex = { gv: 0, gvBs: 0, int: 0, intBs: 0 };
+                    this.ventasList.forEach(v => { const i = k(v.fecha); if (i !== undefined) { S.ventas[i] += v.total; S.ganancia[i] += v.ganancia; bsT.ventas += v.totalBsEst; ex.gv += v.ganancia; ex.gvBs += v.gananciaBs; } });
                     this.comprasList.forEach(c => { const i = k(c.fecha); if (i !== undefined) { S.compras[i] += c.total; bsT.compras += c.totalBsEst; } });
+                    this.prestamos.forEach(p => { const i = k(p.fecha); if (i !== undefined) { ex.int += this.interesDe(p); ex.intBs += this.interesBsDe(p); } });
                     this.egresos.forEach(e => { const i = k(e.fecha); if (i !== undefined) { S.gastos[i] += e.monto; S.ganancia[i] -= e.monto; bsT.gastos += e.bs; } });
                     ['ventas', 'compras', 'gastos', 'ganancia'].forEach(key => { S[key] = S[key].map(v => this.r2(v)); });
                     const sum = a => this.r2(a.reduce((x, y) => x + y, 0));
-                    S.tot = { ventas: sum(S.ventas), compras: sum(S.compras), gastos: sum(S.gastos), ganancia: sum(S.ganancia), ventasBs: this.r2(bsT.ventas), comprasBs: this.r2(bsT.compras), gastosBs: this.r2(bsT.gastos) };
+                    S.tot = { ventas: sum(S.ventas), compras: sum(S.compras), gastos: sum(S.gastos), ganancia: sum(S.ganancia), ventasBs: this.r2(bsT.ventas), comprasBs: this.r2(bsT.compras), gastosBs: this.r2(bsT.gastos), gananciaVentas: this.r2(ex.gv), gananciaVentasBs: this.r2(ex.gvBs), intereses: this.r2(ex.int), interesesBs: this.r2(ex.intBs) };
                     return S;
                 },
                 get ventasPeriodo() { return this.serieFinanzas.tot.ventas; },
                 get comprasPeriodo() { return this.serieFinanzas.tot.compras; },
                 get ventasPeriodoBs() { return this.serieFinanzas.tot.ventasBs; },
                 get comprasPeriodoBs() { return this.serieFinanzas.tot.comprasBs; },
+                get gastosPeriodo() { return this.serieFinanzas.tot.gastos; },
+                get gastosPeriodoBs() { return this.serieFinanzas.tot.gastosBs; },
+                get interesesPeriodo() { return this.serieFinanzas.tot.intereses; },
+                get gananciaNetaPeriodo() { return this.serieFinanzas.tot.ganancia; },
+                get gananciaNetaPeriodoBs() { const t = this.serieFinanzas.tot; return this.r2(t.gananciaVentasBs - t.gastosBs); },
                 get hayMovimientos() { const t = this.serieFinanzas.tot; return t.ventas > 0 || t.compras > 0 || t.gastos > 0; },
 
                 // ===================== CUENTAS POR COBRAR / PAGAR =====================
@@ -3382,7 +3389,7 @@
                             else v.nro = ++max;
                         });
                 },
-                abrirFactura(r) {
+                async abrirFactura(r) {
                     this.asegurarNumeros();
                     const v = this.ventasList.find(x => x.id === r.id);
                     if (!v) return;
@@ -3390,13 +3397,22 @@
                     const lineas = this.ventasList.filter(x => this.claveDoc(x) === k).sort((a, b) => a.id - b.id);
                     const c = this.clientes.find(x => x.id === v.clienteId) || {};
                     const credito = v.tipoPago === 'Credito' && Number(v.diasCredito) > 0;
+                    /* Bolívares con la tasa del DÍA DE EMISIÓN (hoy); si no hay tasa disponible, se usa la de la operación */
+                    const hoy = this.hoy();
+                    try { if (typeof navigator === 'undefined' || navigator.onLine !== false) await Promise.race([this.cargarTasas(), new Promise(ok => setTimeout(ok, 3000))]); } catch (e) {}
+                    try { await this.asegurarTasasFecha(hoy); } catch (e) {}
+                    const info = this.tasaInfoOperacion(v.metodo, hoy);
+                    const hoyOk = Number(info.tasa) > 0;
+                    const tasa = hoyOk ? Number(info.tasa) : (Number(v.tasa) > 0 ? Number(v.tasa) : 0);
+                    const tasaFecha = hoyOk ? (info.fecha || hoy) : (v.tasaFecha || v.fecha);
+                    const items = lineas.map(l => ({ producto: l.producto, cantidadKg: l.cantidadKg, precioKg: l.precioKg, precioKgBs: tasa ? this.r2(Number(l.precioKg) * tasa) : 0, total: l.total, totalBs: tasa ? this.r2(Number(l.total) * tasa) : 0 }));
                     this.factura.d = {
                         nro: String(v.nro || 0).padStart(6, '0'),
                         fecha: v.fecha, vence: credito ? v.vence : null,
                         cliente: { nombre: c.nombre || '', negocio: c.negocio || '', rif: c.rif || '', direccion: c.direccion || '' },
-                        items: lineas.map(l => ({ producto: l.producto, cantidadKg: l.cantidadKg, precioKg: l.precioKg, precioKgBs: l.precioKgBs, total: l.total, totalBs: l.totalBs })),
-                        total: this.r2(lineas.reduce((a, l) => a + l.total, 0)), totalBs: this.r2(lineas.reduce((a, l) => a + (Number(l.totalBs) || 0), 0)),
-                        tasa: Number(v.tasa) > 0 ? Number(v.tasa) : 0, tasaFecha: v.tasaFecha || v.fecha,
+                        items,
+                        total: this.r2(lineas.reduce((a, l) => a + l.total, 0)), totalBs: this.r2(items.reduce((a, i) => a + i.totalBs, 0)),
+                        tasa, tasaFecha,
                         tasaEtiqueta: RATE[v.metodo] === 'usdt' ? 'USDT' : 'BCV',
                         condicion: credito ? `Crédito a ${Number(v.diasCredito)} días` : 'Contado',
                         metodo: v.metodo
@@ -3405,7 +3421,21 @@
                     this.factura.editarEmpresa = false;
                 },
                 cerrarFactura() { this.factura.abierto = false; this.factura.d = null; },
-                imprimirFactura() { window.print(); },
+                imprimirFactura() {
+                    const hoja = document.querySelector('.fx-sheet');
+                    if (!hoja || !this.factura.d) return;
+                    const term = this.factura.formato === 'termica';
+                    let css = '';
+                    Array.from(document.styleSheets).forEach(ss => { try { Array.from(ss.cssRules).forEach(r => { if (r.cssText.indexOf('.fx-') > -1 || /^@page/.test(r.cssText)) css += r.cssText + '\n'; }); } catch (e) {} });
+                    const w = window.open('', '_blank');
+                    if (!w) { alert('Permite las ventanas emergentes para imprimir o guardar la factura en PDF.'); return; }
+                    w.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Factura ${this.factura.d.nro}</title><style>${css}
+html, body { margin: 0; padding: 0; background: #fff; height: auto; }
+.fx-sheet { box-shadow: none !important; margin: 0 auto !important; page: auto !important; max-width: none !important; width: 100% !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.fx-sheet * { color: #111; }
+@page { size: ${term ? '80mm auto' : 'letter'}; margin: ${term ? '3mm' : '12mm'}; }</style></head><body>${hoja.outerHTML}<script>window.onload = function () { setTimeout(function () { window.print(); }, 250); }; window.onafterprint = function () { window.close(); };<\/script></body></html>`);
+                    w.document.close();
+                },
 
                 // ---- Bolívares congelados de cada registro ----
                 bsOp(op, total) {
@@ -3951,7 +3981,7 @@
                     const W = term ? 380 : 840, P = term ? 18 : 40, S = 2, TW = W - 2 * P;
                     const fam = getComputedStyle(document.body).fontFamily || 'Arial, sans-serif';
                     const E = this.empresa || {};
-                    const logo = E.logo ? await new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = E.logo; }) : null;
+                    const logo = null; /* el PNG no lleva la foto de perfil */
                     const INK = '#111111', MUT = '#555555', LINE = '#d9d9d4', BOX = '#f4f4f0';
                     const dibujar = (ctx) => {
                         let y = P;
@@ -4026,7 +4056,7 @@
                             [['Entregado por', P], ['Recibido conforme', P + fw + 60]].forEach(a => { ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(a[1], y + .5); ctx.lineTo(a[1] + fw, y + .5); ctx.stroke(); txt(a[0], a[1] + fw / 2, y + 16, 11, 400, MUT, 'center'); });
                             y += 34;
                         }
-                        if (d.tasa > 0) parte(`Los montos en bolívares se calcularon con la tasa del ${this.fmtFecha(d.tasaFecha)} y no cambian con variaciones posteriores.`, TW, 10, 400).forEach(ln => { txt(ln, P, y + 10, 10, 400, MUT); y += 14; });
+                        if (d.tasa > 0) parte(`Los montos en bolívares se calcularon con la tasa del día de emisión de esta factura (${this.fmtFecha(d.tasaFecha)}).`, TW, 10, 400).forEach(ln => { txt(ln, P, y + 10, 10, 400, MUT); y += 14; });
                         return y + P;
                     };
                     const medir = document.createElement('canvas').getContext('2d');
