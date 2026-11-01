@@ -2093,6 +2093,7 @@
             <button @click="factura.formato = 'termica'" :class="factura.formato === 'termica' ? 'btn-primary' : 'btn-ghost'" class="px-4 py-2 text-xs">Térmica 80 mm</button>
             <button @click="imprimirFactura()" class="btn-primary px-4 py-2 text-xs">Imprimir / Guardar PDF</button>
             <button @click="descargarFacturaPNG()" class="btn-ghost px-4 py-2 text-xs">Descargar PNG</button>
+            <button @click="descargarFacturaPNG(true)" class="btn-ghost px-4 py-2 text-xs" title="Factura solo en dólares, sin bolívares ni tasa, para pagar cualquier día">Descargar PNG (solo $)</button>
             <button @click="factura.editarEmpresa = !factura.editarEmpresa" class="btn-ghost px-4 py-2 text-xs">Datos de la empresa</button>
             <button @click="cerrarFactura()" aria-label="Cerrar" class="btn-circle ml-auto"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
         </div>
@@ -4581,7 +4582,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                 },
 
                 // ---------- Factura emitida -> imagen PNG ----------
-                async descargarFacturaPNG() {
+                async descargarFacturaPNG(soloUsd = false) {
                     const d = this.factura.d;
                     if (!d) return;
                     try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
@@ -4620,7 +4621,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                         const c = d.cliente || {};
                         const cli = [{ t: c.negocio || c.nombre || 'Cliente', b: 1 }]; if (c.negocio && c.nombre) cli.push({ t: 'Contacto: ' + c.nombre }); if (c.rif) cli.push({ t: 'RIF: ' + c.rif }); if (c.direccion) cli.push({ t: 'Dirección: ' + c.direccion });
                         const det = [{ t: 'Pedido / Factura N° ' + d.nro }, { t: 'Fecha del pedido: ' + this.fmtFecha(d.fecha) }];
-                        if (d.tasa > 0) { det.push({ t: `Tasa ${d.tasaEtiqueta}: Bs. ${this.fmtTasa(d.tasa)} por $1` }); det.push({ t: (d.tasaLunes ? 'Tasa vigente desde el lunes: ' : 'Tasa del día: ') + this.fmtFecha(d.tasaFecha) }); } else det.push({ t: 'Tasa de cambio: no registrada' });
+                        if (soloUsd) det.push({ t: 'Moneda: Dólares (USD)' }); else if (d.tasa > 0) { det.push({ t: `Tasa ${d.tasaEtiqueta}: Bs. ${this.fmtTasa(d.tasa)} por $1` }); det.push({ t: (d.tasaLunes ? 'Tasa vigente desde el lunes: ' : 'Tasa del día: ') + this.fmtFecha(d.tasaFecha) }); } else det.push({ t: 'Tasa de cambio: no registrada' });
                         const alto = (items, w) => 34 + items.reduce((a, it) => a + parte(it.t, w - 24, 11.5, it.b ? 700 : 400).length * 15, 0) + 6;
                         const caja = (x, yy, w, h, tit, items) => {
                             rr(x, yy, w, h, 10); ctx.fillStyle = BOX; ctx.fill();
@@ -4635,28 +4636,28 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                             items.forEach(it => {
                                 parte(it.producto, TW, 12, 700).forEach(ln => { txt(ln, P, y + 12, 12, 700, INK); y += 16; });
                                 txt(`${this.fmtKg(it.cantidadKg)} kg × ${this.usd(it.precioKg)}`, P, y + 11, 11, 400, MUT); txt(this.usd(it.total), W - P, y + 11, 12, 700, INK, 'right'); y += 15;
-                                if (it.totalBs > 0) { txt('Bs. ' + this.fmtBs(it.totalBs), W - P, y + 10, 10.5, 400, MUT, 'right'); y += 14; }
+                                if (!soloUsd && it.totalBs > 0) { txt('Bs. ' + this.fmtBs(it.totalBs), W - P, y + 10, 10.5, 400, MUT, 'right'); y += 14; }
                                 y += 4; regla(y); y += 10;
                             });
                         } else {
-                            const cr = [P + 8, P + 365, P + 490, P + 620, W - P - 8];
+                            const cr = soloUsd ? [P + 8, P + 420, P + 580, W - P - 8] : [P + 8, P + 365, P + 490, P + 620, W - P - 8];
                             rr(P, y, TW, 28, 8); ctx.fillStyle = BOX; ctx.fill();
-                            txt('PRODUCTO', cr[0], y + 18, 10, 800, MUT); txt('CANT. (KG)', cr[1], y + 18, 10, 800, MUT, 'right'); txt('PRECIO $/KG', cr[2], y + 18, 10, 800, MUT, 'right'); txt('SUBTOTAL $', cr[3], y + 18, 10, 800, MUT, 'right'); txt('SUBTOTAL BS.', cr[4], y + 18, 10, 800, MUT, 'right'); y += 36;
+                            txt('PRODUCTO', cr[0], y + 18, 10, 800, MUT); txt('CANT. (KG)', cr[1], y + 18, 10, 800, MUT, 'right'); txt('PRECIO $/KG', cr[2], y + 18, 10, 800, MUT, 'right'); txt('SUBTOTAL $', cr[3], y + 18, 10, 800, MUT, 'right'); if (!soloUsd) txt('SUBTOTAL BS.', cr[4], y + 18, 10, 800, MUT, 'right'); y += 36;
                             items.forEach(it => {
                                 const ls = parte(it.producto, 270, 12, 600);
                                 ls.forEach((ln, i) => txt(ln, cr[0], y + 12 + i * 16, 12, 600, INK));
                                 txt(this.fmtKg(it.cantidadKg), cr[1], y + 12, 12, 400, INK, 'right'); txt(this.usd(it.precioKg), cr[2], y + 12, 12, 400, INK, 'right');
-                                txt(this.usd(it.total), cr[3], y + 12, 12, 700, INK, 'right'); txt(it.totalBs > 0 ? 'Bs. ' + this.fmtBs(it.totalBs) : '—', cr[4], y + 12, 12, 400, INK, 'right');
+                                txt(this.usd(it.total), cr[3], y + 12, 12, 700, INK, 'right'); if (!soloUsd) txt(it.totalBs > 0 ? 'Bs. ' + this.fmtBs(it.totalBs) : '—', cr[4], y + 12, 12, 400, INK, 'right');
                                 y += Math.max(ls.length * 16, 18) + 8; regla(y); y += 8;
                             });
                         }
                         // --- Totales ---
                         y += 6;
                         txt('Total $', W - P - (term ? 110 : 200), y + 16, 13, 700, INK, term ? 'left' : 'right'); txt(this.usd(d.total), W - P, y + 16, 16, 800, INK, 'right'); y += 26;
-                        if (d.totalBs > 0) { txt('Total Bs.', W - P - (term ? 110 : 200), y + 13, 12, 600, MUT, term ? 'left' : 'right'); txt('Bs. ' + this.fmtBs(d.totalBs), W - P, y + 13, 13, 700, INK, 'right'); y += 24; }
+                        if (!soloUsd && d.totalBs > 0) { txt('Total Bs.', W - P - (term ? 110 : 200), y + 13, 12, 600, MUT, term ? 'left' : 'right'); txt('Bs. ' + this.fmtBs(d.totalBs), W - P, y + 13, 13, 700, INK, 'right'); y += 24; }
                         y += 8;
                         // --- Condiciones ---
-                        const con = [{ t: 'Condición: ' + d.condicion }]; if (d.vence) con.push({ t: 'Fecha de vencimiento: ' + this.fmtFecha(d.vence) }); con.push({ t: 'Método de pago: ' + d.metodo });
+                        const con = [{ t: 'Condición: ' + d.condicion }]; if (d.vence) con.push({ t: 'Fecha de vencimiento: ' + this.fmtFecha(d.vence) }); con.push({ t: soloUsd ? 'Moneda de la factura: Dólares (USD)' : 'Método de pago: ' + d.metodo });
                         const hc = alto(con, TW); caja(P, y, TW, hc, 'Condiciones comerciales', con); y += hc + 14;
                         // --- Firmas y nota ---
                         if (!term) {
@@ -4664,7 +4665,8 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                             [['Entregado por', P], ['Recibido conforme', P + fw + 60]].forEach(a => { ctx.strokeStyle = INK; ctx.beginPath(); ctx.moveTo(a[1], y + .5); ctx.lineTo(a[1] + fw, y + .5); ctx.stroke(); txt(a[0], a[1] + fw / 2, y + 16, 11, 400, MUT, 'center'); });
                             y += 34;
                         }
-                        if (d.tasa > 0) parte(`Los montos en bolívares se calcularon con la tasa del día de emisión de esta factura (${this.fmtFecha(d.tasaFecha)}).`, TW, 10, 400).forEach(ln => { txt(ln, P, y + 10, 10, 400, MUT); y += 14; });
+                        if (soloUsd) parte('Monto expresado únicamente en dólares (USD). Puede cancelarse en bolívares a la tasa BCV vigente el día en que se realice el pago, dentro del plazo de crédito indicado.', TW, 10, 400).forEach(ln => { txt(ln, P, y + 10, 10, 400, MUT); y += 14; });
+                        else if (d.tasa > 0) parte(`Los montos en bolívares se calcularon con la tasa del día de emisión de esta factura (${this.fmtFecha(d.tasaFecha)}).`, TW, 10, 400).forEach(ln => { txt(ln, P, y + 10, 10, 400, MUT); y += 14; });
                         return y + P;
                     };
                     const medir = document.createElement('canvas').getContext('2d');
@@ -4674,7 +4676,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                     dibujar(ctx);
                     cv.toBlob(b => {
                         if (!b) { alert('No se pudo generar la imagen.'); return; }
-                        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `Factura_${d.nro}.png`; a.click();
+                        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `Factura_${soloUsd ? 'USD_' : ''}${d.nro}.png`; a.click();
                         setTimeout(() => URL.revokeObjectURL(a.href), 1500);
                     }, 'image/png');
                 },
