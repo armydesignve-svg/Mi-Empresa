@@ -952,9 +952,10 @@
             <!-- Desglose de la ganancia neta (incluye intereses de préstamos) -->
             <div class="card-box p-5 md:p-6 space-y-4">
                 <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-account_balance_wallet"/></svg><span x-text="'Cómo se calcula la ganancia neta · ' + periodoLabel.toLowerCase()"></span></h3>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div class="panel-inset px-4 py-3"><p class="stat-label">Ganancia de ventas</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(serieFinanzas.tot.gananciaVentas)"></p><p class="text-[10px] text-slate-500">Ventas − costo de lo vendido</p></div>
-                    <div class="panel-inset px-4 py-3"><p class="stat-label">− Gastos operativos</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(Math.max(gastosPeriodo - interesesPeriodo, 0))"></p></div>
+                    <div class="panel-inset px-4 py-3"><p class="stat-label">− Gastos operativos</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(Math.max(gastosPeriodo - interesesPeriodo - serieFinanzas.tot.mermas, 0))"></p></div>
+                    <div class="panel-inset px-4 py-3" x-show="serieFinanzas.tot.mermas > 0"><p class="stat-label">− Mermas</p><p class="font-display font-extrabold text-lg" style="color: var(--warn)" x-text="usd(serieFinanzas.tot.mermas)"></p><p class="text-[10px] text-slate-500">Costo del producto perdido</p></div>
                     <div class="panel-inset px-4 py-3"><p class="stat-label">− Intereses de préstamos</p><p class="font-display font-extrabold text-lg" style="color: var(--warn)" x-text="usd(interesesPeriodo)"></p><p class="text-[10px] text-slate-500" x-show="serieFinanzas.tot.interesesBs > 0" x-text="'≈ Bs. ' + fmtBs(serieFinanzas.tot.interesesBs)"></p></div>
                     <div class="panel-inset px-4 py-3"><p class="stat-label">= Ganancia neta</p><p class="font-display font-extrabold text-lg" :style="gananciaNetaPeriodo < 0 ? 'color: var(--danger)' : 'color: var(--accent-text)'" x-text="usd(gananciaNetaPeriodo)"></p></div>
                 </div>
@@ -1430,52 +1431,14 @@
 
         <!-- COMPRA (INVENTARIO) -->
         <div x-show="currentTab === 'compras'" x-cloak class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div class="card-box p-6 space-y-4 self-start">
-                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-receipt_long"/></svg><span>Registrar Compra a Proveedor</span></h3>
-                    <p x-show="proveedores.length === 0 || productos.length === 0" class="text-[11px] px-1" style="color: var(--warn)">Registre primero al menos un proveedor y un producto en el menú Registro.</p><div class="space-y-3"><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="form.compra.fecha" @change="asegurarTasasFecha(form.compra.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Proveedor</label><select x-model="form.compra.proveedorId" @change="alElegirProveedor(form.compra)" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione proveedor...</option><template x-for="p in proveedores" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(form.compra.proveedorId)" x-text="nombreProveedor(p)"></option></template></select></div><div class="space-y-3">
-                        <template x-for="(it, i) in form.compra.items" :key="it.k">
-                            <div class="rounded-2xl p-3 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
-                                <div class="flex items-center justify-between">
-                                    <span class="flabel" x-text="'Producto ' + (i + 1)"></span>
-                                    <button type="button" x-show="form.compra.items.length > 1" @click="quitarLinea('compra', i)" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
-                                </div>
-                                <select x-model="it.productoId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option>
-                                    <template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(it.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="it.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div>
-                                    <div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="it.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div>
-                                </div>
-                                <p class="text-[11px] text-slate-500 text-right" x-show="Number(it.precioKg) > 0 && Number(it.cantidadKg) > 0" x-text="'Subtotal: ' + usd(Number(it.precioKg) * Number(it.cantidadKg))"></p>
-                            </div>
-                        </template>
-                        <button type="button" @click="agregarLinea('compra')" class="btn-ghost w-full py-2 text-xs">+ Agregar otro producto</button>
-                    </div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.compra.metodo" @change="aplicarTasa(form.compra)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === form.compra.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.compra.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.compra.metodo, form.compra.fecha) > 0 ? fmtTasa(tasaOperacion(form.compra.metodo, form.compra.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(totalItems(form.compra), form.compra)"></p><div class="space-y-1"><label class="flabel">Condición de pago</label><select x-model="form.compra.tipoPago" :disabled="false" class="field w-full px-3 py-2.5 text-xs"><option value="Contado">Contado</option><option value="Credito">Crédito (Cuenta por Pagar)</option></select></div><div class="space-y-1" x-show="form.compra.tipoPago === 'Credito'"><label class="flabel">Días de crédito</label><input type="number" x-model.number="form.compra.diasCredito" placeholder="Opcional" min="0" :disabled="false" class="field w-full px-4 py-2.5 text-xs"></div><p x-show="false" class="text-[11px] text-slate-500 px-1">Esta compra ya tiene pagos registrados: su condición de pago no puede cambiarse.</p></div>
-                    <p x-show="err.compra" x-text="err.compra" class="text-xs font-medium" style="color: var(--danger)"></p>
-                    <button @click="crear('compra')" class="btn-primary w-full py-2.5 text-xs">Registrar Compra</button>
+            <div class="card-box p-5 flex flex-wrap items-center justify-between gap-3 no-print">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-receipt_long"/></svg><span>Compras</span></h3>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="abrirForm('compra')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nueva compra</button>
+                    <button type="button" @click="abrirInventario()" class="btn-ghost px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-inventory_2"/></svg> Ver inventario</button>
                 </div>
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="card-box p-6 space-y-4">
-                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-inventory_2"/></svg><span>Inventario (existencias)</span></h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2.5 px-3">Código</th><th class="py-2.5 px-3">Producto</th><th class="py-2.5 px-3">Existencia</th><th class="py-2.5 px-3">Costo prom.</th><th class="py-2.5 px-3">Valor</th></tr></thead>
-                            <tbody class="divide-y divide-slate-100 text-xs">
-                                <template x-if="productosStock.length === 0">
-                                    <tr><td colspan="5" class="py-5 text-center text-slate-400 italic">Sin productos en inventario.</td></tr>
-                                </template>
-                                <template x-for="r in productosStock" :key="r.id">
-                                    <tr>
-<td class="py-2.5 px-3 text-slate-500" x-text="r.codigo || '—'"></td>
-<td class="py-2.5 px-3 text-slate-900 font-medium" x-text="r.nombre"></td>
-<td class="py-2.5 px-3 font-bold" :style="r.existencia < 0 ? 'color: var(--danger)' : ''" x-text="fmtKg(r.existencia) + ' kg'"></td>
-<td class="py-2.5 px-3 text-amber-700" x-text="usd(r.costoProm) + ' /kg'"></td>
-<td class="py-2.5 px-3 text-slate-900" x-text="usd(r.valor)"></td></tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
-                    </div>
+            </div>
+            <div class="space-y-6">
                     <div class="card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-assignment"/></svg><span>Registro de Compras</span></h3>
                     <div class="space-y-4">
@@ -1540,38 +1503,19 @@
                         </div>
                     </div>
                     </div>
-                </div>
             </div>
         </div>
 
         <!-- VENTA (PEDIDOS) -->
         <div x-show="currentTab === 'ventas'" x-cloak class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div class="card-box p-6 space-y-4 self-start">
-                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-shopping_cart"/></svg><span>Registrar Venta / Pedido</span></h3>
-                    <p x-show="clientes.length === 0 || productos.length === 0" class="text-[11px] px-1" style="color: var(--warn)">Registre primero al menos un cliente y un producto en el menú Registro.</p><div class="space-y-3"><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="form.venta.fecha" @change="asegurarTasasFecha(form.venta.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Cliente</label><select x-model="form.venta.clienteId"  class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione cliente...</option><template x-for="c in clientes" :key="c.id"><option :value="c.id" :selected="String(c.id) === String(form.venta.clienteId)" x-text="nombreCliente(c)"></option></template></select></div><div class="space-y-3">
-                        <template x-for="(it, i) in form.venta.items" :key="it.k">
-                            <div class="rounded-2xl p-3 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
-                                <div class="flex items-center justify-between">
-                                    <span class="flabel" x-text="'Producto ' + (i + 1)"></span>
-                                    <button type="button" x-show="form.venta.items.length > 1" @click="quitarLinea('venta', i)" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
-                                </div>
-                                <select x-model="it.productoId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option>
-                                    <template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(it.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select>
-                            <p x-show="it.productoId !== '' && it.productoId != null" class="text-[11px] px-1" :style="existenciaDe(Number(it.productoId), null) < kgEnForm(form.venta.items, it.productoId) ? 'color: var(--warn)' : 'color: var(--muted)'" x-text="'Existencia: ' + fmtKg(existenciaDe(Number(it.productoId), null)) + ' kg'"></p>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="it.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div>
-                                    <div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="it.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div>
-                                </div>
-                                <p class="text-[11px] text-slate-500 text-right" x-show="Number(it.precioKg) > 0 && Number(it.cantidadKg) > 0" x-text="'Subtotal: ' + usd(Number(it.precioKg) * Number(it.cantidadKg))"></p>
-                            </div>
-                        </template>
-                        <button type="button" @click="agregarLinea('venta')" class="btn-ghost w-full py-2 text-xs">+ Agregar otro producto</button>
-                    </div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.venta.metodo" @change="aplicarTasa(form.venta)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === form.venta.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.venta.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.venta.metodo, form.venta.fecha) > 0 ? fmtTasa(tasaOperacion(form.venta.metodo, form.venta.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(totalItems(form.venta), form.venta)"></p><div class="space-y-1"><label class="flabel">Días de crédito (0 = contado)</label><input type="number" x-model.number="form.venta.diasCredito" placeholder="0" min="0" :disabled="false" class="field w-full px-4 py-2.5 text-xs"></div><p x-show="false" class="text-[11px] text-slate-500 px-1">Esta venta ya tiene abonos registrados: sus días de crédito no pueden cambiarse.</p></div>
-                    <p x-show="err.venta" x-text="err.venta" class="text-xs font-medium" style="color: var(--danger)"></p>
-                    <button @click="crear('venta')" class="btn-primary w-full py-2.5 text-xs">Registrar Venta</button>
+            <div class="card-box p-5 flex flex-wrap items-center justify-between gap-3 no-print">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-shopping_cart"/></svg><span>Ventas</span></h3>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="abrirForm('venta')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nueva venta</button>
                 </div>
-                <div class="lg:col-span-2 card-box p-6 space-y-4">
+            </div>
+            <div class="space-y-6">
+                <div class="card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-bar_chart"/></svg><span>Ventas Registradas</span></h3>
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 no-print"><input type="search" x-model="filtro.venta.q" placeholder="Buscar cliente o producto…" class="field col-span-2 px-4 py-2 text-xs"><input type="date" x-model="filtro.venta.desde" title="Desde" class="field px-3 py-2 text-xs"><input type="date" x-model="filtro.venta.hasta" title="Hasta" class="field px-3 py-2 text-xs"></div>
@@ -2405,7 +2349,7 @@
 
     <!-- MODAL: NUEVO / EDITAR PEDIDO -->
     <div x-show="mp.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="cerrarPedido()" @keydown.escape.window="cerrarPedido()" role="dialog" aria-modal="true" aria-label="Pedido"
-         x-effect="document.body.style.overflow = (mp.abierto || gv.abierto) ? 'hidden' : ''">
+         x-effect="document.body.style.overflow = (mp.abierto || gv.abierto || formAbierto.compra || formAbierto.venta || invAbierto) ? 'hidden' : ''">
         <div class="card-box modal-card p-6 space-y-5">
             <div class="flex items-center justify-between gap-3">
                 <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-assignment"/></svg><span x-text="mp.id ? 'Editar pedido' : 'Nuevo pedido'"></span></h3>
@@ -2503,6 +2447,136 @@
             <div class="flex gap-2 pt-1 modal-actions">
                 <button @click="confirmarGenVenta()" class="btn-primary flex-1 py-2.5 text-xs">Generar venta</button>
                 <button @click="gv.abierto = false" class="btn-ghost px-5 py-2.5 text-xs">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: NUEVA COMPRA -->
+    <div x-show="formAbierto.compra" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="formAbierto.compra = false" @keydown.escape.window="formAbierto.compra = false" role="dialog" aria-modal="true">
+                <div class="card-box modal-card p-6 space-y-4 relative" style="max-width:38rem">
+<button type="button" @click="formAbierto.compra = false" aria-label="Cerrar" class="btn-circle w-9! h-9! absolute top-4 right-4"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-receipt_long"/></svg><span>Registrar Compra a Proveedor</span></h3>
+                    <p x-show="proveedores.length === 0 || productos.length === 0" class="text-[11px] px-1" style="color: var(--warn)">Registre primero al menos un proveedor y un producto en el menú Registro.</p><div class="space-y-3"><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="form.compra.fecha" @change="asegurarTasasFecha(form.compra.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Proveedor</label><select x-model="form.compra.proveedorId" @change="alElegirProveedor(form.compra)" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione proveedor...</option><template x-for="p in proveedores" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(form.compra.proveedorId)" x-text="nombreProveedor(p)"></option></template></select></div><div class="space-y-3">
+                        <template x-for="(it, i) in form.compra.items" :key="it.k">
+                            <div class="rounded-2xl p-3 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
+                                <div class="flex items-center justify-between">
+                                    <span class="flabel" x-text="'Producto ' + (i + 1)"></span>
+                                    <button type="button" x-show="form.compra.items.length > 1" @click="quitarLinea('compra', i)" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                                </div>
+                                <select x-model="it.productoId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option>
+                                    <template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(it.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="it.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div>
+                                    <div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="it.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div>
+                                </div>
+                                <p class="text-[11px] text-slate-500 text-right" x-show="Number(it.precioKg) > 0 && Number(it.cantidadKg) > 0" x-text="'Subtotal: ' + usd(Number(it.precioKg) * Number(it.cantidadKg))"></p>
+                            </div>
+                        </template>
+                        <button type="button" @click="agregarLinea('compra')" class="btn-ghost w-full py-2 text-xs">+ Agregar otro producto</button>
+                    </div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.compra.metodo" @change="aplicarTasa(form.compra)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === form.compra.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.compra.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.compra.metodo, form.compra.fecha) > 0 ? fmtTasa(tasaOperacion(form.compra.metodo, form.compra.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(totalItems(form.compra), form.compra)"></p><div class="space-y-1"><label class="flabel">Condición de pago</label><select x-model="form.compra.tipoPago" :disabled="false" class="field w-full px-3 py-2.5 text-xs"><option value="Contado">Contado</option><option value="Credito">Crédito (Cuenta por Pagar)</option></select></div><div class="space-y-1" x-show="form.compra.tipoPago === 'Credito'"><label class="flabel">Días de crédito</label><input type="number" x-model.number="form.compra.diasCredito" placeholder="Opcional" min="0" :disabled="false" class="field w-full px-4 py-2.5 text-xs"></div><p x-show="false" class="text-[11px] text-slate-500 px-1">Esta compra ya tiene pagos registrados: su condición de pago no puede cambiarse.</p></div>
+                    <p x-show="err.compra" x-text="err.compra" class="text-xs font-medium" style="color: var(--danger)"></p>
+                    <button @click="crear('compra')" class="btn-primary w-full py-2.5 text-xs">Registrar Compra</button>
+                </div>
+    </div>
+
+    <!-- MODAL: NUEVA VENTA -->
+    <div x-show="formAbierto.venta" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="formAbierto.venta = false" @keydown.escape.window="formAbierto.venta = false" role="dialog" aria-modal="true">
+                <div class="card-box modal-card p-6 space-y-4 relative" style="max-width:38rem">
+<button type="button" @click="formAbierto.venta = false" aria-label="Cerrar" class="btn-circle w-9! h-9! absolute top-4 right-4"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-shopping_cart"/></svg><span>Registrar Venta / Pedido</span></h3>
+                    <p x-show="clientes.length === 0 || productos.length === 0" class="text-[11px] px-1" style="color: var(--warn)">Registre primero al menos un cliente y un producto en el menú Registro.</p><div class="space-y-3"><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="form.venta.fecha" @change="asegurarTasasFecha(form.venta.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Cliente</label><select x-model="form.venta.clienteId"  class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione cliente...</option><template x-for="c in clientes" :key="c.id"><option :value="c.id" :selected="String(c.id) === String(form.venta.clienteId)" x-text="nombreCliente(c)"></option></template></select></div><div class="space-y-3">
+                        <template x-for="(it, i) in form.venta.items" :key="it.k">
+                            <div class="rounded-2xl p-3 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
+                                <div class="flex items-center justify-between">
+                                    <span class="flabel" x-text="'Producto ' + (i + 1)"></span>
+                                    <button type="button" x-show="form.venta.items.length > 1" @click="quitarLinea('venta', i)" class="text-rose-600 hover:underline cursor-pointer text-[11px] font-medium">Quitar</button>
+                                </div>
+                                <select x-model="it.productoId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option>
+                                    <template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(it.productoId)" x-text="(p.codigo ? p.codigo + ' · ' : '') + p.nombre"></option></template></select>
+                            <p x-show="it.productoId !== '' && it.productoId != null" class="text-[11px] px-1" :style="existenciaDe(Number(it.productoId), null) < kgEnForm(form.venta.items, it.productoId) ? 'color: var(--warn)' : 'color: var(--muted)'" x-text="'Existencia: ' + fmtKg(existenciaDe(Number(it.productoId), null)) + ' kg'"></p>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="space-y-1"><label class="flabel">Precio por kilo ($)</label><input type="number" x-model.number="it.precioKg" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div>
+                                    <div class="space-y-1"><label class="flabel">Cantidad (kg)</label><input type="number" x-model.number="it.cantidadKg" placeholder="0" min="0" step="0.001" class="field w-full px-4 py-2.5 text-xs"></div>
+                                </div>
+                                <p class="text-[11px] text-slate-500 text-right" x-show="Number(it.precioKg) > 0 && Number(it.cantidadKg) > 0" x-text="'Subtotal: ' + usd(Number(it.precioKg) * Number(it.cantidadKg))"></p>
+                            </div>
+                        </template>
+                        <button type="button" @click="agregarLinea('venta')" class="btn-ghost w-full py-2 text-xs">+ Agregar otro producto</button>
+                    </div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.venta.metodo" @change="aplicarTasa(form.venta)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === form.venta.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.venta.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.venta.metodo, form.venta.fecha) > 0 ? fmtTasa(tasaOperacion(form.venta.metodo, form.venta.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(totalItems(form.venta), form.venta)"></p><div class="space-y-1"><label class="flabel">Días de crédito (0 = contado)</label><input type="number" x-model.number="form.venta.diasCredito" placeholder="0" min="0" :disabled="false" class="field w-full px-4 py-2.5 text-xs"></div><p x-show="false" class="text-[11px] text-slate-500 px-1">Esta venta ya tiene abonos registrados: sus días de crédito no pueden cambiarse.</p></div>
+                    <p x-show="err.venta" x-text="err.venta" class="text-xs font-medium" style="color: var(--danger)"></p>
+                    <button @click="crear('venta')" class="btn-primary w-full py-2.5 text-xs">Registrar Venta</button>
+                </div>
+    </div>
+
+    <!-- MODAL: INVENTARIO (EXISTENCIAS Y MERMAS) -->
+    <div x-show="invAbierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="invAbierto = false" @keydown.escape.window="invAbierto = false" role="dialog" aria-modal="true" aria-label="Inventario">
+        <div class="card-box modal-card p-6 space-y-5" style="max-width:48rem">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-inventory_2"/></svg><span>Inventario (existencias)</span></h3>
+                <button @click="invAbierto = false" aria-label="Cerrar" class="btn-circle w-9! h-9!"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2.5 px-3">Código</th><th class="py-2.5 px-3">Producto</th><th class="py-2.5 px-3">Existencia</th><th class="py-2.5 px-3">Costo prom.</th><th class="py-2.5 px-3">Valor</th><th class="py-2.5 px-3"></th></tr></thead>
+                    <tbody class="divide-y divide-slate-100 text-xs">
+                        <template x-if="productosStock.length === 0"><tr><td colspan="6" class="py-5 text-center text-slate-400 italic">Sin productos en inventario.</td></tr></template>
+                        <template x-for="r in productosStock" :key="r.id">
+                            <tr>
+                                <td class="py-2.5 px-3 text-slate-500" x-text="r.codigo || '—'"></td>
+                                <td class="py-2.5 px-3 text-slate-900 font-medium" x-text="r.nombre"></td>
+                                <td class="py-2.5 px-3 font-bold" :style="r.existencia < 0 ? 'color: var(--danger)' : ''" x-text="fmtKg(r.existencia) + ' kg'"></td>
+                                <td class="py-2.5 px-3 text-amber-700" x-text="usd(r.costoProm) + ' /kg'"></td>
+                                <td class="py-2.5 px-3 text-slate-900" x-text="usd(r.valor)"></td>
+                                <td class="py-2.5 px-3 text-right"><button type="button" @click="mf.productoId = r.id; mf.error = ''; mf.ok = ''" class="text-blue-600 hover:underline cursor-pointer font-medium text-xs">Ajustar</button></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="rounded-2xl p-4 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
+                <p class="flabel">Registrar merma o ajustar stock</p>
+                <div class="seg" role="group">
+                    <button type="button" @click="mf.modo = 'merma'; mf.error = ''" :aria-pressed="mf.modo === 'merma'">Merma (kg perdidos)</button>
+                    <button type="button" @click="mf.modo = 'ajuste'; mf.error = ''" :aria-pressed="mf.modo === 'ajuste'">Conteo real</button>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1"><label class="flabel">Producto</label>
+                        <select x-model="mf.productoId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione...</option>
+                            <template x-for="p in productos" :key="p.id"><option :value="p.id" :selected="String(p.id) === String(mf.productoId)" x-text="p.nombre"></option></template></select></div>
+                    <div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="mf.fecha" class="field w-full px-4 py-2 text-xs"></div>
+                </div>
+                <p class="text-[11px] text-slate-500" x-show="mfExistencia !== null" x-text="'Existencia según el sistema: ' + fmtKg(mfExistencia) + ' kg'"></p>
+                <div class="space-y-1" x-show="mf.modo === 'merma'"><label class="flabel">Kilos perdidos</label><input type="number" min="0" step="0.001" x-model.number="mf.cantidad" placeholder="0" class="field w-full px-4 py-2.5 text-xs"></div>
+                <div class="space-y-1" x-show="mf.modo === 'ajuste'"><label class="flabel">Kilos que hay realmente (conteo físico)</label><input type="number" min="0" step="0.001" x-model.number="mf.real" placeholder="0" class="field w-full px-4 py-2.5 text-xs"></div>
+                <div class="space-y-1" x-show="mf.modo === 'merma'"><label class="flabel">Motivo</label>
+                    <select x-model="mf.motivo" class="field w-full px-3 py-2.5 text-xs"><template x-for="m in motivosMerma" :key="m"><option :value="m" :selected="m === mf.motivo" x-text="m"></option></template></select></div>
+                <div class="space-y-1"><label class="flabel">Nota (opcional)</label><input type="text" x-model="mf.nota" class="field w-full px-4 py-2.5 text-xs" placeholder="Ej. se descongeló una caja"></div>
+                <p class="text-[11px]" style="color: var(--warn)" x-show="mfDescuento > 0" x-text="'Se descontarán ' + fmtKg(mfDescuento) + ' kg. Su costo se restará de la ganancia del período.'"></p>
+                <p x-show="mf.error" x-text="mf.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+                <p x-show="mf.ok" x-text="mf.ok" class="text-xs font-medium" style="color: var(--accent-text)"></p>
+                <button type="button" @click="registrarMerma()" class="btn-primary w-full py-2.5 text-xs" x-text="mf.modo === 'ajuste' ? 'Ajustar stock' : 'Registrar merma'"></button>
+            </div>
+
+            <div class="space-y-2" x-show="mermasList.length > 0">
+                <p class="flabel">Historial de mermas y ajustes</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2 px-3">Fecha</th><th class="py-2 px-3">Producto</th><th class="py-2 px-3">Kg</th><th class="py-2 px-3">Costo</th><th class="py-2 px-3">Motivo</th><th class="py-2 px-3"></th></tr></thead>
+                        <tbody class="divide-y divide-slate-100 text-xs">
+                            <template x-for="m in mermasList" :key="m.id">
+                                <tr>
+                                    <td class="py-2 px-3 text-slate-500 whitespace-nowrap" x-text="fmtFecha(m.fecha)"></td>
+                                    <td class="py-2 px-3 text-slate-900 font-medium" x-text="m.producto"></td>
+                                    <td class="py-2 px-3 font-semibold" x-text="'−' + fmtKg(m.cantidadKg)"></td>
+                                    <td class="py-2 px-3 text-amber-700" x-text="usd(m.costo)"></td>
+                                    <td class="py-2 px-3 text-slate-600"><span x-text="m.motivo"></span><span class="block text-[10px] text-slate-500" x-show="m.nota" x-text="m.nota"></span></td>
+                                    <td class="py-2 px-3 text-right"><button @click="eliminarMerma(m.id)" class="text-rose-600 hover:underline cursor-pointer font-medium text-xs">Eliminar</button></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -2816,6 +2890,7 @@
                         this[LISTAS[tipo]].push(item);
                     }
                     this.resetForm(tipo);
+                    if (this.formAbierto[tipo] !== undefined) this.formAbierto[tipo] = false;
                 },
                 abrirModal(tipo, item) {
                     const orig = this[LISTAS[tipo]].find(x => x.id === item.id) || item;
@@ -2948,7 +3023,7 @@
                     const n = (arr, k) => arr.filter(x => x[k] === id).length;
                     if (tipo === 'proveedor') return n(this.compras, 'proveedorId');
                     if (tipo === 'cliente') return n(this.ventas, 'clienteId') + n(this.pedidos, 'clienteId');
-                    if (tipo === 'producto') return n(this.compras, 'productoId') + n(this.ventas, 'productoId') + this.pedidos.filter(p => (p.items || []).some(i => i.productoId === id)).length;
+                    if (tipo === 'producto') return n(this.compras, 'productoId') + n(this.ventas, 'productoId') + this.pedidos.filter(p => (p.items || []).some(i => i.productoId === id)).length + this.mermas.filter(m => m.productoId === id).length;
                     return 0;
                 },
                 eliminar(tipo, id) {
@@ -3021,7 +3096,7 @@
                     return {
                         version: 3,
                         proveedores: this.proveedores, clientes: this.clientes, productos: this.productos,
-                        compras: this.compras, ventas: this.ventas, gastos: this.gastos, prestamos: this.prestamos, pedidos: this.pedidos,
+                        compras: this.compras, ventas: this.ventas, gastos: this.gastos, prestamos: this.prestamos, pedidos: this.pedidos, mermas: this.mermas,
                         tasas: { usd: this.tasas.usd, eur: this.tasas.eur, usdt: this.tasas.usdt, refer: this.tasas.refer },
                         historialTasas: this.historialTasas,
                         empresa: this.empresa, papelera: this.papelera
@@ -3042,7 +3117,7 @@
                     if (p && p.version >= 3) {
                         return {
                             proveedores: p.proveedores || [], clientes: p.clientes || [], productos: p.productos || [],
-                            compras: p.compras || [], ventas: p.ventas || [], gastos: p.gastos || [], prestamos: p.prestamos || [], pedidos: p.pedidos || [], tasas: p.tasas, historialTasas: p.historialTasas || {}, empresa: p.empresa, papelera: p.papelera || []
+                            compras: p.compras || [], ventas: p.ventas || [], gastos: p.gastos || [], prestamos: p.prestamos || [], pedidos: p.pedidos || [], mermas: p.mermas || [], tasas: p.tasas, historialTasas: p.historialTasas || {}, empresa: p.empresa, papelera: p.papelera || []
                         };
                     }
                     const hoy = this.hoy();
@@ -3080,7 +3155,7 @@
                 aplicarDatos(parsed, guardar = true) {
                     const d = this.migrarDatos(parsed);
                     this.proveedores = d.proveedores; this.clientes = d.clientes; this.productos = d.productos;
-                    this.compras = d.compras; this.ventas = d.ventas; this.gastos = d.gastos; this.prestamos = d.prestamos; this.pedidos = d.pedidos || [];
+                    this.compras = d.compras; this.ventas = d.ventas; this.gastos = d.gastos; this.prestamos = d.prestamos; this.pedidos = d.pedidos || []; this.mermas = d.mermas || [];
                     this.historialTasas = { ...this.historialTasas, ...(d.historialTasas || {}) };
                     if (d.empresa) Object.assign(this.empresa, d.empresa);
                     this.papelera = d.papelera || [];
@@ -3200,6 +3275,53 @@
                         input.value = '';
                     };
                     reader.readAsText(file, "UTF-8");
+                },
+
+                // ===================== INVENTARIO: VER / MERMAS / AJUSTE =====================
+                formAbierto: { compra: false, venta: false },
+                invAbierto: false,
+                mermas: [],        // { id, fecha, productoId, cantidadKg, motivo, nota }
+                motivosMerma: ['Merma natural / pérdida de peso', 'Daño o descomposición', 'Producto vencido', 'Ajuste por conteo físico', 'Otro'],
+                mf: { modo: 'merma', productoId: '', cantidad: '', real: '', fecha: '', motivo: 'Merma natural / pérdida de peso', nota: '', error: '', ok: '' },
+                abrirForm(tipo) { this.err[tipo] = ''; this.formAbierto[tipo] = true; },
+                abrirInventario() { this.mf = { modo: 'merma', productoId: '', cantidad: '', real: '', fecha: this.hoy(), motivo: this.motivosMerma[0], nota: '', error: '', ok: '' }; this.invAbierto = true; },
+                get mermasList() {
+                    const inv = this.inventarioCalc;
+                    return this.mermas.map(m => {
+                        const prod = this.productos.find(p => p.id === m.productoId);
+                        const q = Number(m.cantidadKg) || 0;
+                        return { ...m, producto: prod ? prod.nombre : 'N/D', costo: this.r2((inv.costoMerma[m.id] || 0) * q), costoBs: this.r2((inv.costoMermaBs[m.id] || 0) * q) };
+                    }).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.id - a.id);
+                },
+                get mfExistencia() { return this.mf.productoId === '' ? null : this.existenciaDe(Number(this.mf.productoId)); },
+                get mfDescuento() {
+                    if (this.mf.productoId === '' || this.mfExistencia === null) return 0;
+                    if (this.mf.modo === 'merma') return Number(this.mf.cantidad) || 0;
+                    return this.mf.real === '' ? 0 : this.r2(this.mfExistencia - Number(this.mf.real));
+                },
+                registrarMerma() {
+                    const f = this.mf; f.error = ''; f.ok = '';
+                    if (f.productoId === '') { f.error = 'Seleccione un producto.'; return; }
+                    if (!f.fecha) { f.error = 'Indique la fecha.'; return; }
+                    const ex = this.existenciaDe(Number(f.productoId));
+                    let q;
+                    if (f.modo === 'merma') {
+                        q = Number(f.cantidad);
+                        if (!(q > 0)) { f.error = 'Ingrese los kilos perdidos.'; return; }
+                    } else {
+                        if (f.real === '' || !(Number(f.real) >= 0)) { f.error = 'Ingrese los kilos que hay realmente.'; return; }
+                        q = this.r2(ex - Number(f.real));
+                        if (q < -0.0001) { f.error = 'El conteo real es mayor que el sistema. Para aumentar el stock registre una compra.'; return; }
+                        if (q <= 0.0001) { f.error = 'El conteo coincide con el sistema; no hay nada que ajustar.'; return; }
+                    }
+                    if (q > ex + 0.0001 && !confirm(`La merma (${this.fmtKg(q)} kg) supera la existencia (${this.fmtKg(Math.max(ex, 0))} kg) y dejará el stock en negativo. ¿Continuar?`)) return;
+                    this.mermas.push({ id: this.nuevoId(), fecha: f.fecha, productoId: Number(f.productoId), cantidadKg: q, motivo: f.modo === 'ajuste' ? 'Ajuste por conteo físico' : f.motivo, nota: String(f.nota || '').trim() });
+                    f.ok = `Registrado: −${this.fmtKg(q)} kg de ${this.nombreProd(f.productoId)}. Existencia ahora: ${this.fmtKg(this.existenciaDe(Number(f.productoId)))} kg.`;
+                    f.cantidad = ''; f.real = ''; f.nota = '';
+                },
+                eliminarMerma(id) {
+                    if (!confirm('¿Eliminar este registro? Los kilos volverán al inventario.')) return;
+                    this.mermas = this.mermas.filter(m => m.id !== id);
                 },
 
                 // ===================== PEDIDOS (anotación interna; no toca finanzas ni inventario) =====================
@@ -3378,8 +3500,9 @@
                     const ev = [];
                     this.compras.forEach(c => ev.push({ t: 0, fecha: c.fecha || '', id: c.id, ref: c }));
                     this.ventas.forEach(v => ev.push({ t: 1, fecha: v.fecha || '', id: v.id, ref: v }));
+                    this.mermas.forEach(m => ev.push({ t: 2, fecha: m.fecha || '', id: m.id, ref: m }));
                     ev.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.t - b.t || a.id - b.id);
-                    const stock = {}, costoVenta = {}, costoVentaBs = {};
+                    const stock = {}, costoVenta = {}, costoVentaBs = {}, costoMerma = {}, costoMermaBs = {};
                     ev.forEach(e => {
                         const pid = e.ref.productoId;
                         const s = stock[pid] || (stock[pid] = { qty: 0, avg: 0, avgBs: 0 });
@@ -3390,13 +3513,16 @@
                             s.avgBs = nq > 0 ? (base * s.avgBs + q * pr * tp) / nq : pr * tp;
                             s.avg = nq > 0 ? (base * s.avg + q * pr) / nq : pr;
                             s.qty += q;
+                        } else if (e.t === 2) {
+                            costoMerma[e.ref.id] = s.avg; costoMermaBs[e.ref.id] = s.avgBs;
+                            s.qty -= q;
                         } else {
                             costoVenta[e.ref.id] = s.avg;
                             costoVentaBs[e.ref.id] = s.avgBs;
                             s.qty -= q;
                         }
                     });
-                    return { stock, costoVenta, costoVentaBs };
+                    return { stock, costoVenta, costoVentaBs, costoMerma, costoMermaBs };
                 },
                 get productosStock() {
                     const st = this.inventarioCalc.stock;
@@ -3494,7 +3620,8 @@
                 get egresos() {
                     return [
                         ...this.gastos.map(g => ({ fecha: g.fecha, monto: Number(g.monto), bs: this.bsGasto(g) })),
-                        ...this.interesesDevengados.map(e => ({ fecha: e.fecha, monto: e.monto, bs: e.bs }))
+                        ...this.interesesDevengados.map(e => ({ fecha: e.fecha, monto: e.monto, bs: e.bs })),
+                        ...this.mermasList.map(m => ({ fecha: m.fecha, monto: m.costo, bs: m.costoBs }))
                     ];
                 },
                 get mesKey() { return this.hoy().slice(0, 7); },
@@ -3582,14 +3709,15 @@
                     const S = { labels: buckets.map(b => b.label), ventas: z(), compras: z(), gastos: z(), ganancia: z() };
                     const k = f => (desde && !((f || '') >= desde && (f || '') <= hasta)) ? undefined : idx[modo === 'mes' ? (f || '').slice(0, 7) : f];
                     const bsT = { ventas: 0, compras: 0, gastos: 0 };
-                    const ex = { gv: 0, gvBs: 0, int: 0, intBs: 0 };
+                    const ex = { gv: 0, gvBs: 0, int: 0, intBs: 0, mer: 0 };
                     this.ventasList.forEach(v => { const i = k(v.fecha); if (i !== undefined) { S.ventas[i] += v.total; S.ganancia[i] += v.ganancia; bsT.ventas += v.totalBsEst; ex.gv += v.ganancia; ex.gvBs += v.gananciaBs; } });
                     this.comprasList.forEach(c => { const i = k(c.fecha); if (i !== undefined) { S.compras[i] += c.total; bsT.compras += c.totalBsEst; } });
                     this.interesesDevengados.forEach(e => { const i = k(e.fecha); if (i !== undefined) { ex.int += e.monto; ex.intBs += e.bs; } });
+                    this.mermasList.forEach(m => { const i = k(m.fecha); if (i !== undefined) ex.mer += m.costo; });
                     this.egresos.forEach(e => { const i = k(e.fecha); if (i !== undefined) { S.gastos[i] += e.monto; S.ganancia[i] -= e.monto; bsT.gastos += e.bs; } });
                     ['ventas', 'compras', 'gastos', 'ganancia'].forEach(key => { S[key] = S[key].map(v => this.r2(v)); });
                     const sum = a => this.r2(a.reduce((x, y) => x + y, 0));
-                    S.tot = { ventas: sum(S.ventas), compras: sum(S.compras), gastos: sum(S.gastos), ganancia: sum(S.ganancia), ventasBs: this.r2(bsT.ventas), comprasBs: this.r2(bsT.compras), gastosBs: this.r2(bsT.gastos), gananciaVentas: this.r2(ex.gv), gananciaVentasBs: this.r2(ex.gvBs), intereses: this.r2(ex.int), interesesBs: this.r2(ex.intBs) };
+                    S.tot = { ventas: sum(S.ventas), compras: sum(S.compras), gastos: sum(S.gastos), ganancia: sum(S.ganancia), ventasBs: this.r2(bsT.ventas), comprasBs: this.r2(bsT.compras), gastosBs: this.r2(bsT.gastos), gananciaVentas: this.r2(ex.gv), gananciaVentasBs: this.r2(ex.gvBs), intereses: this.r2(ex.int), interesesBs: this.r2(ex.intBs), mermas: this.r2(ex.mer) };
                     return S;
                 },
                 get ventasPeriodo() { return this.serieFinanzas.tot.ventas; },
@@ -4558,7 +4686,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                         document.addEventListener('touchend', (e) => {
                             if (!activo || window.innerWidth >= 1024) return;
                             activo = false;
-                            if (this.modal.abierto || this.modalDoc.abierto || this.datosEmpresaAbierto || this.factura.abierto || this.escaner.abierto || this.mp.abierto || this.gv.abierto) return;
+                            if (this.modal.abierto || this.modalDoc.abierto || this.datosEmpresaAbierto || this.factura.abierto || this.escaner.abierto || this.mp.abierto || this.gv.abierto || this.formAbierto.compra || this.formAbierto.venta || this.invAbierto) return;
                             const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
                             if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
                             if (!this.sidebarOpen && tx < 30 && dx > 0) this.sidebarOpen = true;
@@ -4784,6 +4912,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
             var URL = 'https://jtjpwwzrxinlxtiphhhw.supabase.co';
             var KEY = 'sb_publishable_TnMlNwMVgoHcty7f06_ibg_XKRwm2Md';
             var SK = 'miEmpresaSb', FLAG = 'miEmpresaSession';
+            function uf() { var s = leerSes(); return s && s.user_id ? '&user_id=eq.' + encodeURIComponent(s.user_id) : ''; }
             function leerSes() { try { var r = localStorage.getItem(SK) || sessionStorage.getItem(SK); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
             function guardarSes(s, recordar) {
                 try {
@@ -4855,15 +4984,15 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                 },
                 salir: limpiar,
                 leer: async function () {
-                    var r = await rest('/rest/v1/respaldos?select=datos,updated_at&limit=1', { method: 'GET' });
+                    var r = await rest('/rest/v1/respaldos?select=datos,updated_at&limit=1' + uf(), { method: 'GET' });
                     return (r && r[0]) || null;
                 },
-                leerMeta: async function () { var r = await rest('/rest/v1/respaldos?select=updated_at&limit=1', { method: 'GET' }); return (r && r[0]) || null; },
-                historial: function () { return rest('/rest/v1/respaldos_historial?select=id,created_at,resumen&order=created_at.desc&limit=20', { method: 'GET' }); },
-                version: async function (id) { var r = await rest('/rest/v1/respaldos_historial?select=datos&id=eq.' + encodeURIComponent(id), { method: 'GET' }); return r && r[0] ? r[0].datos : null; },
+                leerMeta: async function () { var r = await rest('/rest/v1/respaldos?select=updated_at&limit=1' + uf(), { method: 'GET' }); return (r && r[0]) || null; },
+                historial: function () { return rest('/rest/v1/respaldos_historial?select=id,created_at,resumen&order=created_at.desc&limit=20' + uf(), { method: 'GET' }); },
+                version: async function (id) { var r = await rest('/rest/v1/respaldos_historial?select=datos&id=eq.' + encodeURIComponent(id) + uf(), { method: 'GET' }); return r && r[0] ? r[0].datos : null; },
                 archivar: async function (datos, resumen) { var s = await token(); await rest('/rest/v1/respaldos_historial', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ user_id: s.user_id, datos: datos, resumen: resumen }) }); },
                 podar: async function (mantener) {
-                    var r = await rest('/rest/v1/respaldos_historial?select=id&order=created_at.desc&offset=' + mantener + '&limit=200', { method: 'GET' });
+                    var r = await rest('/rest/v1/respaldos_historial?select=id&order=created_at.desc&offset=' + mantener + '&limit=200' + uf(), { method: 'GET' });
                     if (r && r.length) await rest('/rest/v1/respaldos_historial?id=in.(' + r.map(function (x) { return x.id; }).join(',') + ')', { method: 'DELETE' });
                 },
                 guardar: async function (datos) {
