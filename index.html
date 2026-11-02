@@ -1228,7 +1228,7 @@
                                     <tr>
 <td class="py-2.5 px-3 text-slate-900 font-medium" x-text="nombreProveedor(r)"></td>
 <td class="py-2.5 px-3 text-slate-600" x-text="r.telefono || '—'"></td>
-<td class="py-2.5 px-3"><span class="badge" :class="r.tipoPago === 'Credito' ? 'badge-info' : ''" x-text="r.tipoPago === 'Credito' ? `Crédito · ${r.diasCredito} días` : 'Contado'"></span></td><td class="py-2.5 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirModal('proveedor', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('proveedor', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td></tr>
+<td class="py-2.5 px-3"><span class="badge" :class="r.tipoPago === 'Credito' ? 'badge-info' : ''" x-text="r.tipoPago === 'Credito' ? `Crédito · ${r.diasCredito} días` : 'Contado'"></span></td><td class="py-2.5 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirHistorialProveedor(r.id)" class="text-emerald-600 hover:underline cursor-pointer font-medium">Historial</button><button @click="abrirModal('proveedor', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('proveedor', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td></tr>
                                 </template>
                             </tbody>
                         </table>
@@ -1772,8 +1772,27 @@
                 <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_received"/></svg><span>Cobranzas</span></h3>
                 <div class="flex flex-wrap gap-2">
                     <button type="button" @click="abrirEscaner('cxc')" class="btn-ghost px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-photo_camera"/></svg> Escanear pago móvil</button>
+                    <button type="button" @click="abrirSaldoFavor()" class="btn-ghost px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-account_balance_wallet"/></svg> Saldos a favor</button>
                     <button type="button" @click="abrirForm('cobro')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nuevo cobro</button>
                 </div>
+            <div x-show="avisoCobro" x-cloak class="panel-inset px-4 py-3 text-xs flex items-start justify-between gap-3" role="status">
+                <span class="text-slate-900" x-text="avisoCobro"></span>
+                <button type="button" @click="avisoCobro = ''" class="text-slate-500 hover:underline cursor-pointer font-medium">Cerrar</button>
+            </div>
+            <div class="card-box p-5 space-y-3" x-show="clientesConSaldoFavor.length > 0" x-cloak>
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                    <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-account_balance_wallet"/></svg><span>Saldos a favor de clientes</span></h3>
+                    <span class="chip" x-text="'Total ' + usd(totalSaldosFavor)"></span>
+                </div>
+                <div class="divide-y divide-slate-100">
+                    <template x-for="c in clientesConSaldoFavor" :key="c.id">
+                        <div class="flex items-center justify-between gap-3 py-2 text-xs">
+                            <span class="font-medium text-slate-900" x-text="c.nombre"></span>
+                            <span class="flex items-center gap-4"><b style="color: var(--accent-text)" x-text="usd(c.saldo)"></b><button type="button" @click="abrirSaldoFavor(c.id)" class="text-blue-600 hover:underline cursor-pointer font-medium">Devolver / ver</button></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
             </div>
             <div class="card-box p-6 space-y-4">
                 <div class="flex items-center justify-between gap-3 flex-wrap">
@@ -2234,7 +2253,7 @@
 
     <!-- MODAL: NUEVO / EDITAR PEDIDO -->
     <div x-show="mp.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="cerrarPedido()" @keydown.escape.window="cerrarPedido()" role="dialog" aria-modal="true" aria-label="Pedido"
-         x-effect="document.body.style.overflow = (mp.abierto || gv.abierto || hc.abierto || Object.values(formAbierto).some(Boolean) || invAbierto) ? 'hidden' : ''">
+         x-effect="document.body.style.overflow = (mp.abierto || gv.abierto || hc.abierto || hp.abierto || sf.abierto || Object.values(formAbierto).some(Boolean) || invAbierto) ? 'hidden' : ''">
         <div class="card-box modal-card p-6 space-y-5">
             <div class="flex items-center justify-between gap-3">
                 <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-assignment"/></svg><span x-text="mp.id ? 'Editar pedido' : 'Nuevo pedido'"></span></h3>
@@ -2387,7 +2406,9 @@
                             </div>
                         </template>
                         <button type="button" @click="agregarLinea('venta')" class="btn-ghost w-full py-2 text-xs">+ Agregar otro producto</button>
-                    </div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.venta.metodo" @change="aplicarTasa(form.venta)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === form.venta.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.venta.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.venta.metodo, form.venta.fecha) > 0 ? fmtTasa(tasaOperacion(form.venta.metodo, form.venta.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(totalItems(form.venta), form.venta)"></p><div class="space-y-1"><label class="flabel">Días de crédito (0 = contado)</label><input type="number" x-model.number="form.venta.diasCredito" placeholder="0" min="0" :disabled="false" class="field w-full px-4 py-2.5 text-xs"></div><p x-show="false" class="text-[11px] text-slate-500 px-1">Esta venta ya tiene abonos registrados: sus días de crédito no pueden cambiarse.</p></div>
+                    </div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.venta.metodo" @change="aplicarTasa(form.venta)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosTx" :key="mt"><option :value="mt" :selected="mt === form.venta.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.venta.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.venta.metodo, form.venta.fecha) > 0 ? fmtTasa(tasaOperacion(form.venta.metodo, form.venta.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(totalItems(form.venta), form.venta)"></p><div class="space-y-1"><label class="flabel">Días de crédito (0 = contado)</label><input type="number" x-model.number="form.venta.diasCredito" placeholder="0" min="0" :disabled="false" class="field w-full px-4 py-2.5 text-xs"></div>
+                    <label x-show="Number(form.venta.diasCredito) > 0 && saldoFavorDe(form.venta.clienteId) > 0.004" class="lg-check text-xs"><input type="checkbox" x-model="form.venta.usarSaldoFavor"> <span x-text="'Descontar saldo a favor del cliente (' + usd(saldoFavorDe(form.venta.clienteId)) + ') de esta factura'"></span></label>
+                    <p x-show="Number(form.venta.diasCredito) <= 0 && saldoFavorDe(form.venta.clienteId) > 0.004" class="text-[11px] text-slate-500 px-1" x-text="'Este cliente tiene ' + usd(saldoFavorDe(form.venta.clienteId)) + ' a favor. Para descontarlo de esta factura, indique días de crédito (la factura entra en Cobranzas) o hágalo luego desde Cobranzas.'"></p><p x-show="false" class="text-[11px] text-slate-500 px-1">Esta venta ya tiene abonos registrados: sus días de crédito no pueden cambiarse.</p></div>
                     <p x-show="err.venta" x-text="err.venta" class="text-xs font-medium" style="color: var(--danger)"></p>
                     <button @click="crear('venta')" class="btn-primary w-full py-2.5 text-xs">Registrar Venta</button>
                 </div>
@@ -2488,7 +2509,7 @@
                     <div class="space-y-3">
                         <div class="space-y-1">
                             <label class="flabel">Cliente con deuda</label>
-                            <select x-model="carteraForm.cxc.contraId" @change="carteraForm.cxc.docId = ''; carteraForm.cxc.monto = ''; carteraForm.cxc.error = ''" class="field w-full px-3 py-2.5 text-xs">
+                            <select x-model="carteraForm.cxc.contraId" @change="carteraForm.cxc.docIds = []; carteraForm.cxc.monto = ''; carteraForm.cxc.error = ''" class="field w-full px-3 py-2.5 text-xs">
                                 <option value="">Seleccione...</option>
                                 <template x-for="g in cxcGrupos.filter(g => g.saldo > 0.004)" :key="g.id">
                                     <option :value="g.id" :selected="String(g.id) === String(carteraForm.cxc.contraId)" x-text="`${g.nombre} — $${g.saldo.toFixed(2)}`"></option>
@@ -2498,15 +2519,25 @@
 
                         <template x-if="carteraForm.cxc.contraId !== ''">
                             <div class="space-y-3">
-                                <label class="flabel">Factura a cobrar</label>
-                                <select x-model="carteraForm.cxc.docId" @change="carteraForm.cxc.monto = ''" class="field w-full px-3 py-2.5 text-xs">
-                                    <option value="">Aplicar a las facturas más antiguas primero</option>
+                                <div x-show="saldoFavorDe(carteraForm.cxc.contraId) > 0.004" class="panel-inset px-4 py-3 text-xs flex items-center justify-between gap-3">
+                                    <span class="text-slate-500">Saldo a favor del cliente <b class="text-slate-900" x-text="usd(saldoFavorDe(carteraForm.cxc.contraId))"></b></span>
+                                    <button type="button" @click="aplicarSaldoFavorCobro()" class="btn-ghost px-3 py-2 text-xs whitespace-nowrap">Aplicar a la selección</button>
+                                </div>
+                                <div class="flex items-center justify-between gap-2 flex-wrap">
+                                    <label class="flabel">Facturas a cobrar <span class="font-normal text-slate-500" x-text="'· ' + (carteraForm.cxc.docIds.length ? carteraForm.cxc.docIds.length + ' seleccionada(s)' : 'ninguna: se aplica a las más antiguas')"></span></label>
+                                    <span class="flex gap-3"><button type="button" @click="selTodas('cxc')" class="text-blue-600 hover:underline cursor-pointer text-[11px] font-medium">Todas</button><button type="button" @click="carteraForm.cxc.docIds = []; carteraForm.cxc.monto = ''" class="text-slate-500 hover:underline cursor-pointer text-[11px] font-medium">Ninguna</button></span>
+                                </div>
+                                <div class="space-y-1.5 max-h-56 overflow-y-auto">
                                     <template x-for="d in facturasPendientes('cxc', carteraForm.cxc.contraId)" :key="d.key">
-                                        <option :value="d.key" :selected="d.key === carteraForm.cxc.docId" x-text="`${d.etiqueta} · ${fmtFecha(d.fecha)} · ${d.productos} · saldo $${d.saldo.toFixed(2)}`"></option>
+                                        <label class="lg-check w-full rounded-xl px-3 py-2 text-xs" style="border: 1px solid var(--line-2)">
+                                            <input type="checkbox" :checked="carteraForm.cxc.docIds.includes(d.key)" @change="toggleFactura('cxc', d.key)">
+                                            <span class="flex-1 min-w-0"><b class="text-slate-900" x-text="d.etiqueta"></b> <span class="text-slate-500" x-text="fmtFecha(d.fecha) + ' · ' + d.productos"></span></span>
+                                            <b class="text-slate-900 whitespace-nowrap" x-text="'$' + d.saldo.toFixed(2)"></b>
+                                        </label>
                                     </template>
-                                </select>
+                                </div>
                                 <div class="panel-inset px-4 py-3 text-xs flex items-center justify-between gap-3">
-                                    <span class="text-slate-500">Saldo a cancelar</span>
+                                    <span class="text-slate-500">Total seleccionado</span>
                                     <span class="text-right">
                                         <b class="text-slate-900" x-text="`$${saldoSeleccion('cxc').toFixed(2)}`"></b>
                                         <span class="block text-[10px] text-slate-500" x-show="tasaRef > 0" x-text="'≈ Bs. ' + fmtBs(saldoSeleccion('cxc') * tasaRef)"></span>
@@ -2543,6 +2574,7 @@
                             </div>
                         </div>
                         <p class="text-[11px] text-slate-500 px-1" x-show="Number(carteraForm.cxc.monto) > 0" x-text="previewTexto(Number(carteraForm.cxc.monto), carteraForm.cxc).replace('Total:', 'Abono:')"></p>
+                        <p x-show="carteraForm.cxc.contraId !== '' && Number(carteraForm.cxc.monto) > saldoSeleccion('cxc') + 0.001" class="text-[11px] px-1" style="color: var(--warn)" x-text="'El excedente de ' + usd(Number(carteraForm.cxc.monto) - saldoSeleccion('cxc')) + ' quedará como saldo a favor del cliente (en dólares).'"></p>
                         <p x-show="carteraForm.cxc.error" x-text="carteraForm.cxc.error" class="text-xs font-medium" style="color: var(--danger)"></p>
                         <button @click="registrarAbono('cxc')" class="btn-primary w-full py-2.5 text-xs">Registrar cobro</button>
                     </div>
@@ -2571,7 +2603,7 @@
                     <div class="space-y-3">
                         <div class="space-y-1">
                             <label class="flabel">Proveedor con deuda</label>
-                            <select x-model="carteraForm.cxp.contraId" @change="carteraForm.cxp.docId = ''; carteraForm.cxp.monto = ''; carteraForm.cxp.error = ''" class="field w-full px-3 py-2.5 text-xs">
+                            <select x-model="carteraForm.cxp.contraId" @change="carteraForm.cxp.docIds = []; carteraForm.cxp.monto = ''; carteraForm.cxp.error = ''" class="field w-full px-3 py-2.5 text-xs">
                                 <option value="">Seleccione...</option>
                                 <template x-for="g in cxpGrupos.filter(g => g.saldo > 0.004)" :key="g.id">
                                     <option :value="g.id" :selected="String(g.id) === String(carteraForm.cxp.contraId)" x-text="`${g.nombre} — $${g.saldo.toFixed(2)}`"></option>
@@ -2581,15 +2613,21 @@
 
                         <template x-if="carteraForm.cxp.contraId !== ''">
                             <div class="space-y-3">
-                                <label class="flabel">Factura / compra a pagar</label>
-                                <select x-model="carteraForm.cxp.docId" @change="carteraForm.cxp.monto = ''" class="field w-full px-3 py-2.5 text-xs">
-                                    <option value="">Aplicar a las facturas más antiguas primero</option>
+                                <div class="flex items-center justify-between gap-2 flex-wrap">
+                                    <label class="flabel">Facturas / compras a pagar <span class="font-normal text-slate-500" x-text="'· ' + (carteraForm.cxp.docIds.length ? carteraForm.cxp.docIds.length + ' seleccionada(s)' : 'ninguna: se aplica a las más antiguas')"></span></label>
+                                    <span class="flex gap-3"><button type="button" @click="selTodas('cxp')" class="text-blue-600 hover:underline cursor-pointer text-[11px] font-medium">Todas</button><button type="button" @click="carteraForm.cxp.docIds = []; carteraForm.cxp.monto = ''" class="text-slate-500 hover:underline cursor-pointer text-[11px] font-medium">Ninguna</button></span>
+                                </div>
+                                <div class="space-y-1.5 max-h-56 overflow-y-auto">
                                     <template x-for="d in facturasPendientes('cxp', carteraForm.cxp.contraId)" :key="d.key">
-                                        <option :value="d.key" :selected="d.key === carteraForm.cxp.docId" x-text="`${d.etiqueta} · ${fmtFecha(d.fecha)} · ${d.productos} · saldo $${d.saldo.toFixed(2)}`"></option>
+                                        <label class="lg-check w-full rounded-xl px-3 py-2 text-xs" style="border: 1px solid var(--line-2)">
+                                            <input type="checkbox" :checked="carteraForm.cxp.docIds.includes(d.key)" @change="toggleFactura('cxp', d.key)">
+                                            <span class="flex-1 min-w-0"><b class="text-slate-900" x-text="d.etiqueta"></b> <span class="text-slate-500" x-text="fmtFecha(d.fecha) + ' · ' + d.productos"></span></span>
+                                            <b class="text-slate-900 whitespace-nowrap" x-text="'$' + d.saldo.toFixed(2)"></b>
+                                        </label>
                                     </template>
-                                </select>
+                                </div>
                                 <div class="panel-inset px-4 py-3 text-xs flex items-center justify-between gap-3">
-                                    <span class="text-slate-500">Saldo a cancelar</span>
+                                    <span class="text-slate-500">Total seleccionado</span>
                                     <span class="text-right">
                                         <b class="text-slate-900" x-text="`$${saldoSeleccion('cxp').toFixed(2)}`"></b>
                                         <span class="block text-[10px] text-slate-500" x-show="tasaRef > 0" x-text="'≈ Bs. ' + fmtBs(saldoSeleccion('cxp') * tasaRef)"></span>
@@ -2692,6 +2730,7 @@
                         <div class="panel-inset px-4 py-3"><p class="stat-label">Deuda actual</p><p class="font-display font-extrabold text-lg" :style="histCliente.deuda > 0.004 ? 'color: var(--warn)' : ''" x-text="usd(histCliente.deuda)"></p></div>
                         <div class="panel-inset px-4 py-3"><p class="stat-label">Vencido</p><p class="font-display font-extrabold text-lg" :style="histCliente.vencido > 0.004 ? 'color: var(--danger)' : ''" x-text="usd(histCliente.vencido)"></p></div>
                         <div class="panel-inset px-4 py-3"><p class="stat-label">Ganancia generada</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(histCliente.t.ganancia)"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Saldo a favor</p><p class="font-display font-extrabold text-lg" :style="saldoFavorDe(histCliente.c.id) > 0.004 ? 'color: var(--accent-text)' : ''" x-text="usd(saldoFavorDe(histCliente.c.id))"></p><button type="button" @click="hc.abierto = false; abrirSaldoFavor(histCliente.c.id)" class="text-[10px] text-blue-600 hover:underline cursor-pointer font-medium">Ver / devolver</button></div>
                         <div class="panel-inset px-4 py-3"><p class="stat-label">Pedidos pendientes</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="histCliente.pedidos.length"></p></div>
                     </div>
                     <p class="text-[10px] text-slate-500">"Deuda actual" y "Vencido" son el saldo de hoy, sin importar el rango de fechas elegido.</p>
@@ -2766,6 +2805,151 @@
                                 </div>
                             </div>
                         </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- MODAL: HISTORIAL DEL PROVEEDOR -->
+    <div x-show="hp.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="hp.abierto = false" @keydown.escape.window="hp.abierto = false" role="dialog" aria-modal="true" aria-label="Historial del proveedor">
+        <div class="card-box modal-card p-6 space-y-5" style="max-width:60rem">
+            <template x-if="histProv">
+                <div class="space-y-5">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 space-y-1">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Historial del proveedor</p>
+                            <h3 class="font-display font-extrabold text-xl text-slate-900 truncate" x-text="nombreProveedor(histProv.c)"></h3>
+                            <p class="text-xs text-slate-500" x-text="[histProv.c.telefono ? 'Tel.: ' + histProv.c.telefono : '', histProv.c.tipoPago === 'Credito' ? 'Crédito habitual: ' + histProv.c.diasCredito + ' días' : 'Pago de contado'].filter(Boolean).join(' · ')"></p>
+                        </div>
+                        <button @click="hp.abierto = false" aria-label="Cerrar" class="btn-circle w-9! h-9! shrink-0"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1"><label class="flabel">Desde</label><input type="date" x-model="hp.desde" class="field w-full px-4 py-2 text-xs"></div>
+                        <div class="space-y-1"><label class="flabel">Hasta</label><input type="date" x-model="hp.hasta" class="field w-full px-4 py-2 text-xs"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Facturas</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="histProv.t.docs"></p><p class="text-[10px] text-slate-500" x-text="histProv.t.primera ? 'Desde ' + fmtFecha(histProv.t.primera) : 'Sin compras'"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Total comprado</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(histProv.t.total)"></p><p class="text-[10px] text-slate-500" x-text="'Promedio ' + usd(histProv.t.promedio) + ' por factura'"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Kilos comprados</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="fmtKg(histProv.t.kg) + ' kg'"></p><p class="text-[10px] text-slate-500" x-text="histProv.t.ultima ? 'Última: ' + fmtFecha(histProv.t.ultima) : ''"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Pagado</p><p class="font-display font-extrabold text-lg" style="color: var(--accent-text)" x-text="usd(histProv.t.pagado)"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Por pagar</p><p class="font-display font-extrabold text-lg" :style="histProv.deuda > 0.004 ? 'color: var(--warn)' : ''" x-text="usd(histProv.deuda)"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Vencido</p><p class="font-display font-extrabold text-lg" :style="histProv.vencido > 0.004 ? 'color: var(--danger)' : ''" x-text="usd(histProv.vencido)"></p></div>
+                    </div>
+                    <p class="text-[10px] text-slate-500">"Por pagar" y "Vencido" son el saldo de hoy, sin importar el rango de fechas elegido.</p>
+
+                    <div class="flex flex-wrap gap-3 no-print" x-show="histProv.deuda > 0.004">
+                        <button type="button" @click="hp.abierto = false; irA('pagos')" class="text-emerald-600 hover:underline cursor-pointer font-medium text-xs">Ir a Pagos</button>
+                    </div>
+
+                    <div class="space-y-2" x-show="histProv.productos.length > 0">
+                        <p class="flabel">Qué se le compra</p>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2 px-3">Producto</th><th class="py-2 px-3">Veces</th><th class="py-2 px-3">Kilos</th><th class="py-2 px-3">Precio prom. $/kg</th><th class="py-2 px-3">Total $</th></tr></thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    <template x-for="p in histProv.productos" :key="p.id">
+                                        <tr>
+                                            <td class="py-2 px-3 text-slate-900 font-medium" x-text="p.nombre"></td>
+                                            <td class="py-2 px-3 text-slate-600" x-text="p.veces"></td>
+                                            <td class="py-2 px-3 font-semibold text-slate-900" x-text="fmtKg(p.kg) + ' kg'"></td>
+                                            <td class="py-2 px-3 text-slate-600" x-text="usd(p.precioProm)"></td>
+                                            <td class="py-2 px-3 font-semibold text-slate-900" x-text="usd(p.total)"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <p class="flabel">Compras</p>
+                        <template x-if="histProv.docs.length === 0"><p class="text-xs text-slate-400 italic py-3">No hay compras a este proveedor en el período.</p></template>
+                        <template x-for="d in histProv.docs" :key="d.key">
+                            <div class="panel-inset overflow-hidden">
+                                <button type="button" @click="hp.abierta[d.key] = !hp.abierta[d.key]" :aria-expanded="!!hp.abierta[d.key]" class="w-full flex items-center gap-3 p-4 text-left cursor-pointer">
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block text-sm font-semibold text-slate-900" x-text="'Compra del ' + fmtFecha(d.fecha)"></span>
+                                        <span class="block text-[11px] text-slate-500" x-text="fmtFecha(d.fecha) + ' · ' + d.nProductos + (d.nProductos === 1 ? ' producto' : ' productos') + ' · ' + fmtKg(d.totalKg) + ' kg · ' + (d.credito ? 'Crédito ' + d.diasCredito + ' d' : 'Contado')"></span>
+                                    </span>
+                                    <span class="text-right"><span class="block font-display font-extrabold text-base text-slate-900" x-text="usd(d.total)"></span><span class="block text-[10px] text-slate-500" x-show="d.credito && d.saldo > 0.004" x-text="'Saldo ' + usd(d.saldo)"></span></span>
+                                    <span class="badge" :class="badgeEstado(d.estado)" x-text="d.estado"></span>
+                                    <svg class="ic text-2xl text-slate-500 chev" :class="hp.abierta[d.key] ? 'rotate-180' : ''" aria-hidden="true"><use href="#ic-expand_more"/></svg>
+                                </button>
+                                <div x-show="hp.abierta[d.key]" x-transition class="border-t border-slate-200 p-4 space-y-3">
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left border-collapse">
+                                            <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2 px-3">Producto</th><th class="py-2 px-3">Kg</th><th class="py-2 px-3">Precio $/kg</th><th class="py-2 px-3">Subtotal $</th></tr></thead>
+                                            <tbody class="divide-y divide-slate-100 text-xs">
+                                                <template x-for="l in d.lineas" :key="l.id">
+                                                    <tr><td class="py-2 px-3 text-slate-900 font-medium" x-text="l.producto"></td><td class="py-2 px-3 text-slate-600" x-text="fmtKg(l.cantidadKg)"></td><td class="py-2 px-3 text-slate-600" x-text="usd(l.precioKg)"></td><td class="py-2 px-3 font-semibold text-slate-900" x-text="usd(l.total)"></td></tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500" x-text="'Método: ' + d.metodo + (d.credito && d.vence ? ' · Vence ' + fmtFecha(d.vence) : '') + (d.credito ? ' · Abonado ' + usd(d.abonado) : '')"></p>
+                                    <div x-show="d.abonos.length > 0" class="divide-y divide-slate-100">
+                                        <template x-for="a in d.abonos" :key="a.id">
+                                            <div class="flex flex-wrap gap-x-4 py-1.5 text-xs"><span class="text-slate-500 w-20" x-text="fmtFecha(a.fecha)"></span><b class="text-emerald-600" x-text="usd(a.monto)"></b><span class="text-slate-600" x-text="(a.metodo || '') + (a.referencia ? ' · Ref. ' + a.referencia : '')"></span></div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+
+    <!-- MODAL: SALDO A FAVOR DE CLIENTES -->
+    <div x-show="sf.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="sf.abierto = false" @keydown.escape.window="sf.abierto = false" role="dialog" aria-modal="true" aria-label="Saldo a favor">
+        <div class="card-box modal-card p-6 space-y-5" style="max-width:42rem">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-account_balance_wallet"/></svg><span>Saldo a favor de clientes</span></h3>
+                <button @click="sf.abierto = false" aria-label="Cerrar" class="btn-circle w-9! h-9!"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+            </div>
+            <p class="text-[11px] text-slate-500">Dinero que un cliente pagó de más (o por adelantado). Se lleva siempre en dólares: se puede descontar de una nueva factura a crédito desde Cobranzas o devolver al cliente. No afecta las ganancias.</p>
+            <div class="space-y-1"><label class="flabel">Cliente</label>
+                <select x-model="sf.clienteId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione...</option>
+                    <template x-for="c in clientes" :key="c.id"><option :value="String(c.id)" :selected="String(c.id) === String(sf.clienteId)" x-text="nombreCliente(c) + (saldoFavorDe(c.id) > 0.004 ? ' — a favor ' + usd(saldoFavorDe(c.id)) : '')"></option></template></select></div>
+            <template x-if="sf.clienteId !== ''">
+                <div class="space-y-4">
+                    <div class="panel-inset px-4 py-3 flex items-center justify-between"><span class="text-xs text-slate-500">Saldo a favor disponible</span><b class="font-display font-extrabold text-xl" :style="saldoFavorDe(sf.clienteId) > 0.004 ? 'color: var(--accent-text)' : ''" x-text="usd(saldoFavorDe(sf.clienteId))"></b></div>
+                    <div class="rounded-2xl p-4 space-y-3" style="border: 1px solid var(--line-2); background: var(--field-bg)">
+                        <div class="seg" role="group">
+                            <button type="button" @click="sf.modo = 'devolucion'; sf.error = ''" :aria-pressed="sf.modo === 'devolucion'">Registrar devolución</button>
+                            <button type="button" @click="sf.modo = 'ingreso'; sf.error = ''" :aria-pressed="sf.modo === 'ingreso'">Registrar anticipo</button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1"><label class="flabel">Monto ($)</label><input type="number" min="0" step="0.01" x-model="sf.monto" placeholder="0.00" class="field w-full px-4 py-2.5 text-xs"></div>
+                            <div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="sf.fecha" class="field w-full px-4 py-2 text-xs"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1"><label class="flabel" x-text="sf.modo === 'devolucion' ? 'Devuelto por' : 'Recibido por'"></label>
+                                <select x-model="sf.metodo" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosPago" :key="mt"><option :value="mt" :selected="mt === sf.metodo" x-text="mt"></option></template></select></div>
+                            <div class="space-y-1"><label class="flabel">Referencia (opcional)</label><input type="text" x-model="sf.referencia" class="field w-full px-4 py-2.5 text-xs"></div>
+                        </div>
+                        <div class="space-y-1"><label class="flabel">Nota (opcional)</label><input type="text" x-model="sf.nota" class="field w-full px-4 py-2.5 text-xs"></div>
+                        <p x-show="sf.error" x-text="sf.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+                        <button type="button" @click="registrarMovimientoSF()" class="btn-primary w-full py-2.5 text-xs" x-text="sf.modo === 'devolucion' ? 'Registrar devolución al cliente' : 'Registrar anticipo'"></button>
+                    </div>
+                    <div class="space-y-2">
+                        <p class="flabel">Movimientos</p>
+                        <template x-if="movimientosSF(sf.clienteId).length === 0"><p class="text-xs text-slate-400 italic">Sin movimientos.</p></template>
+                        <div class="divide-y divide-slate-100">
+                            <template x-for="m in movimientosSF(sf.clienteId)" :key="m.id">
+                                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 text-xs">
+                                    <span class="text-slate-500 w-20" x-text="fmtFecha(m.fecha)"></span>
+                                    <b class="w-24" :style="m.tipo === 'ingreso' ? 'color: var(--accent-text)' : 'color: var(--warn)'" x-text="(m.tipo === 'ingreso' ? '+' : '−') + usd(m.monto)"></b>
+                                    <span class="text-slate-600 flex-1 min-w-[10rem]" x-text="etiquetaSF(m) + (m.metodo && m.tipo !== 'aplicacion' ? ' · ' + m.metodo : '') + (m.referencia ? ' · Ref. ' + m.referencia : '') + (m.nota ? ' · ' + m.nota : '')"></span>
+                                    <button x-show="m.tipo !== 'aplicacion' && !m.pagoId" @click="eliminarMovimientoSF(m.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
             </template>
@@ -2868,7 +3052,7 @@
                     cliente: { nombre: '', negocio: '', rif: '', direccion: '', telefono: '' },
                     producto: { nombre: '', codigo: '', porPeine: false, unidad: 'Peine', pesoMin: 4.5, pesoMax: 6.5 },
                     compra: { fecha: '', proveedorId: '', items: [{ k: 0, productoId: '', precioKg: '', cantidadKg: '' }], metodo: 'BCV', tasa: '', tipoPago: 'Contado', diasCredito: '' },
-                    venta: { fecha: '', clienteId: '', items: [{ k: 0, productoId: '', precioKg: '', cantidadKg: '' }], metodo: 'BCV', tasa: '', diasCredito: '' },
+                    venta: { fecha: '', clienteId: '', items: [{ k: 0, productoId: '', precioKg: '', cantidadKg: '' }], metodo: 'BCV', tasa: '', diasCredito: '', usarSaldoFavor: false },
                     gasto: { titulo: '', monto: '', fecha: '', categoria: '', metodo: 'Efectivo', tasa: '' },
                     prestamo: { prestamista: '', monto: '', interes: '', fecha: '', fechaFin: '', periodicidad: 'Mensual' }
                 },
@@ -2888,7 +3072,7 @@
                         cliente: { nombre: '', negocio: '', rif: '', direccion: '', telefono: '' },
                         producto: { nombre: '', codigo: '', porPeine: false, unidad: 'Peine', pesoMin: 4.5, pesoMax: 6.5 },
                         compra: { fecha: h, proveedorId: '', items: [this.itemVacio()], metodo: 'BCV', tasa: '', tipoPago: 'Contado', diasCredito: '' },
-                        venta: { fecha: h, clienteId: '', items: [this.itemVacio()], metodo: 'BCV', tasa: '', diasCredito: '' },
+                        venta: { fecha: h, clienteId: '', items: [this.itemVacio()], metodo: 'BCV', tasa: '', diasCredito: '', usarSaldoFavor: false },
                         gasto: { titulo: '', monto: '', fecha: h, categoria: '', metodo: 'Efectivo', tasa: '' },
                         prestamo: { prestamista: '', monto: '', interes: '', fecha: h, fechaFin: '', periodicidad: 'Mensual' }
                     };
@@ -3076,6 +3260,11 @@
                             this[LISTAS[tipo]].push({ id: this.nuevoId(), docId, ...this.normalizarEntidad(tipo, linea, null), abonos: [] });
                         });
                         if (tipo === 'venta') this.asegurarNumeros();
+                        if (tipo === 'venta' && d.usarSaldoFavor && Number(d.diasCredito) > 0) {
+                            const ult = this.ventas[this.ventas.length - 1];
+                            const ap = this.aplicarCredito(ult.clienteId, [this.claveDoc(ult)], d.fecha);
+                            if (ap > 0.004) this.avisoCobro = `Se descontaron ${this.usd(ap)} de saldo a favor en esta factura. Saldo a favor restante: ${this.usd(this.saldoFavorDe(ult.clienteId))}.`;
+                        }
                     } else {
                         const item = { id: this.nuevoId(), ...this.normalizarEntidad(tipo, d, null) };
                         this[LISTAS[tipo]].push(item);
@@ -3213,7 +3402,7 @@
                 usosDe(tipo, id) {
                     const n = (arr, k) => arr.filter(x => x[k] === id).length;
                     if (tipo === 'proveedor') return n(this.compras, 'proveedorId');
-                    if (tipo === 'cliente') return n(this.ventas, 'clienteId') + n(this.pedidos, 'clienteId');
+                    if (tipo === 'cliente') return n(this.ventas, 'clienteId') + n(this.pedidos, 'clienteId') + n(this.saldosFavor, 'clienteId');
                     if (tipo === 'producto') return n(this.compras, 'productoId') + n(this.ventas, 'productoId') + this.pedidos.filter(p => (p.items || []).some(i => i.productoId === id)).length + this.mermas.filter(m => m.productoId === id).length;
                     return 0;
                 },
@@ -3287,7 +3476,7 @@
                     return {
                         version: 3,
                         proveedores: this.proveedores, clientes: this.clientes, productos: this.productos,
-                        compras: this.compras, ventas: this.ventas, gastos: this.gastos, prestamos: this.prestamos, pedidos: this.pedidos, mermas: this.mermas,
+                        compras: this.compras, ventas: this.ventas, gastos: this.gastos, prestamos: this.prestamos, pedidos: this.pedidos, mermas: this.mermas, saldosFavor: this.saldosFavor,
                         tasas: { usd: this.tasas.usd, eur: this.tasas.eur, usdt: this.tasas.usdt, refer: this.tasas.refer },
                         historialTasas: this.historialTasas,
                         empresa: this.empresa, papelera: this.papelera
@@ -3308,7 +3497,7 @@
                     if (p && p.version >= 3) {
                         return {
                             proveedores: p.proveedores || [], clientes: p.clientes || [], productos: p.productos || [],
-                            compras: p.compras || [], ventas: p.ventas || [], gastos: p.gastos || [], prestamos: p.prestamos || [], pedidos: p.pedidos || [], mermas: p.mermas || [], tasas: p.tasas, historialTasas: p.historialTasas || {}, empresa: p.empresa, papelera: p.papelera || []
+                            compras: p.compras || [], ventas: p.ventas || [], gastos: p.gastos || [], prestamos: p.prestamos || [], pedidos: p.pedidos || [], mermas: p.mermas || [], saldosFavor: p.saldosFavor || [], tasas: p.tasas, historialTasas: p.historialTasas || {}, empresa: p.empresa, papelera: p.papelera || []
                         };
                     }
                     const hoy = this.hoy();
@@ -3346,7 +3535,7 @@
                 aplicarDatos(parsed, guardar = true) {
                     const d = this.migrarDatos(parsed);
                     this.proveedores = d.proveedores; this.clientes = d.clientes; this.productos = d.productos;
-                    this.compras = d.compras; this.ventas = d.ventas; this.gastos = d.gastos; this.prestamos = d.prestamos; this.pedidos = d.pedidos || []; this.mermas = d.mermas || [];
+                    this.compras = d.compras; this.ventas = d.ventas; this.gastos = d.gastos; this.prestamos = d.prestamos; this.pedidos = d.pedidos || []; this.mermas = d.mermas || []; this.saldosFavor = d.saldosFavor || [];
                     this.historialTasas = { ...this.historialTasas, ...(d.historialTasas || {}) };
                     if (d.empresa) Object.assign(this.empresa, d.empresa);
                     this.papelera = d.papelera || [];
@@ -3466,6 +3655,121 @@
                         input.value = '';
                     };
                     reader.readAsText(file, "UTF-8");
+                },
+
+                // ===================== SALDO A FAVOR DE CLIENTES (en dólares) =====================
+                saldosFavor: [],   // { id, clienteId, fecha, tipo: 'ingreso'|'devolucion'|'aplicacion', monto (USD), metodo, referencia, nota, pagoId? }
+                avisoCobro: '',
+                _ultimoExceso: 0,
+                sf: { abierto: false, clienteId: '', modo: 'devolucion', monto: '', fecha: '', metodo: 'Efectivo', referencia: '', nota: '', error: '' },
+                saldoFavorDe(clienteId) {
+                    if (clienteId === '' || clienteId == null) return 0;
+                    return this.r2(this.saldosFavor.filter(m => String(m.clienteId) === String(clienteId)).reduce((a, m) => a + (m.tipo === 'ingreso' ? 1 : -1) * Number(m.monto || 0), 0));
+                },
+                get clientesConSaldoFavor() {
+                    const ids = [...new Set(this.saldosFavor.map(m => String(m.clienteId)))];
+                    return ids.map(id => ({ id, nombre: (() => { const c = this.clientes.find(x => String(x.id) === id); return c ? this.nombreCliente(c) : 'Cliente eliminado'; })(), saldo: this.saldoFavorDe(id) }))
+                        .filter(x => x.saldo > 0.004).sort((a, b) => b.saldo - a.saldo);
+                },
+                get totalSaldosFavor() { return this.r2(this.clientesConSaldoFavor.reduce((a, c) => a + c.saldo, 0)); },
+                movimientosSF(clienteId) {
+                    return this.saldosFavor.filter(m => String(m.clienteId) === String(clienteId)).slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || String(b.id).localeCompare(String(a.id)));
+                },
+                etiquetaSF(m) { return m.tipo === 'ingreso' ? (m.pagoId ? 'Excedente de pago' : 'Anticipo') : m.tipo === 'devolucion' ? 'Devolución' : 'Aplicado a factura'; },
+                abrirSaldoFavor(clienteId = '') {
+                    this.sf = { abierto: true, clienteId: clienteId === '' ? '' : String(clienteId), modo: 'devolucion', monto: '', fecha: this.hoy(), metodo: 'Efectivo', referencia: '', nota: '', error: '' };
+                },
+                registrarMovimientoSF() {
+                    const s = this.sf; s.error = '';
+                    if (s.clienteId === '') { s.error = 'Seleccione un cliente.'; return; }
+                    const monto = this.r2(Number(s.monto));
+                    if (!(monto > 0)) { s.error = 'Ingrese un monto en dólares mayor a cero.'; return; }
+                    if (!s.fecha) { s.error = 'Indique la fecha.'; return; }
+                    if (s.modo === 'devolucion' && monto > this.saldoFavorDe(s.clienteId) + 0.001) { s.error = `La devolución excede el saldo a favor (${this.usd(this.saldoFavorDe(s.clienteId))}).`; return; }
+                    this.saldosFavor.push({ id: this.nuevoId(), clienteId: Number(s.clienteId), fecha: s.fecha, tipo: s.modo === 'devolucion' ? 'devolucion' : 'ingreso', monto, metodo: s.metodo, referencia: String(s.referencia || '').trim(), nota: String(s.nota || '').trim() });
+                    s.monto = ''; s.referencia = ''; s.nota = '';
+                },
+                eliminarMovimientoSF(id) {
+                    const m = this.saldosFavor.find(x => x.id === id);
+                    if (!m || m.tipo === 'aplicacion' || m.pagoId) return;
+                    if (m.tipo === 'ingreso' && this.saldoFavorDe(m.clienteId) - Number(m.monto) < -0.004) { alert('No se puede eliminar: parte de este saldo ya se aplicó a facturas o se devolvió.'); return; }
+                    if (!confirm('¿Eliminar este movimiento del saldo a favor?')) return;
+                    this.saldosFavor = this.saldosFavor.filter(x => x.id !== id);
+                },
+                // Aplica saldo a favor como abono a facturas a crédito pendientes (más antiguas primero). Devuelve lo aplicado.
+                aplicarCredito(clienteId, docKeys, fecha, tope = Infinity) {
+                    let restante = Math.min(this.saldoFavorDe(clienteId), tope);
+                    if (restante <= 0.004) return 0;
+                    let pend = this.docsPendientes('cxc', clienteId);
+                    if (docKeys && docKeys.length) pend = pend.filter(d => docKeys.includes(d.docKey));
+                    const sfId = this.nuevoId(), lote = Date.now() * 100, nros = new Set();
+                    let total = 0, n = 0;
+                    for (const d of pend) {
+                        if (restante <= 0.004) break;
+                        const aplicar = this.r2(Math.min(restante, d.saldo));
+                        const origen = this.ventas.find(x => x.id === d.id);
+                        if (!origen || aplicar <= 0) continue;
+                        if (!origen.abonos) origen.abonos = [];
+                        origen.abonos.push({ id: lote + n, pagoId: lote, sfId, fecha, monto: aplicar, referencia: '', metodo: 'Saldo a favor', tasa: 0 });
+                        restante = this.r2(restante - aplicar); total += aplicar; n++;
+                        nros.add(d.nro ? String(d.nro).padStart(6, '0') : '—');
+                    }
+                    total = this.r2(total);
+                    if (total > 0.004) this.saldosFavor.push({ id: sfId, clienteId: Number(clienteId), fecha, tipo: 'aplicacion', monto: total, metodo: 'Saldo a favor', referencia: '', nota: 'Factura(s) N° ' + [...nros].join(', ') });
+                    return total;
+                },
+                aplicarSaldoFavorCobro() {
+                    const f = this.carteraForm.cxc; f.error = '';
+                    if (f.contraId === '') return;
+                    const sel = this.saldoSeleccion('cxc');
+                    if (!(sel > 0.004)) { f.error = 'No hay deuda en la selección.'; return; }
+                    const disp = this.saldoFavorDe(f.contraId);
+                    const monto = Math.min(disp, sel);
+                    if (!confirm(`Se aplicarán ${this.usd(monto)} del saldo a favor del cliente a las facturas seleccionadas. ¿Continuar?`)) return;
+                    const ap = this.aplicarCredito(f.contraId, f.docIds, f.fecha || this.hoy());
+                    this.avisoCobro = ap > 0 ? `Se aplicaron ${this.usd(ap)} de saldo a favor. Saldo a favor restante: ${this.usd(this.saldoFavorDe(f.contraId))}.` : '';
+                    f.monto = '';
+                    if (!this.docsPendientes('cxc', f.contraId).length) { f.contraId = ''; this.formAbierto.cobro = false; }
+                },
+                toggleFactura(kind, key) {
+                    const f = this.carteraForm[kind], i = f.docIds.indexOf(key);
+                    if (i >= 0) f.docIds.splice(i, 1); else f.docIds.push(key);
+                    f.monto = ''; f.error = '';
+                },
+                selTodas(kind) { const f = this.carteraForm[kind]; f.docIds = this.facturasPendientes(kind, f.contraId).map(d => d.key); f.monto = ''; },
+
+                // ===================== HISTORIAL DE PROVEEDOR =====================
+                hp: { abierto: false, id: null, desde: '', hasta: '', abierta: {} },
+                abrirHistorialProveedor(id) { this.hp = { abierto: true, id, desde: '', hasta: '', abierta: {} }; },
+                get histProv() {
+                    if (!this.hp.abierto) return null;
+                    const c = this.proveedores.find(x => x.id === this.hp.id);
+                    if (!c) return null;
+                    const hoy = this.hoy(), { desde, hasta } = this.hp;
+                    const docs = this.agruparDocs(this.comprasList.filter(v => v.proveedorId === c.id && (!desde || (v.fecha || '') >= desde) && (!hasta || (v.fecha || '') <= hasta)), 'compra')
+                        .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.id - a.id)
+                        .map(d => {
+                            const abonos = d.lineas.flatMap(l => l.abonos || []).slice().sort((a, b) => (a.fecha || '').localeCompare(b.fecha || '') || a.id - b.id);
+                            const estado = !d.credito ? 'Pagada' : d.saldo <= 0.004 ? 'Pagada' : (d.vence && d.vence < hoy) ? 'Vencida' : d.abonado > 0 ? 'Parcial' : 'Pendiente';
+                            return { ...d, abonos, estado, pagado: d.credito ? d.abonado : d.total };
+                        });
+                    const t = { docs: docs.length, total: 0, kg: 0, pagado: 0, primera: null, ultima: null };
+                    docs.forEach(d => {
+                        t.total += d.total; t.kg += d.totalKg; t.pagado += d.pagado;
+                        if (!t.primera || d.fecha < t.primera) t.primera = d.fecha;
+                        if (!t.ultima || d.fecha > t.ultima) t.ultima = d.fecha;
+                    });
+                    t.total = this.r2(t.total); t.kg = this.r2(t.kg); t.pagado = this.r2(t.pagado);
+                    t.promedio = docs.length ? this.r2(t.total / docs.length) : 0;
+                    const pm = {};
+                    docs.forEach(d => { const vistos = new Set(); d.lineas.forEach(l => {
+                        const p = pm[l.productoId] || (pm[l.productoId] = { id: l.productoId, nombre: l.producto, veces: 0, kg: 0, total: 0 });
+                        p.kg += Number(l.cantidadKg) || 0; p.total += l.total;
+                        if (!vistos.has(l.productoId)) { vistos.add(l.productoId); p.veces++; }
+                    }); });
+                    const productos = Object.values(pm).map(p => ({ ...p, kg: this.r2(p.kg), total: this.r2(p.total), precioProm: p.kg > 0 ? this.r2(p.total / p.kg) : 0 })).sort((a, b) => b.kg - a.kg);
+                    const g = this.cxpGrupos.find(x => String(x.id) === String(c.id));
+                    return { c, docs, t, productos, deuda: g ? g.saldo : 0, vencido: g ? g.vencido : 0 };
                 },
 
                 // ===================== HISTORIAL DE CLIENTE =====================
@@ -3963,8 +4267,8 @@
 
                 // ===================== CUENTAS POR COBRAR / PAGAR =====================
                 carteraForm: {
-                    cxc: { contraId: '', docId: '', monto: '', fecha: '', referencia: '', metodo: 'BCV', tasa: '', error: '' },
-                    cxp: { contraId: '', docId: '', monto: '', fecha: '', referencia: '', metodo: 'BCV', tasa: '', error: '' }
+                    cxc: { contraId: '', docIds: [], monto: '', fecha: '', referencia: '', metodo: 'BCV', tasa: '', error: '' },
+                    cxp: { contraId: '', docIds: [], monto: '', fecha: '', referencia: '', metodo: 'BCV', tasa: '', error: '' }
                 },
                 carteraAbierto: { cxc: {}, cxp: {} },
                 verSaldados: { cxc: false, cxp: false },
@@ -4056,13 +4360,13 @@
                 },
                 docsPendientes(kind, contraId) {
                     const docs = kind === 'cxc' ? this.cxcDocs : this.cxpDocs;
-                    return docs.filter(d => String(d.contraId) === String(contraId) && d.saldo > 0.004).sort((a, b) => a.id - b.id);
+                    return docs.filter(d => String(d.contraId) === String(contraId) && d.saldo > 0.004).sort((a, b) => (a.fecha || '').localeCompare(b.fecha || '') || a.id - b.id);
                 },
                 docsObjetivo(kind) {
                     const f = this.carteraForm[kind];
                     if (f.contraId === '') return [];
                     const pend = this.docsPendientes(kind, f.contraId);
-                    return f.docId === '' ? pend : pend.filter(d => d.docKey === f.docId);
+                    return f.docIds.length ? pend.filter(d => f.docIds.includes(d.docKey)) : pend;
                 },
                 saldoSeleccion(kind) { return this.r2(this.docsObjetivo(kind).reduce((acc, d) => acc + d.saldo, 0)); },
                 saldarTodo(kind) {
@@ -4083,12 +4387,19 @@
                     await this.asegurarTasasFecha(f.fecha);
                     const objetivo = this.docsObjetivo(kind);
                     const maximo = this.saldoSeleccion(kind);
-                    if (monto > maximo + 0.001) { f.error = `El monto excede el saldo pendiente ($${maximo.toFixed(2)}).`; return; }
+                    let exceso = 0;
+                    this._ultimoExceso = 0;
+                    if (monto > maximo + 0.001) {
+                        if (kind !== 'cxc') { f.error = `El monto excede el saldo pendiente ($${maximo.toFixed(2)}).`; return; }
+                        if (!(maximo > 0.004)) { f.error = 'No hay deuda pendiente en la selección.'; return; }
+                        exceso = this.r2(monto - maximo);
+                        if (!confirm(`El pago excede la deuda seleccionada por ${this.usd(exceso)}.\n\nEse excedente quedará como SALDO A FAVOR del cliente (en dólares) para devolverlo o descontarlo de una próxima factura.\n\n¿Continuar?`)) { f.error = 'Registro cancelado.'; return; }
+                    }
 
                     const origenes = kind === 'cxc' ? this.ventas : this.compras;
                     const tasa = Number(f.tasa) > 0 ? Number(f.tasa) : this.tasaPorMetodo(f.metodo, f.fecha);
                     const lote = Date.now() * 100;
-                    let restante = monto, n = 0;
+                    let restante = this.r2(monto - exceso), n = 0;
                     for (const d of objetivo) {
                         if (restante <= 0.004) break;
                         const aplicar = this.r2(Math.min(restante, d.saldo));
@@ -4100,16 +4411,42 @@
                         restante = this.r2(restante - aplicar);
                         n++;
                     }
+                    if (exceso > 0.004) this.saldosFavor.push({ id: this.nuevoId(), clienteId: Number(f.contraId), fecha: f.fecha, tipo: 'ingreso', monto: exceso, metodo: f.metodo, tasa, referencia: (f.referencia || '').trim(), nota: 'Excedente de pago', pagoId: lote });
+                    this._ultimoExceso = exceso;
+                    if (kind === 'cxc') this.avisoCobro = exceso > 0.004 ? `Cobro registrado. Saldo a favor generado para el cliente: ${this.usd(exceso)} (total a favor: ${this.usd(this.saldoFavorDe(f.contraId))}).` : '';
                     this.carteraAbierto[kind][f.contraId] = true;
                     const quedan = this.docsPendientes(kind, f.contraId).length > 0;
                     this.formAbierto[kind === 'cxc' ? 'cobro' : 'pago'] = false;
-                    f.docId = ''; f.monto = ''; f.referencia = ''; f.tasa = ''; f.fecha = this.hoy();
+                    f.docIds = []; f.monto = ''; f.referencia = ''; f.tasa = ''; f.fecha = this.hoy();
                     if (!quedan) f.contraId = '';
                 },
                 eliminarAbono(kind, docId, abonoId) {
-                    if (!confirm('¿Eliminar este abono? El saldo de la deuda volverá a aumentar.')) return;
                     const origen = (kind === 'cxc' ? this.ventas : this.compras).find(x => x.id === docId);
-                    if (origen) origen.abonos = (origen.abonos || []).filter(a => a.id !== abonoId);
+                    const ab = origen && (origen.abonos || []).find(a => a.id === abonoId);
+                    if (!ab) return;
+                    let msg = '¿Eliminar este abono? El saldo de la deuda volverá a aumentar.';
+                    let ingresos = [];
+                    if (kind === 'cxc') {
+                        if (ab.sfId) msg += '\nEl monto volverá al saldo a favor del cliente.';
+                        else if (ab.pagoId) {
+                            const otros = this.ventas.some(v => (v.abonos || []).some(a => a.pagoId === ab.pagoId && a.id !== abonoId));
+                            ingresos = otros ? [] : this.saldosFavor.filter(m => m.pagoId === ab.pagoId);
+                            if (ingresos.length) {
+                                const quitar = ingresos.reduce((s, m) => s + Number(m.monto), 0);
+                                if (this.saldoFavorDe(origen.clienteId) - quitar < -0.004) { alert('No se puede eliminar: el saldo a favor que generó este pago ya se aplicó a facturas o se devolvió. Elimine primero esos movimientos.'); return; }
+                                msg += '\nEste pago generó saldo a favor: también se eliminará.';
+                            }
+                        }
+                    }
+                    if (!confirm(msg)) return;
+                    if (kind === 'cxc') {
+                        if (ab.sfId) {
+                            const m = this.saldosFavor.find(x => x.id === ab.sfId);
+                            if (m) { m.monto = this.r2(Number(m.monto) - Number(ab.monto)); if (m.monto <= 0.004) this.saldosFavor = this.saldosFavor.filter(x => x.id !== m.id); }
+                        }
+                        if (ingresos.length) this.saldosFavor = this.saldosFavor.filter(m => !ingresos.includes(m));
+                    }
+                    origen.abonos = (origen.abonos || []).filter(a => a.id !== abonoId);
                 },
 
                 // ===================== TASAS DE CAMBIO =====================
@@ -4660,14 +4997,14 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                     if (!e.f.fecha) { e.error = 'Indique la fecha del pago.'; return; }
                     const g = this.escGrupo, antes = g ? g.saldo : 0, nombre = g ? g.nombre : '';
                     const f = this.carteraForm[e.kind];
-                    Object.assign(f, { contraId: e.clienteId, docId: '', monto: usd, fecha: e.f.fecha, referencia: e.f.referencia, metodo: e.metodo, tasa: Number(e.tasa) > 0 ? Number(e.tasa) : '', error: '',
+                    Object.assign(f, { contraId: e.clienteId, docIds: [], monto: usd, fecha: e.f.fecha, referencia: e.f.referencia, metodo: e.metodo, tasa: Number(e.tasa) > 0 ? Number(e.tasa) : '', error: '',
                         extra: { montoBs: Number(e.f.montoBs) || 0, banco: e.f.banco } });
                     await this.registrarAbono(e.kind);
                     f.extra = null;
                     if (f.error) { e.error = f.error; return; }
                     f.contraId = '';
                     const resta = Math.max(this.r2(antes - usd), 0);
-                    e.resultado = `${nombre}: ${this.usd(usd)}` + (Number(e.f.montoBs) > 0 ? ` (Bs. ${this.fmtBs(Number(e.f.montoBs))})` : '') + (resta > 0.004 ? ` · queda pendiente ${this.usd(resta)}` : ' · deuda saldada');
+                    e.resultado = `${nombre}: ${this.usd(usd)}` + (Number(e.f.montoBs) > 0 ? ` (Bs. ${this.fmtBs(Number(e.f.montoBs))})` : '') + (resta > 0.004 ? ` · queda pendiente ${this.usd(resta)}` : ' · deuda saldada') + (this._ultimoExceso > 0.004 ? ` · saldo a favor ${this.usd(this._ultimoExceso)}` : '');
                     e.fase = 'listo';
                 },
 
@@ -4941,7 +5278,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                         document.addEventListener('touchend', (e) => {
                             if (!activo || window.innerWidth >= 1024) return;
                             activo = false;
-                            if (this.modal.abierto || this.modalDoc.abierto || this.datosEmpresaAbierto || this.factura.abierto || this.escaner.abierto || this.mp.abierto || this.gv.abierto || Object.values(this.formAbierto).some(Boolean) || this.invAbierto || this.hc.abierto) return;
+                            if (this.modal.abierto || this.modalDoc.abierto || this.datosEmpresaAbierto || this.factura.abierto || this.escaner.abierto || this.mp.abierto || this.gv.abierto || Object.values(this.formAbierto).some(Boolean) || this.invAbierto || this.hc.abierto || this.hp.abierto || this.sf.abierto) return;
                             const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
                             if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
                             if (!this.sidebarOpen && tx < 30 && dx > 0) this.sidebarOpen = true;
