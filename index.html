@@ -1208,14 +1208,14 @@
 
         <!-- REGISTRO: PROVEEDORES -->
         <div x-show="currentTab === 'proveedores'" x-cloak class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div class="card-box p-6 space-y-4 self-start">
-                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-group"/></svg><span>Registrar Proveedor</span></h3>
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre</label><input type="text" x-model="form.proveedor.nombre" placeholder="Nombre"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Apellido</label><input type="text" x-model="form.proveedor.apellido" placeholder="Apellido"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Teléfono</label><input type="tel" x-model="form.proveedor.telefono" placeholder="0414-0000000"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.proveedor.tipoPago"  class="field w-full px-3 py-2.5 text-xs"><option value="Contado">Contado</option><option value="Credito">Crédito</option></select></div><div class="space-y-1" x-show="form.proveedor.tipoPago === 'Credito'"><label class="flabel">Plazo de crédito (días)</label><input type="number" x-model.number="form.proveedor.diasCredito" placeholder="Ej. 15" min="1" class="field w-full px-4 py-2.5 text-xs"></div></div>
-                    <p x-show="err.proveedor" x-text="err.proveedor" class="text-xs font-medium" style="color: var(--danger)"></p>
-                    <button @click="crear('proveedor')" class="btn-primary w-full py-2.5 text-xs">Guardar Proveedor</button>
+            <div class="card-box p-5 flex flex-wrap items-center justify-between gap-3 no-print">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-group"/></svg><span>Proveedores</span></h3>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="abrirForm('proveedor')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nuevo proveedor</button>
                 </div>
-                <div class="lg:col-span-2 card-box p-6 space-y-4">
+            </div>
+            <div class="space-y-6">
+                <div class="card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-group"/></svg><span>Proveedores Registrados</span></h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -1239,14 +1239,14 @@
 
         <!-- REGISTRO: CLIENTES -->
         <div x-show="currentTab === 'clientes'" x-cloak class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div class="card-box p-6 space-y-4 self-start">
-                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-store"/></svg><span>Registrar Cliente</span></h3>
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del cliente</label><input type="text" x-model="form.cliente.nombre" placeholder="Nombre del cliente / contacto"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Nombre del negocio</label><input type="text" x-model="form.cliente.negocio" placeholder="Nombre del negocio"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">RIF</label><input type="text" x-model="form.cliente.rif" placeholder="J-12345678-0"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Teléfono (WhatsApp)</label><input type="text" x-model="form.cliente.telefono" placeholder="0414-1234567" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Dirección comercial</label><input type="text" x-model="form.cliente.direccion" placeholder="Dirección del negocio"  class="field w-full px-4 py-2.5 text-xs"></div></div>
-                    <p x-show="err.cliente" x-text="err.cliente" class="text-xs font-medium" style="color: var(--danger)"></p>
-                    <button @click="crear('cliente')" class="btn-primary w-full py-2.5 text-xs">Guardar Cliente</button>
+            <div class="card-box p-5 flex flex-wrap items-center justify-between gap-3 no-print">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-store"/></svg><span>Clientes</span></h3>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="abrirForm('cliente')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nuevo cliente</button>
                 </div>
-                <div class="lg:col-span-2 card-box p-6 space-y-4">
+            </div>
+            <div class="space-y-6">
+                <div class="card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-store"/></svg><span>Clientes Registrados</span></h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -1259,7 +1259,7 @@
                                     <tr>
 <td class="py-2.5 px-3"><span class="block text-slate-900 font-medium" x-text="r.negocio"></span><span class="block text-[10px] text-slate-500" x-text="r.nombre"></span></td>
 <td class="py-2.5 px-3 text-slate-600" x-text="r.rif || '—'"></td>
-<td class="py-2.5 px-3 text-slate-600" x-text="r.direccion || '—'"></td><td class="py-2.5 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirModal('cliente', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('cliente', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td></tr>
+<td class="py-2.5 px-3 text-slate-600" x-text="r.direccion || '—'"></td><td class="py-2.5 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirHistorialCliente(r.id)" class="text-emerald-600 hover:underline cursor-pointer font-medium">Historial</button><button @click="abrirModal('cliente', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('cliente', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td></tr>
                                 </template>
                             </tbody>
                         </table>
@@ -1270,14 +1270,14 @@
 
         <!-- REGISTRO: PRODUCTOS -->
         <div x-show="currentTab === 'productos'" x-cloak class="space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div class="card-box p-6 space-y-4 self-start">
-                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-inventory_2"/></svg><span>Registrar Producto</span></h3>
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del producto</label><input type="text" x-model="form.producto.nombre" placeholder="Ej. Paleta, Chuleta"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Código</label><input type="text" x-model="form.producto.codigo" placeholder="Ej. PAL-001"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-2 rounded-2xl p-3" style="border: 1px solid var(--line-2)"><label class="lg-check text-xs"><input type="checkbox" x-model="form.producto.porPeine"> Se puede reflejar por peine o pieza en los pedidos (opcional)</label><div class="space-y-1" x-show="form.producto.porPeine"><label class="flabel">Unidad</label><select x-model="form.producto.unidad" class="field w-full px-3 py-2.5 text-xs"><option value="Peine">Peine</option><option value="Pieza">Pieza</option></select><p class="text-[10px] text-slate-500 px-1">Solo se usa para anotar pedidos y estimar. Las ventas y facturas llevan únicamente los kilos totales.</p></div><div class="grid grid-cols-2 gap-3" x-show="form.producto.porPeine"><div class="space-y-1"><label class="flabel">Peso mín. por unidad (kg, opcional)</label><input type="number" min="0" step="0.1" x-model.number="form.producto.pesoMin" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Peso máx. por unidad (kg, opcional)</label><input type="number" min="0" step="0.1" x-model.number="form.producto.pesoMax" class="field w-full px-4 py-2.5 text-xs"></div></div></div></div>
-                    <p x-show="err.producto" x-text="err.producto" class="text-xs font-medium" style="color: var(--danger)"></p>
-                    <button @click="crear('producto')" class="btn-primary w-full py-2.5 text-xs">Guardar Producto</button>
+            <div class="card-box p-5 flex flex-wrap items-center justify-between gap-3 no-print">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-inventory_2"/></svg><span>Productos</span></h3>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="abrirForm('producto')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nuevo producto</button>
                 </div>
-                <div class="lg:col-span-2 card-box p-6 space-y-4">
+            </div>
+            <div class="space-y-6">
+                <div class="card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-inventory_2"/></svg><span>Productos Registrados</span></h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -2234,7 +2234,7 @@
 
     <!-- MODAL: NUEVO / EDITAR PEDIDO -->
     <div x-show="mp.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="cerrarPedido()" @keydown.escape.window="cerrarPedido()" role="dialog" aria-modal="true" aria-label="Pedido"
-         x-effect="document.body.style.overflow = (mp.abierto || gv.abierto || formAbierto.compra || formAbierto.venta || formAbierto.pago || formAbierto.cobro || formAbierto.gasto || formAbierto.prestamo || invAbierto) ? 'hidden' : ''">
+         x-effect="document.body.style.overflow = (mp.abierto || gv.abierto || hc.abierto || Object.values(formAbierto).some(Boolean) || invAbierto) ? 'hidden' : ''">
         <div class="card-box modal-card p-6 space-y-5">
             <div class="flex items-center justify-between gap-3">
                 <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-assignment"/></svg><span x-text="mp.id ? 'Editar pedido' : 'Nuevo pedido'"></span></h3>
@@ -2630,6 +2630,146 @@
                         <button @click="registrarAbono('cxp')" class="btn-primary w-full py-2.5 text-xs">Registrar pago</button>
                     </div>
                 </div>
+    </div>
+
+    <!-- MODAL: NUEVO PRODUCTO -->
+    <div x-show="formAbierto.producto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="formAbierto.producto = false" @keydown.escape.window="formAbierto.producto = false" role="dialog" aria-modal="true">
+                <div class="card-box modal-card p-6 space-y-4 relative" style="max-width:38rem">
+<button type="button" @click="formAbierto.producto = false" aria-label="Cerrar" class="btn-circle w-9! h-9! absolute top-4 right-4"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-inventory_2"/></svg><span>Registrar Producto</span></h3>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del producto</label><input type="text" x-model="form.producto.nombre" placeholder="Ej. Paleta, Chuleta"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Código</label><input type="text" x-model="form.producto.codigo" placeholder="Ej. PAL-001"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-2 rounded-2xl p-3" style="border: 1px solid var(--line-2)"><label class="lg-check text-xs"><input type="checkbox" x-model="form.producto.porPeine"> Se puede reflejar por peine o pieza en los pedidos (opcional)</label><div class="space-y-1" x-show="form.producto.porPeine"><label class="flabel">Unidad</label><select x-model="form.producto.unidad" class="field w-full px-3 py-2.5 text-xs"><option value="Peine">Peine</option><option value="Pieza">Pieza</option></select><p class="text-[10px] text-slate-500 px-1">Solo se usa para anotar pedidos y estimar. Las ventas y facturas llevan únicamente los kilos totales.</p></div><div class="grid grid-cols-2 gap-3" x-show="form.producto.porPeine"><div class="space-y-1"><label class="flabel">Peso mín. por unidad (kg, opcional)</label><input type="number" min="0" step="0.1" x-model.number="form.producto.pesoMin" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Peso máx. por unidad (kg, opcional)</label><input type="number" min="0" step="0.1" x-model.number="form.producto.pesoMax" class="field w-full px-4 py-2.5 text-xs"></div></div></div></div>
+                    <p x-show="err.producto" x-text="err.producto" class="text-xs font-medium" style="color: var(--danger)"></p>
+                    <button @click="crear('producto')" class="btn-primary w-full py-2.5 text-xs">Guardar Producto</button>
+                </div>
+    </div>
+
+    <!-- MODAL: NUEVO CLIENTE -->
+    <div x-show="formAbierto.cliente" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="formAbierto.cliente = false" @keydown.escape.window="formAbierto.cliente = false" role="dialog" aria-modal="true">
+                <div class="card-box modal-card p-6 space-y-4 relative" style="max-width:38rem">
+<button type="button" @click="formAbierto.cliente = false" aria-label="Cerrar" class="btn-circle w-9! h-9! absolute top-4 right-4"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-store"/></svg><span>Registrar Cliente</span></h3>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del cliente</label><input type="text" x-model="form.cliente.nombre" placeholder="Nombre del cliente / contacto"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Nombre del negocio</label><input type="text" x-model="form.cliente.negocio" placeholder="Nombre del negocio"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">RIF</label><input type="text" x-model="form.cliente.rif" placeholder="J-12345678-0"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Teléfono (WhatsApp)</label><input type="text" x-model="form.cliente.telefono" placeholder="0414-1234567" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Dirección comercial</label><input type="text" x-model="form.cliente.direccion" placeholder="Dirección del negocio"  class="field w-full px-4 py-2.5 text-xs"></div></div>
+                    <p x-show="err.cliente" x-text="err.cliente" class="text-xs font-medium" style="color: var(--danger)"></p>
+                    <button @click="crear('cliente')" class="btn-primary w-full py-2.5 text-xs">Guardar Cliente</button>
+                </div>
+    </div>
+
+    <!-- MODAL: NUEVO PROVEEDOR -->
+    <div x-show="formAbierto.proveedor" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="formAbierto.proveedor = false" @keydown.escape.window="formAbierto.proveedor = false" role="dialog" aria-modal="true">
+                <div class="card-box modal-card p-6 space-y-4 relative" style="max-width:38rem">
+<button type="button" @click="formAbierto.proveedor = false" aria-label="Cerrar" class="btn-circle w-9! h-9! absolute top-4 right-4"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-group"/></svg><span>Registrar Proveedor</span></h3>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre</label><input type="text" x-model="form.proveedor.nombre" placeholder="Nombre"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Apellido</label><input type="text" x-model="form.proveedor.apellido" placeholder="Apellido"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Teléfono</label><input type="tel" x-model="form.proveedor.telefono" placeholder="0414-0000000"  class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.proveedor.tipoPago"  class="field w-full px-3 py-2.5 text-xs"><option value="Contado">Contado</option><option value="Credito">Crédito</option></select></div><div class="space-y-1" x-show="form.proveedor.tipoPago === 'Credito'"><label class="flabel">Plazo de crédito (días)</label><input type="number" x-model.number="form.proveedor.diasCredito" placeholder="Ej. 15" min="1" class="field w-full px-4 py-2.5 text-xs"></div></div>
+                    <p x-show="err.proveedor" x-text="err.proveedor" class="text-xs font-medium" style="color: var(--danger)"></p>
+                    <button @click="crear('proveedor')" class="btn-primary w-full py-2.5 text-xs">Guardar Proveedor</button>
+                </div>
+    </div>
+
+    <!-- MODAL: HISTORIAL DEL CLIENTE -->
+    <div x-show="hc.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="hc.abierto = false" @keydown.escape.window="hc.abierto = false" role="dialog" aria-modal="true" aria-label="Historial del cliente">
+        <div class="card-box modal-card p-6 space-y-5" style="max-width:60rem">
+            <template x-if="histCliente">
+                <div class="space-y-5">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 space-y-1">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Historial del cliente</p>
+                            <h3 class="font-display font-extrabold text-xl text-slate-900 truncate" x-text="histCliente.c.negocio || histCliente.c.nombre"></h3>
+                            <p class="text-xs text-slate-500" x-text="[histCliente.c.negocio ? histCliente.c.nombre : '', histCliente.c.rif ? 'RIF: ' + histCliente.c.rif : '', histCliente.c.telefono ? 'Tel.: ' + histCliente.c.telefono : '', histCliente.c.direccion].filter(Boolean).join(' · ') || 'Sin datos de contacto'"></p>
+                        </div>
+                        <button @click="hc.abierto = false" aria-label="Cerrar" class="btn-circle w-9! h-9! shrink-0"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1"><label class="flabel">Desde</label><input type="date" x-model="hc.desde" class="field w-full px-4 py-2 text-xs"></div>
+                        <div class="space-y-1"><label class="flabel">Hasta</label><input type="date" x-model="hc.hasta" class="field w-full px-4 py-2 text-xs"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Facturas</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="histCliente.t.docs"></p><p class="text-[10px] text-slate-500" x-text="histCliente.t.primera ? 'Desde ' + fmtFecha(histCliente.t.primera) : 'Sin compras'"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Total comprado</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(histCliente.t.total)"></p><p class="text-[10px] text-slate-500" x-text="'Promedio ' + usd(histCliente.t.promedio) + ' por factura'"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Kilos comprados</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="fmtKg(histCliente.t.kg) + ' kg'"></p><p class="text-[10px] text-slate-500" x-text="histCliente.t.ultima ? 'Última: ' + fmtFecha(histCliente.t.ultima) : ''"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Pagado</p><p class="font-display font-extrabold text-lg" style="color: var(--accent-text)" x-text="usd(histCliente.t.pagado)"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Deuda actual</p><p class="font-display font-extrabold text-lg" :style="histCliente.deuda > 0.004 ? 'color: var(--warn)' : ''" x-text="usd(histCliente.deuda)"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Vencido</p><p class="font-display font-extrabold text-lg" :style="histCliente.vencido > 0.004 ? 'color: var(--danger)' : ''" x-text="usd(histCliente.vencido)"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Ganancia generada</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(histCliente.t.ganancia)"></p></div>
+                        <div class="panel-inset px-4 py-3"><p class="stat-label">Pedidos pendientes</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="histCliente.pedidos.length"></p></div>
+                    </div>
+                    <p class="text-[10px] text-slate-500">"Deuda actual" y "Vencido" son el saldo de hoy, sin importar el rango de fechas elegido.</p>
+
+                    <div class="flex flex-wrap gap-3 no-print" x-show="histCliente.deuda > 0.004">
+                        <button type="button" @click="estadoCuenta(histCliente.c.id)" class="text-blue-600 hover:underline cursor-pointer font-medium text-xs">Estado de cuenta</button>
+                        <button type="button" @click="hc.abierto = false; irA('cobranzas')" class="text-emerald-600 hover:underline cursor-pointer font-medium text-xs">Ir a Cobranzas</button>
+                    </div>
+
+                    <div class="space-y-2" x-show="histCliente.productos.length > 0">
+                        <p class="flabel">Qué compra este cliente</p>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2 px-3">Producto</th><th class="py-2 px-3">Veces</th><th class="py-2 px-3">Kilos</th><th class="py-2 px-3">Precio prom. $/kg</th><th class="py-2 px-3">Total $</th></tr></thead>
+                                <tbody class="divide-y divide-slate-100 text-xs">
+                                    <template x-for="p in histCliente.productos" :key="p.id">
+                                        <tr>
+                                            <td class="py-2 px-3 text-slate-900 font-medium" x-text="p.nombre"></td>
+                                            <td class="py-2 px-3 text-slate-600" x-text="p.veces"></td>
+                                            <td class="py-2 px-3 font-semibold text-slate-900" x-text="fmtKg(p.kg) + ' kg'"></td>
+                                            <td class="py-2 px-3 text-slate-600" x-text="usd(p.precioProm)"></td>
+                                            <td class="py-2 px-3 font-semibold text-slate-900" x-text="usd(p.total)"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2" x-show="histCliente.pedidos.length > 0">
+                        <p class="flabel">Pedidos pendientes (aún no facturados)</p>
+                        <template x-for="p in histCliente.pedidos" :key="p.id">
+                            <div class="panel-inset px-4 py-3 text-xs space-y-1">
+                                <p class="font-semibold text-slate-900" x-text="'Pedido N° ' + String(p.nro || 0).padStart(4, '0') + ' · ' + fmtFecha(p.fecha)"></p>
+                                <p class="text-slate-600" x-text="p.items.map(i => nombreProd(i.productoId) + ' ' + textoPedido(i)).join(' · ')"></p>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="space-y-2">
+                        <p class="flabel">Facturas</p>
+                        <template x-if="histCliente.docs.length === 0"><p class="text-xs text-slate-400 italic py-3">Este cliente no tiene compras en el período.</p></template>
+                        <template x-for="d in histCliente.docs" :key="d.key">
+                            <div class="panel-inset overflow-hidden">
+                                <button type="button" @click="hc.abierta[d.key] = !hc.abierta[d.key]" :aria-expanded="!!hc.abierta[d.key]" class="w-full flex items-center gap-3 p-4 text-left cursor-pointer">
+                                    <span class="min-w-0 flex-1">
+                                        <span class="block text-sm font-semibold text-slate-900" x-text="'Factura N° ' + String(d.nro || 0).padStart(6, '0')"></span>
+                                        <span class="block text-[11px] text-slate-500" x-text="fmtFecha(d.fecha) + ' · ' + d.nProductos + (d.nProductos === 1 ? ' producto' : ' productos') + ' · ' + fmtKg(d.totalKg) + ' kg · ' + (d.credito ? 'Crédito ' + d.diasCredito + ' d' : 'Contado')"></span>
+                                    </span>
+                                    <span class="text-right"><span class="block font-display font-extrabold text-base text-slate-900" x-text="usd(d.total)"></span><span class="block text-[10px] text-slate-500" x-show="d.credito && d.saldo > 0.004" x-text="'Saldo ' + usd(d.saldo)"></span></span>
+                                    <span class="badge" :class="badgeEstado(d.estado)" x-text="d.estado"></span>
+                                    <svg class="ic text-2xl text-slate-500 chev" :class="hc.abierta[d.key] ? 'rotate-180' : ''" aria-hidden="true"><use href="#ic-expand_more"/></svg>
+                                </button>
+                                <div x-show="hc.abierta[d.key]" x-transition class="border-t border-slate-200 p-4 space-y-3">
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left border-collapse">
+                                            <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2 px-3">Producto</th><th class="py-2 px-3">Kg</th><th class="py-2 px-3">Precio $/kg</th><th class="py-2 px-3">Subtotal $</th></tr></thead>
+                                            <tbody class="divide-y divide-slate-100 text-xs">
+                                                <template x-for="l in d.lineas" :key="l.id">
+                                                    <tr><td class="py-2 px-3 text-slate-900 font-medium" x-text="l.producto"></td><td class="py-2 px-3 text-slate-600" x-text="fmtKg(l.cantidadKg)"></td><td class="py-2 px-3 text-slate-600" x-text="usd(l.precioKg)"></td><td class="py-2 px-3 font-semibold text-slate-900" x-text="usd(l.total)"></td></tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500" x-text="'Método: ' + d.metodo + (d.credito && d.vence ? ' · Vence ' + fmtFecha(d.vence) : '') + (d.credito ? ' · Abonado ' + usd(d.abonado) : '')"></p>
+                                    <div x-show="d.abonos.length > 0" class="divide-y divide-slate-100">
+                                        <template x-for="a in d.abonos" :key="a.id">
+                                            <div class="flex flex-wrap gap-x-4 py-1.5 text-xs"><span class="text-slate-500 w-20" x-text="fmtFecha(a.fecha)"></span><b class="text-emerald-600" x-text="usd(a.monto)"></b><span class="text-slate-600" x-text="(a.metodo || '') + (a.referencia ? ' · Ref. ' + a.referencia : '')"></span></div>
+                                        </template>
+                                    </div>
+                                    <button type="button" @click="hc.abierto = false; abrirFactura(d.lineas[0])" class="text-emerald-600 hover:underline cursor-pointer font-medium text-xs no-print">Ver / generar factura</button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
     </div>
 
     <!-- SCRIPT DE LÓGICA ALPINE.JS -->
@@ -3328,8 +3468,43 @@
                     reader.readAsText(file, "UTF-8");
                 },
 
+                // ===================== HISTORIAL DE CLIENTE =====================
+                hc: { abierto: false, id: null, desde: '', hasta: '', abierta: {} },
+                abrirHistorialCliente(id) { this.hc = { abierto: true, id, desde: '', hasta: '', abierta: {} }; },
+                get histCliente() {
+                    if (!this.hc.abierto) return null;
+                    const c = this.clientes.find(x => x.id === this.hc.id);
+                    if (!c) return null;
+                    const hoy = this.hoy(), { desde, hasta } = this.hc;
+                    const docs = this.agruparDocs(this.ventasList.filter(v => v.clienteId === c.id && (!desde || (v.fecha || '') >= desde) && (!hasta || (v.fecha || '') <= hasta)), 'venta')
+                        .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.id - a.id)
+                        .map(d => {
+                            const abonos = d.lineas.flatMap(l => l.abonos || []).slice().sort((a, b) => (a.fecha || '').localeCompare(b.fecha || '') || a.id - b.id);
+                            const estado = !d.credito ? 'Pagada' : d.saldo <= 0.004 ? 'Pagada' : (d.vence && d.vence < hoy) ? 'Vencida' : d.abonado > 0 ? 'Parcial' : 'Pendiente';
+                            return { ...d, abonos, estado, pagado: d.credito ? d.abonado : d.total };
+                        });
+                    const t = { docs: docs.length, total: 0, kg: 0, pagado: 0, ganancia: 0, primera: null, ultima: null };
+                    docs.forEach(d => {
+                        t.total += d.total; t.kg += d.totalKg; t.pagado += d.pagado; t.ganancia += d.ganancia;
+                        if (!t.primera || d.fecha < t.primera) t.primera = d.fecha;
+                        if (!t.ultima || d.fecha > t.ultima) t.ultima = d.fecha;
+                    });
+                    t.total = this.r2(t.total); t.kg = this.r2(t.kg); t.pagado = this.r2(t.pagado); t.ganancia = this.r2(t.ganancia);
+                    t.promedio = docs.length ? this.r2(t.total / docs.length) : 0;
+                    const pm = {};
+                    docs.forEach(d => { const vistos = new Set(); d.lineas.forEach(l => {
+                        const p = pm[l.productoId] || (pm[l.productoId] = { id: l.productoId, nombre: l.producto, veces: 0, kg: 0, total: 0 });
+                        p.kg += Number(l.cantidadKg) || 0; p.total += l.total;
+                        if (!vistos.has(l.productoId)) { vistos.add(l.productoId); p.veces++; }
+                    }); });
+                    const productos = Object.values(pm).map(p => ({ ...p, kg: this.r2(p.kg), total: this.r2(p.total), precioProm: p.kg > 0 ? this.r2(p.total / p.kg) : 0 })).sort((a, b) => b.kg - a.kg);
+                    const g = this.cxcGrupos.find(x => String(x.id) === String(c.id));
+                    const pedidos = this.pedidos.filter(p => p.clienteId === c.id && p.estado !== 'Vendido');
+                    return { c, docs, t, productos, pedidos, deuda: g ? g.saldo : 0, vencido: g ? g.vencido : 0 };
+                },
+
                 // ===================== INVENTARIO: VER / MERMAS / AJUSTE =====================
-                formAbierto: { compra: false, venta: false, pago: false, cobro: false, gasto: false, prestamo: false },
+                formAbierto: { compra: false, venta: false, pago: false, cobro: false, gasto: false, prestamo: false, proveedor: false, cliente: false, producto: false },
                 invAbierto: false,
                 mermas: [],        // { id, fecha, productoId, cantidadKg, motivo, nota }
                 motivosMerma: ['Merma natural / pérdida de peso', 'Daño o descomposición', 'Producto vencido', 'Ajuste por conteo físico', 'Otro'],
@@ -4766,7 +4941,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                         document.addEventListener('touchend', (e) => {
                             if (!activo || window.innerWidth >= 1024) return;
                             activo = false;
-                            if (this.modal.abierto || this.modalDoc.abierto || this.datosEmpresaAbierto || this.factura.abierto || this.escaner.abierto || this.mp.abierto || this.gv.abierto || Object.values(this.formAbierto).some(Boolean) || this.invAbierto) return;
+                            if (this.modal.abierto || this.modalDoc.abierto || this.datosEmpresaAbierto || this.factura.abierto || this.escaner.abierto || this.mp.abierto || this.gv.abierto || Object.values(this.formAbierto).some(Boolean) || this.invAbierto || this.hc.abierto) return;
                             const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
                             if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
                             if (!this.sidebarOpen && tx < 30 && dx > 0) this.sidebarOpen = true;
