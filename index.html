@@ -1590,6 +1590,13 @@
 
         <!-- FINANZAS: PAGOS (CUENTAS POR PAGAR) -->
         <div x-show="currentTab === 'pagos'" x-cloak class="space-y-6">
+            <div class="card-box p-5 flex flex-wrap items-center justify-between gap-3 no-print">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_made"/></svg><span>Pagos</span></h3>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="abrirEscaner('cxp')" class="btn-ghost px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-photo_camera"/></svg> Escanear pago móvil</button>
+                    <button type="button" @click="abrirForm('pago')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nuevo pago</button>
+                </div>
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5">
                 <div class="card-box float stat-card card-lime">
@@ -1616,76 +1623,10 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div class="space-y-6">
+
 
                 <div class="card-box p-6 space-y-4">
-                    <div class="flex items-center justify-between gap-3 flex-wrap">
-                        <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_made"/></svg><span>Registrar pago</span></h3>
-                        <button type="button" @click="abrirEscaner('cxp')" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-photo_camera"/></svg> Escanear pago móvil</button>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="space-y-1">
-                            <label class="flabel">Proveedor con deuda</label>
-                            <select x-model="carteraForm.cxp.contraId" @change="carteraForm.cxp.docId = ''; carteraForm.cxp.monto = ''; carteraForm.cxp.error = ''" class="field w-full px-3 py-2.5 text-xs">
-                                <option value="">Seleccione...</option>
-                                <template x-for="g in cxpGrupos.filter(g => g.saldo > 0.004)" :key="g.id">
-                                    <option :value="g.id" :selected="String(g.id) === String(carteraForm.cxp.contraId)" x-text="`${g.nombre} — $${g.saldo.toFixed(2)}`"></option>
-                                </template>
-                            </select>
-                        </div>
-
-                        <template x-if="carteraForm.cxp.contraId !== ''">
-                            <div class="space-y-3">
-                                <select x-model="carteraForm.cxp.docId" @change="carteraForm.cxp.monto = ''" class="field w-full px-3 py-2.5 text-xs">
-                                    <option value="">Aplicar a las operaciones más antiguas primero</option>
-                                    <template x-for="d in docsPendientes('cxp', carteraForm.cxp.contraId)" :key="d.id">
-                                        <option :value="d.id" x-text="`${fmtFecha(d.fecha)} · ${d.producto} · saldo $${d.saldo.toFixed(2)}`"></option>
-                                    </template>
-                                </select>
-                                <div class="panel-inset px-4 py-3 text-xs flex items-center justify-between gap-3">
-                                    <span class="text-slate-500">Saldo a cancelar</span>
-                                    <span class="text-right">
-                                        <b class="text-slate-900" x-text="`$${saldoSeleccion('cxp').toFixed(2)}`"></b>
-                                        <span class="block text-[10px] text-slate-500" x-show="tasaRef > 0" x-text="'≈ Bs. ' + fmtBs(saldoSeleccion('cxp') * tasaRef)"></span>
-                                    </span>
-                                </div>
-                            </div>
-                        </template>
-
-                        <div class="space-y-1">
-                            <label class="flabel">Monto abonado ($) o saldo total</label>
-                            <div class="flex gap-2">
-                                <input type="number" min="0" step="0.01" x-model="carteraForm.cxp.monto" @keydown.enter="registrarAbono('cxp')" placeholder="0.00" class="field flex-1 min-w-0 px-4 py-2.5 text-xs">
-                                <button type="button" @click="saldarTodo('cxp')" :disabled="carteraForm.cxp.contraId === ''" class="btn-ghost px-3 py-2.5 text-xs whitespace-nowrap">Saldar total</button>
-                            </div>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="flabel">Fecha</label>
-                            <input type="date" x-model="carteraForm.cxp.fecha" @change="asegurarTasasFecha(carteraForm.cxp.fecha)" class="field w-full px-4 py-2 text-xs">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="flabel">Número de referencia</label>
-                            <input type="text" x-model="carteraForm.cxp.referencia" placeholder="Referencia / comprobante (opcional)" class="field w-full px-4 py-2.5 text-xs">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="space-y-1">
-                                <label class="flabel">Método de pago</label>
-                                <select x-model="carteraForm.cxp.metodo" @change="carteraForm.cxp.tasa = ''" class="field w-full px-3 py-2.5 text-xs">
-                                    <template x-for="mt in metodosPago" :key="mt"><option :value="mt" :selected="mt === carteraForm.cxp.metodo" x-text="mt"></option></template>
-                                </select>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="flabel">Tasa aplicada (Bs.)</label>
-                                <input type="number" min="0" step="0.0001" x-model.number="carteraForm.cxp.tasa" :placeholder="'Auto: ' + (tasaPorMetodo(carteraForm.cxp.metodo, carteraForm.cxp.fecha) > 0 ? fmtTasa(tasaPorMetodo(carteraForm.cxp.metodo, carteraForm.cxp.fecha)) : 'sin conversión')" class="field w-full px-3 py-2.5 text-xs">
-                            </div>
-                        </div>
-                        <p class="text-[11px] text-slate-500 px-1" x-show="Number(carteraForm.cxp.monto) > 0" x-text="previewTexto(Number(carteraForm.cxp.monto), carteraForm.cxp).replace('Total:', 'Abono:')"></p>
-                        <p x-show="carteraForm.cxp.error" x-text="carteraForm.cxp.error" class="text-xs font-medium" style="color: var(--danger)"></p>
-                        <button @click="registrarAbono('cxp')" class="btn-primary w-full py-2.5 text-xs">Registrar pago</button>
-                    </div>
-                </div>
-
-                <div class="lg:col-span-2 card-box p-6 space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-group"/></svg><span>Proveedores con deuda</span></h3>
                         <label class="chip cursor-pointer no-print"><input type="checkbox" x-model="verSaldados.cxp" class="accent-lime-500"> Mostrar saldados</label>
@@ -1720,15 +1661,16 @@
                                         <table class="w-full text-left border-collapse">
                                             <thead>
                                                 <tr class="border-b border-slate-200 text-slate-500 text-xs">
-                                                    <th class="py-2 px-3">Fecha</th><th class="py-2 px-3">Producto</th><th class="py-2 px-3">Kg</th><th class="py-2 px-3">Total</th>
+                                                    <th class="py-2 px-3">Factura</th><th class="py-2 px-3">Fecha</th><th class="py-2 px-3">Productos</th><th class="py-2 px-3">Kg</th><th class="py-2 px-3">Total</th>
                                                     <th class="py-2 px-3">Abonado</th><th class="py-2 px-3">Saldo</th><th class="py-2 px-3">Vence</th><th class="py-2 px-3 text-center">Estado</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-slate-100 text-xs">
-                                                <template x-for="d in g.docs" :key="d.id">
+                                                <template x-for="d in g.facturas" :key="d.key">
                                                     <tr>
+                                                        <td class="py-2.5 px-3 text-slate-900 font-medium whitespace-nowrap" x-text="d.etiqueta"></td>
                                                         <td class="py-2.5 px-3 text-slate-500" x-text="fmtFecha(d.fecha)"></td>
-                                                        <td class="py-2.5 px-3 text-slate-900 font-medium" x-text="d.producto"></td>
+                                                        <td class="py-2.5 px-3 text-slate-900" x-text="d.productos"></td>
                                                         <td class="py-2.5 px-3 text-slate-600" x-text="fmtKg(d.cantidad)"></td>
                                                         <td class="py-2.5 px-3 text-slate-900" x-text="`$${d.total.toFixed(2)}`"></td>
                                                         <td class="py-2.5 px-3 text-emerald-600" x-text="`$${d.abonado.toFixed(2)}`"></td>
@@ -1765,6 +1707,12 @@
 
         <!-- FINANZAS: GASTOS -->
         <div x-show="currentTab === 'gastos'" x-cloak class="space-y-6">
+            <div class="card-box p-5 flex flex-wrap items-center justify-between gap-3 no-print">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-local_shipping"/></svg><span>Gastos</span></h3>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="abrirForm('gasto')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nuevo gasto</button>
+                </div>
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
                 <div class="card-box float stat-card">
                     <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-local_shipping"/></svg></span>
@@ -1792,14 +1740,8 @@
                 </div>
             </div>
             <datalist id="dl-categorias"><template x-for="c in categoriasGasto" :key="c"><option :value="c"></option></template></datalist>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div class="card-box p-6 space-y-4 self-start">
-                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-local_shipping"/></svg><span>Registrar Gasto</span></h3>
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Título del gasto</label><input type="text" x-model="form.gasto.titulo" placeholder="Ej. Gasolina, Flete San Juan"  class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Monto ($)</label><input type="number" x-model.number="form.gasto.monto" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="form.gasto.fecha" @change="asegurarTasasFecha(form.gasto.fecha)" placeholder=""  class="field w-full px-3 py-2 text-xs"></div></div><div class="space-y-1"><label class="flabel">Categoría</label><input type="text" x-model="form.gasto.categoria" placeholder="Seleccione o escriba una" list="dl-categorias" class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.gasto.metodo" @change="aplicarTasa(form.gasto)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosGasto" :key="mt"><option :value="mt" :selected="mt === form.gasto.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.gasto.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.gasto.metodo, form.gasto.fecha) > 0 ? fmtTasa(tasaOperacion(form.gasto.metodo, form.gasto.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(Number(form.gasto.monto), form.gasto)"></p></div>
-                    <p x-show="err.gasto" x-text="err.gasto" class="text-xs font-medium" style="color: var(--danger)"></p>
-                    <button @click="crear('gasto')" class="btn-primary w-full py-2.5 text-xs">Registrar Gasto</button>
-                </div>
-                <div class="lg:col-span-2 card-box p-6 space-y-4">
+            <div class="space-y-6">
+                <div class="card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-assignment"/></svg><span>Gastos Registrados</span></h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -1826,6 +1768,13 @@
 
         <!-- FINANZAS: COBRANZAS (CUENTAS POR COBRAR) -->
         <div x-show="currentTab === 'cobranzas'" x-cloak class="space-y-6">
+            <div class="card-box p-5 flex flex-wrap items-center justify-between gap-3 no-print">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_received"/></svg><span>Cobranzas</span></h3>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="abrirEscaner('cxc')" class="btn-ghost px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-photo_camera"/></svg> Escanear pago móvil</button>
+                    <button type="button" @click="abrirForm('cobro')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nuevo cobro</button>
+                </div>
+            </div>
             <div class="card-box p-6 space-y-4">
                 <div class="flex items-center justify-between gap-3 flex-wrap">
                     <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_received"/></svg><span>Antigüedad de la deuda de clientes</span></h3>
@@ -1876,76 +1825,10 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div class="space-y-6">
+
 
                 <div class="card-box p-6 space-y-4">
-                    <div class="flex items-center justify-between gap-3 flex-wrap">
-                        <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_received"/></svg><span>Registrar cobro</span></h3>
-                        <button type="button" @click="abrirEscaner('cxc')" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-photo_camera"/></svg> Escanear pago móvil</button>
-                    </div>
-                    <div class="space-y-3">
-                        <div class="space-y-1">
-                            <label class="flabel">Cliente con deuda</label>
-                            <select x-model="carteraForm.cxc.contraId" @change="carteraForm.cxc.docId = ''; carteraForm.cxc.monto = ''; carteraForm.cxc.error = ''" class="field w-full px-3 py-2.5 text-xs">
-                                <option value="">Seleccione...</option>
-                                <template x-for="g in cxcGrupos.filter(g => g.saldo > 0.004)" :key="g.id">
-                                    <option :value="g.id" :selected="String(g.id) === String(carteraForm.cxc.contraId)" x-text="`${g.nombre} — $${g.saldo.toFixed(2)}`"></option>
-                                </template>
-                            </select>
-                        </div>
-
-                        <template x-if="carteraForm.cxc.contraId !== ''">
-                            <div class="space-y-3">
-                                <select x-model="carteraForm.cxc.docId" @change="carteraForm.cxc.monto = ''" class="field w-full px-3 py-2.5 text-xs">
-                                    <option value="">Aplicar a las operaciones más antiguas primero</option>
-                                    <template x-for="d in docsPendientes('cxc', carteraForm.cxc.contraId)" :key="d.id">
-                                        <option :value="d.id" x-text="`${fmtFecha(d.fecha)} · ${d.producto} · saldo $${d.saldo.toFixed(2)}`"></option>
-                                    </template>
-                                </select>
-                                <div class="panel-inset px-4 py-3 text-xs flex items-center justify-between gap-3">
-                                    <span class="text-slate-500">Saldo a cancelar</span>
-                                    <span class="text-right">
-                                        <b class="text-slate-900" x-text="`$${saldoSeleccion('cxc').toFixed(2)}`"></b>
-                                        <span class="block text-[10px] text-slate-500" x-show="tasaRef > 0" x-text="'≈ Bs. ' + fmtBs(saldoSeleccion('cxc') * tasaRef)"></span>
-                                    </span>
-                                </div>
-                            </div>
-                        </template>
-
-                        <div class="space-y-1">
-                            <label class="flabel">Monto abonado ($) o saldo total</label>
-                            <div class="flex gap-2">
-                                <input type="number" min="0" step="0.01" x-model="carteraForm.cxc.monto" @keydown.enter="registrarAbono('cxc')" placeholder="0.00" class="field flex-1 min-w-0 px-4 py-2.5 text-xs">
-                                <button type="button" @click="saldarTodo('cxc')" :disabled="carteraForm.cxc.contraId === ''" class="btn-ghost px-3 py-2.5 text-xs whitespace-nowrap">Saldar total</button>
-                            </div>
-                        </div>
-                        <div class="space-y-1">
-                            <label class="flabel">Fecha</label>
-                            <input type="date" x-model="carteraForm.cxc.fecha" @change="asegurarTasasFecha(carteraForm.cxc.fecha)" class="field w-full px-4 py-2 text-xs">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="flabel">Número de referencia</label>
-                            <input type="text" x-model="carteraForm.cxc.referencia" placeholder="Referencia / comprobante (opcional)" class="field w-full px-4 py-2.5 text-xs">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="space-y-1">
-                                <label class="flabel">Método de pago</label>
-                                <select x-model="carteraForm.cxc.metodo" @change="carteraForm.cxc.tasa = ''" class="field w-full px-3 py-2.5 text-xs">
-                                    <template x-for="mt in metodosPago" :key="mt"><option :value="mt" :selected="mt === carteraForm.cxc.metodo" x-text="mt"></option></template>
-                                </select>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="flabel">Tasa aplicada (Bs.)</label>
-                                <input type="number" min="0" step="0.0001" x-model.number="carteraForm.cxc.tasa" :placeholder="'Auto: ' + (tasaPorMetodo(carteraForm.cxc.metodo, carteraForm.cxc.fecha) > 0 ? fmtTasa(tasaPorMetodo(carteraForm.cxc.metodo, carteraForm.cxc.fecha)) : 'sin conversión')" class="field w-full px-3 py-2.5 text-xs">
-                            </div>
-                        </div>
-                        <p class="text-[11px] text-slate-500 px-1" x-show="Number(carteraForm.cxc.monto) > 0" x-text="previewTexto(Number(carteraForm.cxc.monto), carteraForm.cxc).replace('Total:', 'Abono:')"></p>
-                        <p x-show="carteraForm.cxc.error" x-text="carteraForm.cxc.error" class="text-xs font-medium" style="color: var(--danger)"></p>
-                        <button @click="registrarAbono('cxc')" class="btn-primary w-full py-2.5 text-xs">Registrar cobro</button>
-                    </div>
-                </div>
-
-                <div class="lg:col-span-2 card-box p-6 space-y-4">
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-store"/></svg><span>Clientes con deuda</span></h3>
                         <label class="chip cursor-pointer no-print"><input type="checkbox" x-model="verSaldados.cxc" class="accent-lime-500"> Mostrar saldados</label>
@@ -1980,15 +1863,16 @@
                                         <table class="w-full text-left border-collapse">
                                             <thead>
                                                 <tr class="border-b border-slate-200 text-slate-500 text-xs">
-                                                    <th class="py-2 px-3">Fecha</th><th class="py-2 px-3">Producto</th><th class="py-2 px-3">Kg</th><th class="py-2 px-3">Total</th>
+                                                    <th class="py-2 px-3">Factura</th><th class="py-2 px-3">Fecha</th><th class="py-2 px-3">Productos</th><th class="py-2 px-3">Kg</th><th class="py-2 px-3">Total</th>
                                                     <th class="py-2 px-3">Abonado</th><th class="py-2 px-3">Saldo</th><th class="py-2 px-3">Vence</th><th class="py-2 px-3 text-center">Estado</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-slate-100 text-xs">
-                                                <template x-for="d in g.docs" :key="d.id">
+                                                <template x-for="d in g.facturas" :key="d.key">
                                                     <tr>
+                                                        <td class="py-2.5 px-3 text-slate-900 font-medium whitespace-nowrap" x-text="d.etiqueta"></td>
                                                         <td class="py-2.5 px-3 text-slate-500" x-text="fmtFecha(d.fecha)"></td>
-                                                        <td class="py-2.5 px-3 text-slate-900 font-medium" x-text="d.producto"></td>
+                                                        <td class="py-2.5 px-3 text-slate-900" x-text="d.productos"></td>
                                                         <td class="py-2.5 px-3 text-slate-600" x-text="fmtKg(d.cantidad)"></td>
                                                         <td class="py-2.5 px-3 text-slate-900" x-text="`$${d.total.toFixed(2)}`"></td>
                                                         <td class="py-2.5 px-3 text-emerald-600" x-text="`$${d.abonado.toFixed(2)}`"></td>
@@ -2025,6 +1909,12 @@
 
         <!-- FINANZAS: PRÉSTAMOS -->
         <div x-show="currentTab === 'prestamos'" x-cloak class="space-y-6">
+            <div class="card-box p-5 flex flex-wrap items-center justify-between gap-3 no-print">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-credit_card"/></svg><span>Préstamos</span></h3>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="abrirForm('prestamo')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nuevo préstamo</button>
+                </div>
+            </div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
                 <div class="card-box float stat-card">
                     <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-account_balance_wallet"/></svg></span>
@@ -2051,14 +1941,8 @@
                     </div>
                 </div>
             </div>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                <div class="card-box p-6 space-y-4 self-start">
-                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-credit_card"/></svg><span>Registrar Préstamo</span></h3>
-                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del prestamista</label><input type="text" x-model="form.prestamo.prestamista" placeholder="Persona o entidad"  class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Monto ($)</label><input type="number" x-model.number="form.prestamo.monto" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Interés (%)</label><input type="number" x-model.number="form.prestamo.interes" placeholder="0" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div></div><div class="space-y-1"><label class="flabel">Fecha del préstamo</label><input type="date" x-model="form.prestamo.fecha" @change="asegurarTasasFecha(form.prestamo.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Fecha fin / vencimiento (opcional)</label><input type="date" x-model="form.prestamo.fechaFin" :min="form.prestamo.fecha || null" class="field w-full px-4 py-2 text-xs"><p class="text-[10px] text-slate-500 px-1">Con fecha fin, el interés se reparte día a día entre el inicio y el fin, y cada período de Estadísticas descuenta solo la parte que le corresponde. Sin fecha fin, todo el interés se descuenta en la fecha de inicio.</p></div><div class="space-y-1"><label class="flabel">Periodicidad de pago</label><select x-model="form.prestamo.periodicidad"  class="field w-full px-3 py-2.5 text-xs"><template x-for="pd in periodicidades" :key="pd"><option :value="pd" :selected="pd === form.prestamo.periodicidad" x-text="pd"></option></template></select></div><p class="text-[11px] text-slate-500 px-1" x-text="Number(form.prestamo.monto) > 0 ? 'Interés: ' + usd(interesDe(form.prestamo)) + ' · Total a devolver: ' + usd(Number(form.prestamo.monto) + interesDe(form.prestamo)) : ''"></p></div>
-                    <p x-show="err.prestamo" x-text="err.prestamo" class="text-xs font-medium" style="color: var(--danger)"></p>
-                    <button @click="crear('prestamo')" class="btn-primary w-full py-2.5 text-xs">Registrar Préstamo</button>
-                </div>
-                <div class="lg:col-span-2 card-box p-6 space-y-4">
+            <div class="space-y-6">
+                <div class="card-box p-6 space-y-4">
                     <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-credit_card"/></svg><span>Préstamos Recibidos</span></h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse">
@@ -2350,7 +2234,7 @@
 
     <!-- MODAL: NUEVO / EDITAR PEDIDO -->
     <div x-show="mp.abierto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="cerrarPedido()" @keydown.escape.window="cerrarPedido()" role="dialog" aria-modal="true" aria-label="Pedido"
-         x-effect="document.body.style.overflow = (mp.abierto || gv.abierto || formAbierto.compra || formAbierto.venta || invAbierto) ? 'hidden' : ''">
+         x-effect="document.body.style.overflow = (mp.abierto || gv.abierto || formAbierto.compra || formAbierto.venta || formAbierto.pago || formAbierto.cobro || formAbierto.gasto || formAbierto.prestamo || invAbierto) ? 'hidden' : ''">
         <div class="card-box modal-card p-6 space-y-5">
             <div class="flex items-center justify-between gap-3">
                 <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-assignment"/></svg><span x-text="mp.id ? 'Editar pedido' : 'Nuevo pedido'"></span></h3>
@@ -2582,6 +2466,172 @@
         </div>
     </div>
 
+    <!-- MODAL: NUEVO PRESTAMO -->
+    <div x-show="formAbierto.prestamo" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="formAbierto.prestamo = false" @keydown.escape.window="formAbierto.prestamo = false" role="dialog" aria-modal="true">
+                <div class="card-box modal-card p-6 space-y-4 relative" style="max-width:38rem">
+<button type="button" @click="formAbierto.prestamo = false" aria-label="Cerrar" class="btn-circle w-9! h-9! absolute top-4 right-4"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-credit_card"/></svg><span>Registrar Préstamo</span></h3>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Nombre del prestamista</label><input type="text" x-model="form.prestamo.prestamista" placeholder="Persona o entidad"  class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Monto ($)</label><input type="number" x-model.number="form.prestamo.monto" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Interés (%)</label><input type="number" x-model.number="form.prestamo.interes" placeholder="0" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div></div><div class="space-y-1"><label class="flabel">Fecha del préstamo</label><input type="date" x-model="form.prestamo.fecha" @change="asegurarTasasFecha(form.prestamo.fecha)" placeholder=""  class="field w-full px-4 py-2 text-xs"></div><div class="space-y-1"><label class="flabel">Fecha fin / vencimiento (opcional)</label><input type="date" x-model="form.prestamo.fechaFin" :min="form.prestamo.fecha || null" class="field w-full px-4 py-2 text-xs"><p class="text-[10px] text-slate-500 px-1">Con fecha fin, el interés se reparte día a día entre el inicio y el fin, y cada período de Estadísticas descuenta solo la parte que le corresponde. Sin fecha fin, todo el interés se descuenta en la fecha de inicio.</p></div><div class="space-y-1"><label class="flabel">Periodicidad de pago</label><select x-model="form.prestamo.periodicidad"  class="field w-full px-3 py-2.5 text-xs"><template x-for="pd in periodicidades" :key="pd"><option :value="pd" :selected="pd === form.prestamo.periodicidad" x-text="pd"></option></template></select></div><p class="text-[11px] text-slate-500 px-1" x-text="Number(form.prestamo.monto) > 0 ? 'Interés: ' + usd(interesDe(form.prestamo)) + ' · Total a devolver: ' + usd(Number(form.prestamo.monto) + interesDe(form.prestamo)) : ''"></p></div>
+                    <p x-show="err.prestamo" x-text="err.prestamo" class="text-xs font-medium" style="color: var(--danger)"></p>
+                    <button @click="crear('prestamo')" class="btn-primary w-full py-2.5 text-xs">Registrar Préstamo</button>
+                </div>
+    </div>
+
+    <!-- MODAL: NUEVO COBRO -->
+    <div x-show="formAbierto.cobro" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="formAbierto.cobro = false" @keydown.escape.window="formAbierto.cobro = false" role="dialog" aria-modal="true">
+                <div class="card-box modal-card p-6 space-y-4 relative" style="max-width:38rem">
+<button type="button" @click="formAbierto.cobro = false" aria-label="Cerrar" class="btn-circle w-9! h-9! absolute top-4 right-4"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_received"/></svg><span>Registrar cobro</span></h3>
+                        <button type="button" @click="formAbierto.cobro = false; abrirEscaner('cxc')" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-photo_camera"/></svg> Escanear pago móvil</button>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="space-y-1">
+                            <label class="flabel">Cliente con deuda</label>
+                            <select x-model="carteraForm.cxc.contraId" @change="carteraForm.cxc.docId = ''; carteraForm.cxc.monto = ''; carteraForm.cxc.error = ''" class="field w-full px-3 py-2.5 text-xs">
+                                <option value="">Seleccione...</option>
+                                <template x-for="g in cxcGrupos.filter(g => g.saldo > 0.004)" :key="g.id">
+                                    <option :value="g.id" :selected="String(g.id) === String(carteraForm.cxc.contraId)" x-text="`${g.nombre} — $${g.saldo.toFixed(2)}`"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <template x-if="carteraForm.cxc.contraId !== ''">
+                            <div class="space-y-3">
+                                <label class="flabel">Factura a cobrar</label>
+                                <select x-model="carteraForm.cxc.docId" @change="carteraForm.cxc.monto = ''" class="field w-full px-3 py-2.5 text-xs">
+                                    <option value="">Aplicar a las facturas más antiguas primero</option>
+                                    <template x-for="d in facturasPendientes('cxc', carteraForm.cxc.contraId)" :key="d.key">
+                                        <option :value="d.key" :selected="d.key === carteraForm.cxc.docId" x-text="`${d.etiqueta} · ${fmtFecha(d.fecha)} · ${d.productos} · saldo $${d.saldo.toFixed(2)}`"></option>
+                                    </template>
+                                </select>
+                                <div class="panel-inset px-4 py-3 text-xs flex items-center justify-between gap-3">
+                                    <span class="text-slate-500">Saldo a cancelar</span>
+                                    <span class="text-right">
+                                        <b class="text-slate-900" x-text="`$${saldoSeleccion('cxc').toFixed(2)}`"></b>
+                                        <span class="block text-[10px] text-slate-500" x-show="tasaRef > 0" x-text="'≈ Bs. ' + fmtBs(saldoSeleccion('cxc') * tasaRef)"></span>
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div class="space-y-1">
+                            <label class="flabel">Monto abonado ($) o saldo total</label>
+                            <div class="flex gap-2">
+                                <input type="number" min="0" step="0.01" x-model="carteraForm.cxc.monto" @keydown.enter="registrarAbono('cxc')" placeholder="0.00" class="field flex-1 min-w-0 px-4 py-2.5 text-xs">
+                                <button type="button" @click="saldarTodo('cxc')" :disabled="carteraForm.cxc.contraId === ''" class="btn-ghost px-3 py-2.5 text-xs whitespace-nowrap">Saldar total</button>
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="flabel">Fecha</label>
+                            <input type="date" x-model="carteraForm.cxc.fecha" @change="asegurarTasasFecha(carteraForm.cxc.fecha)" class="field w-full px-4 py-2 text-xs">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="flabel">Número de referencia</label>
+                            <input type="text" x-model="carteraForm.cxc.referencia" placeholder="Referencia / comprobante (opcional)" class="field w-full px-4 py-2.5 text-xs">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="flabel">Método de pago</label>
+                                <select x-model="carteraForm.cxc.metodo" @change="carteraForm.cxc.tasa = ''" class="field w-full px-3 py-2.5 text-xs">
+                                    <template x-for="mt in metodosPago" :key="mt"><option :value="mt" :selected="mt === carteraForm.cxc.metodo" x-text="mt"></option></template>
+                                </select>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="flabel">Tasa aplicada (Bs.)</label>
+                                <input type="number" min="0" step="0.0001" x-model.number="carteraForm.cxc.tasa" :placeholder="'Auto: ' + (tasaPorMetodo(carteraForm.cxc.metodo, carteraForm.cxc.fecha) > 0 ? fmtTasa(tasaPorMetodo(carteraForm.cxc.metodo, carteraForm.cxc.fecha)) : 'sin conversión')" class="field w-full px-3 py-2.5 text-xs">
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 px-1" x-show="Number(carteraForm.cxc.monto) > 0" x-text="previewTexto(Number(carteraForm.cxc.monto), carteraForm.cxc).replace('Total:', 'Abono:')"></p>
+                        <p x-show="carteraForm.cxc.error" x-text="carteraForm.cxc.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+                        <button @click="registrarAbono('cxc')" class="btn-primary w-full py-2.5 text-xs">Registrar cobro</button>
+                    </div>
+                </div>
+    </div>
+
+    <!-- MODAL: NUEVO GASTO -->
+    <div x-show="formAbierto.gasto" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="formAbierto.gasto = false" @keydown.escape.window="formAbierto.gasto = false" role="dialog" aria-modal="true">
+                <div class="card-box modal-card p-6 space-y-4 relative" style="max-width:38rem">
+<button type="button" @click="formAbierto.gasto = false" aria-label="Cerrar" class="btn-circle w-9! h-9! absolute top-4 right-4"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-local_shipping"/></svg><span>Registrar Gasto</span></h3>
+                    <div class="space-y-3"><div class="space-y-1"><label class="flabel">Título del gasto</label><input type="text" x-model="form.gasto.titulo" placeholder="Ej. Gasolina, Flete San Juan"  class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Monto ($)</label><input type="number" x-model.number="form.gasto.monto" placeholder="0.00" min="0" step="0.01" class="field w-full px-4 py-2.5 text-xs"></div><div class="space-y-1"><label class="flabel">Fecha</label><input type="date" x-model="form.gasto.fecha" @change="asegurarTasasFecha(form.gasto.fecha)" placeholder=""  class="field w-full px-3 py-2 text-xs"></div></div><div class="space-y-1"><label class="flabel">Categoría</label><input type="text" x-model="form.gasto.categoria" placeholder="Seleccione o escriba una" list="dl-categorias" class="field w-full px-4 py-2.5 text-xs"></div><div class="grid grid-cols-2 gap-3"><div class="space-y-1"><label class="flabel">Método de pago</label><select x-model="form.gasto.metodo" @change="aplicarTasa(form.gasto)" class="field w-full px-3 py-2.5 text-xs"><template x-for="mt in metodosGasto" :key="mt"><option :value="mt" :selected="mt === form.gasto.metodo" x-text="mt"></option></template></select></div><div class="space-y-1"><label class="flabel">Tasa aplicada (Bs.)</label><input type="number" x-model.number="form.gasto.tasa" placeholder="" step="0.0001" min="0" :placeholder="'Auto: ' + (tasaOperacion(form.gasto.metodo, form.gasto.fecha) > 0 ? fmtTasa(tasaOperacion(form.gasto.metodo, form.gasto.fecha)) : 'sin conversión')" class="field w-full px-4 py-2.5 text-xs"></div></div><p class="text-[11px] text-slate-500 px-1" x-text="previewTexto(Number(form.gasto.monto), form.gasto)"></p></div>
+                    <p x-show="err.gasto" x-text="err.gasto" class="text-xs font-medium" style="color: var(--danger)"></p>
+                    <button @click="crear('gasto')" class="btn-primary w-full py-2.5 text-xs">Registrar Gasto</button>
+                </div>
+    </div>
+
+    <!-- MODAL: NUEVO PAGO -->
+    <div x-show="formAbierto.pago" x-cloak x-transition.opacity class="modal-backdrop no-print" @click.self="formAbierto.pago = false" @keydown.escape.window="formAbierto.pago = false" role="dialog" aria-modal="true">
+                <div class="card-box modal-card p-6 space-y-4 relative" style="max-width:38rem">
+<button type="button" @click="formAbierto.pago = false" aria-label="Cerrar" class="btn-circle w-9! h-9! absolute top-4 right-4"><svg class="ic text-lg" aria-hidden="true"><use href="#ic-close"/></svg></button>
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-call_made"/></svg><span>Registrar pago</span></h3>
+                        <button type="button" @click="formAbierto.pago = false; abrirEscaner('cxp')" class="btn-ghost inline-flex items-center gap-2 px-4 py-2 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-photo_camera"/></svg> Escanear pago móvil</button>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="space-y-1">
+                            <label class="flabel">Proveedor con deuda</label>
+                            <select x-model="carteraForm.cxp.contraId" @change="carteraForm.cxp.docId = ''; carteraForm.cxp.monto = ''; carteraForm.cxp.error = ''" class="field w-full px-3 py-2.5 text-xs">
+                                <option value="">Seleccione...</option>
+                                <template x-for="g in cxpGrupos.filter(g => g.saldo > 0.004)" :key="g.id">
+                                    <option :value="g.id" :selected="String(g.id) === String(carteraForm.cxp.contraId)" x-text="`${g.nombre} — $${g.saldo.toFixed(2)}`"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <template x-if="carteraForm.cxp.contraId !== ''">
+                            <div class="space-y-3">
+                                <label class="flabel">Factura / compra a pagar</label>
+                                <select x-model="carteraForm.cxp.docId" @change="carteraForm.cxp.monto = ''" class="field w-full px-3 py-2.5 text-xs">
+                                    <option value="">Aplicar a las facturas más antiguas primero</option>
+                                    <template x-for="d in facturasPendientes('cxp', carteraForm.cxp.contraId)" :key="d.key">
+                                        <option :value="d.key" :selected="d.key === carteraForm.cxp.docId" x-text="`${d.etiqueta} · ${fmtFecha(d.fecha)} · ${d.productos} · saldo $${d.saldo.toFixed(2)}`"></option>
+                                    </template>
+                                </select>
+                                <div class="panel-inset px-4 py-3 text-xs flex items-center justify-between gap-3">
+                                    <span class="text-slate-500">Saldo a cancelar</span>
+                                    <span class="text-right">
+                                        <b class="text-slate-900" x-text="`$${saldoSeleccion('cxp').toFixed(2)}`"></b>
+                                        <span class="block text-[10px] text-slate-500" x-show="tasaRef > 0" x-text="'≈ Bs. ' + fmtBs(saldoSeleccion('cxp') * tasaRef)"></span>
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <div class="space-y-1">
+                            <label class="flabel">Monto abonado ($) o saldo total</label>
+                            <div class="flex gap-2">
+                                <input type="number" min="0" step="0.01" x-model="carteraForm.cxp.monto" @keydown.enter="registrarAbono('cxp')" placeholder="0.00" class="field flex-1 min-w-0 px-4 py-2.5 text-xs">
+                                <button type="button" @click="saldarTodo('cxp')" :disabled="carteraForm.cxp.contraId === ''" class="btn-ghost px-3 py-2.5 text-xs whitespace-nowrap">Saldar total</button>
+                            </div>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="flabel">Fecha</label>
+                            <input type="date" x-model="carteraForm.cxp.fecha" @change="asegurarTasasFecha(carteraForm.cxp.fecha)" class="field w-full px-4 py-2 text-xs">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="flabel">Número de referencia</label>
+                            <input type="text" x-model="carteraForm.cxp.referencia" placeholder="Referencia / comprobante (opcional)" class="field w-full px-4 py-2.5 text-xs">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="flabel">Método de pago</label>
+                                <select x-model="carteraForm.cxp.metodo" @change="carteraForm.cxp.tasa = ''" class="field w-full px-3 py-2.5 text-xs">
+                                    <template x-for="mt in metodosPago" :key="mt"><option :value="mt" :selected="mt === carteraForm.cxp.metodo" x-text="mt"></option></template>
+                                </select>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="flabel">Tasa aplicada (Bs.)</label>
+                                <input type="number" min="0" step="0.0001" x-model.number="carteraForm.cxp.tasa" :placeholder="'Auto: ' + (tasaPorMetodo(carteraForm.cxp.metodo, carteraForm.cxp.fecha) > 0 ? fmtTasa(tasaPorMetodo(carteraForm.cxp.metodo, carteraForm.cxp.fecha)) : 'sin conversión')" class="field w-full px-3 py-2.5 text-xs">
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 px-1" x-show="Number(carteraForm.cxp.monto) > 0" x-text="previewTexto(Number(carteraForm.cxp.monto), carteraForm.cxp).replace('Total:', 'Abono:')"></p>
+                        <p x-show="carteraForm.cxp.error" x-text="carteraForm.cxp.error" class="text-xs font-medium" style="color: var(--danger)"></p>
+                        <button @click="registrarAbono('cxp')" class="btn-primary w-full py-2.5 text-xs">Registrar pago</button>
+                    </div>
+                </div>
+    </div>
+
     <!-- SCRIPT DE LÓGICA ALPINE.JS -->
     <script>
         const CH = {}; // instancias de Chart.js (fuera del estado reactivo)
@@ -2615,8 +2665,8 @@
                     { id: 'ventas', name: 'Venta', icon: 'shopping_cart' },
                     { id: 'finanzas', name: 'Finanzas', icon: 'account_balance_wallet', children: [
                         { id: 'pagos', name: 'Pagos', icon: 'call_made' },
-                        { id: 'gastos', name: 'Gastos', icon: 'local_shipping' },
                         { id: 'cobranzas', name: 'Cobranzas', icon: 'call_received' },
+                        { id: 'gastos', name: 'Gastos', icon: 'local_shipping' },
                         { id: 'prestamos', name: 'Préstamos', icon: 'credit_card' }
                     ] }
                 ],
@@ -3279,12 +3329,16 @@
                 },
 
                 // ===================== INVENTARIO: VER / MERMAS / AJUSTE =====================
-                formAbierto: { compra: false, venta: false },
+                formAbierto: { compra: false, venta: false, pago: false, cobro: false, gasto: false, prestamo: false },
                 invAbierto: false,
                 mermas: [],        // { id, fecha, productoId, cantidadKg, motivo, nota }
                 motivosMerma: ['Merma natural / pérdida de peso', 'Daño o descomposición', 'Producto vencido', 'Ajuste por conteo físico', 'Otro'],
                 mf: { modo: 'merma', productoId: '', cantidad: '', real: '', fecha: '', motivo: 'Merma natural / pérdida de peso', nota: '', error: '', ok: '' },
-                abrirForm(tipo) { this.err[tipo] = ''; this.formAbierto[tipo] = true; },
+                abrirForm(tipo) {
+                    if (tipo === 'pago' || tipo === 'cobro') { const f = this.carteraForm[tipo === 'pago' ? 'cxp' : 'cxc']; f.error = ''; if (!f.fecha) f.fecha = this.hoy(); }
+                    else this.err[tipo] = '';
+                    this.formAbierto[tipo] = true;
+                },
                 abrirInventario() { this.mf = { modo: 'merma', productoId: '', cantidad: '', real: '', fecha: this.hoy(), motivo: this.motivosMerma[0], nota: '', error: '', ok: '' }; this.invAbierto = true; },
                 get mermasList() {
                     const inv = this.inventarioCalc;
@@ -3748,7 +3802,7 @@
                     const vence = base.vence || null;
                     const vencido = saldo > 0.004 && !!vence && vence < hoy;
                     const estado = saldo <= 0.004 ? 'Pagada' : vencido ? 'Vencida' : abonado > 0 ? 'Parcial' : 'Pendiente';
-                    return { id: base.id, contraId, contraNombre, producto: base.producto, cantidad: base.cantidadKg, fecha, vence, total: this.r2(total), abonos, abonado, saldo, vencido, estado };
+                    return { id: base.id, docKey: this.claveDoc(base), nro: base.nro, contraId, contraNombre, producto: base.producto, cantidad: base.cantidadKg, fecha, vence, total: this.r2(total), abonos, abonado, saldo, vencido, estado };
                 },
                 get cxcDocs() {
                     return this.ventasList.filter(v => v.tipoPago === 'Credito').map(v => this.armarDoc(v, v.clienteId, v.clienteNombre, v.total, v.fecha));
@@ -3765,13 +3819,14 @@
                         g.total += d.total; g.abonado += d.abonado; g.saldo += d.saldo;
                         if (d.vencido) g.vencido += d.saldo;
                         d.abonos.forEach(a => {
-                            g.abonos.push({ ...a, docId: d.id, ref: `${d.producto} (${this.fmtFecha(d.fecha)})` });
+                            g.abonos.push({ ...a, docId: d.id, ref: `${d.nro ? 'Factura N° ' + String(d.nro).padStart(6, '0') : 'Compra'} · ${d.producto} (${this.fmtFecha(d.fecha)})` });
                             if (!g.ultimoPago || (a.fecha || '') > g.ultimoPago) g.ultimoPago = a.fecha;
                         });
                     });
                     return Object.values(m).map(g => {
                         g.total = this.r2(g.total); g.abonado = this.r2(g.abonado); g.saldo = this.r2(g.saldo); g.vencido = this.r2(g.vencido);
                         g.docs.sort((a, b) => b.id - a.id);
+                        g.facturas = this.facturasDe(g.docs).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.minId - a.minId);
                         g.abonos.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || b.id - a.id);
                         return g;
                     }).sort((a, b) => b.saldo - a.saldo || String(a.nombre).localeCompare(String(b.nombre)));
@@ -3802,6 +3857,28 @@
 
                 badgeEstado(e) { return e === 'Pagada' ? 'badge-ok' : e === 'Vencida' ? 'badge-danger' : e === 'Parcial' ? 'badge-warn' : 'badge-info'; },
                 toggleCartera(kind, id) { this.carteraAbierto[kind][id] = !this.carteraAbierto[kind][id]; },
+                // Agrupa las líneas (un producto por línea) en facturas / compras completas
+                facturasDe(docs) {
+                    const m = new Map();
+                    docs.forEach(d => {
+                        const f = m.get(d.docKey) || { key: d.docKey, nro: d.nro, fecha: d.fecha, vence: d.vence, lineas: [], productosL: [], cantidad: 0, total: 0, abonado: 0, saldo: 0, vencido: false, minId: d.id };
+                        f.lineas.push(d); if (d.producto && !f.productosL.includes(d.producto)) f.productosL.push(d.producto);
+                        f.cantidad += Number(d.cantidad) || 0; f.total += d.total; f.abonado += d.abonado; f.saldo += d.saldo;
+                        if (d.vencido) f.vencido = true;
+                        f.minId = Math.min(f.minId, d.id);
+                        m.set(d.docKey, f);
+                    });
+                    return [...m.values()].map(f => {
+                        f.total = this.r2(f.total); f.abonado = this.r2(f.abonado); f.saldo = this.r2(f.saldo); f.cantidad = this.r2(f.cantidad);
+                        f.productos = f.productosL.join(', ');
+                        f.etiqueta = f.nro ? 'Factura N° ' + String(f.nro).padStart(6, '0') : 'Compra';
+                        f.estado = f.saldo <= 0.004 ? 'Pagada' : f.vencido ? 'Vencida' : f.abonado > 0 ? 'Parcial' : 'Pendiente';
+                        return f;
+                    });
+                },
+                facturasPendientes(kind, contraId) {
+                    return this.facturasDe(this.docsPendientes(kind, contraId)).sort((a, b) => (a.fecha || '').localeCompare(b.fecha || '') || a.minId - b.minId);
+                },
                 docsPendientes(kind, contraId) {
                     const docs = kind === 'cxc' ? this.cxcDocs : this.cxpDocs;
                     return docs.filter(d => String(d.contraId) === String(contraId) && d.saldo > 0.004).sort((a, b) => a.id - b.id);
@@ -3810,7 +3887,7 @@
                     const f = this.carteraForm[kind];
                     if (f.contraId === '') return [];
                     const pend = this.docsPendientes(kind, f.contraId);
-                    return f.docId === '' ? pend : pend.filter(d => String(d.id) === String(f.docId));
+                    return f.docId === '' ? pend : pend.filter(d => d.docKey === f.docId);
                 },
                 saldoSeleccion(kind) { return this.r2(this.docsObjetivo(kind).reduce((acc, d) => acc + d.saldo, 0)); },
                 saldarTodo(kind) {
@@ -3850,6 +3927,7 @@
                     }
                     this.carteraAbierto[kind][f.contraId] = true;
                     const quedan = this.docsPendientes(kind, f.contraId).length > 0;
+                    this.formAbierto[kind === 'cxc' ? 'cobro' : 'pago'] = false;
                     f.docId = ''; f.monto = ''; f.referencia = ''; f.tasa = ''; f.fecha = this.hoy();
                     if (!quedan) f.contraId = '';
                 },
@@ -4688,7 +4766,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                         document.addEventListener('touchend', (e) => {
                             if (!activo || window.innerWidth >= 1024) return;
                             activo = false;
-                            if (this.modal.abierto || this.modalDoc.abierto || this.datosEmpresaAbierto || this.factura.abierto || this.escaner.abierto || this.mp.abierto || this.gv.abierto || this.formAbierto.compra || this.formAbierto.venta || this.invAbierto) return;
+                            if (this.modal.abierto || this.modalDoc.abierto || this.datosEmpresaAbierto || this.factura.abierto || this.escaner.abierto || this.mp.abierto || this.gv.abierto || Object.values(this.formAbierto).some(Boolean) || this.invAbierto) return;
                             const t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
                             if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
                             if (!this.sidebarOpen && tx < 30 && dx > 0) this.sidebarOpen = true;
