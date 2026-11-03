@@ -761,6 +761,10 @@
         </button>
     </header>
 
+    <div x-show="guardadoLocalError" x-cloak class="fixed top-20 left-3 right-3 lg:left-72 z-[70] card-box p-3 border border-rose-500/50 shadow-xl no-print" role="alert">
+        <div class="flex flex-wrap items-center justify-between gap-3"><p class="text-xs font-semibold" style="color:var(--danger)" x-text="guardadoLocalError"></p><button type="button" @click="reintentarGuardadoLocal()" class="btn-primary px-3 py-2 text-xs">Reintentar guardado</button></div>
+    </div>
+
     <!-- OVERLAY MÓVIL -->
     <div x-show="sidebarOpen" x-cloak x-transition.opacity @click="sidebarOpen = false" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 lg:hidden no-print"></div>
 
@@ -915,7 +919,7 @@
                         <p class="stat-label" x-text="'Ganancia neta real · ' + periodoLabel.toLowerCase()"></p>
                         <h4 class="stat-value" x-text="`$${gananciaNetaPeriodo.toFixed(2)}`"></h4>
                         <p class="stat-bs" x-show="gananciaNetaPeriodoBs !== 0" x-text="'≈ Bs. ' + fmtBs(gananciaNetaPeriodoBs)"></p>
-                        <p class="stat-bs" x-show="interesesPeriodo > 0" x-text="'Ya descuenta intereses de préstamos: −$' + interesesPeriodo.toFixed(2)"></p>
+                        
                     </div>
                     <span class="chip self-start" x-text="ventasPeriodo > 0 ? (gananciaNetaPeriodo / ventasPeriodo * 100).toFixed(1) + '% de margen s/ ventas del período' : 'Sin ventas en este período'"></span>
                     <span class="wm" aria-hidden="true">NETO</span>
@@ -926,7 +930,7 @@
                         <p class="stat-label" x-text="'Gastos · ' + periodoLabel.toLowerCase()"></p>
                         <h4 class="stat-value" x-text="`$${gastosPeriodo.toFixed(2)}`"></h4>
                         <p class="stat-bs" x-show="gastosPeriodoBs !== 0" x-text="'≈ Bs. ' + fmtBs(gastosPeriodoBs)"></p>
-                        <p class="stat-bs" x-show="interesesPeriodo > 0" x-text="'Incluye intereses de préstamos: $' + interesesPeriodo.toFixed(2)"></p>
+                        
                     </div>
                 </div>
                 <div class="card-box float stat-card">
@@ -949,17 +953,17 @@
                 </div>
             </div>
 
-            <!-- Desglose de la ganancia neta (incluye intereses de préstamos) -->
+            <!-- Desglose de la ganancia neta -->
             <div class="card-box p-5 md:p-6 space-y-4">
                 <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-account_balance_wallet"/></svg><span x-text="'Cómo se calcula la ganancia neta · ' + periodoLabel.toLowerCase()"></span></h3>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div class="panel-inset px-4 py-3"><p class="stat-label">Ganancia de ventas</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(serieFinanzas.tot.gananciaVentas)"></p><p class="text-[10px] text-slate-500">Ventas − costo de lo vendido</p></div>
                     <div class="panel-inset px-4 py-3"><p class="stat-label">− Gastos operativos</p><p class="font-display font-extrabold text-lg text-slate-900" x-text="usd(Math.max(gastosPeriodo - interesesPeriodo - serieFinanzas.tot.mermas, 0))"></p></div>
                     <div class="panel-inset px-4 py-3" x-show="serieFinanzas.tot.mermas > 0"><p class="stat-label">− Mermas</p><p class="font-display font-extrabold text-lg" style="color: var(--warn)" x-text="usd(serieFinanzas.tot.mermas)"></p><p class="text-[10px] text-slate-500">Costo del producto perdido</p></div>
-                    <div class="panel-inset px-4 py-3"><p class="stat-label">− Intereses de préstamos</p><p class="font-display font-extrabold text-lg" style="color: var(--warn)" x-text="usd(interesesPeriodo)"></p><p class="text-[10px] text-slate-500" x-show="serieFinanzas.tot.interesesBs > 0" x-text="'≈ Bs. ' + fmtBs(serieFinanzas.tot.interesesBs)"></p></div>
+                    
                     <div class="panel-inset px-4 py-3"><p class="stat-label">= Ganancia neta</p><p class="font-display font-extrabold text-lg" :style="gananciaNetaPeriodo < 0 ? 'color: var(--danger)' : 'color: var(--accent-text)'" x-text="usd(gananciaNetaPeriodo)"></p></div>
                 </div>
-                <p class="text-[11px] text-slate-500">Los intereses no se asignan a ninguna compra ni venta: se descuentan del período como costo financiero. Si el préstamo tiene fecha fin, solo se resta la parte proporcional a los días que caen dentro del rango elegido.</p>
+                <p class="text-[11px] text-slate-500">La ganancia neta descuenta los gastos operativos y las mermas registradas en el período.</p>
             </div>
 
             <!-- Gráfica de finanzas -->
@@ -1297,6 +1301,43 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- REGISTRO: PRECIOS DE PROVEEDORES (solo comparativo; no afecta operaciones ni estadísticas) -->
+        <div x-show="currentTab === 'precios'" x-cloak class="space-y-6">
+            <div class="card-box p-5 space-y-2">
+                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-attach_money"/></svg><span>Listas de precios</span></h3>
+                <p class="text-xs text-slate-500">Registra cotizaciones para comparar proveedores. Estos datos son informativos y no modifican compras, inventario, cuentas por pagar ni estadísticas.</p>
+            </div>
+            <div class="card-box p-5 md:p-6 space-y-4">
+                <h3 class="section-title">Nueva lista de precios</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="space-y-1"><label class="flabel">Proveedor</label><select x-model="preciosForm.proveedorId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione proveedor...</option><template x-for="p in proveedores" :key="p.id"><option :value="p.id" x-text="nombreProveedor(p)"></option></template></select></div>
+                    <div class="space-y-1"><label class="flabel">Fecha de la lista</label><input type="date" x-model="preciosForm.fecha" class="field w-full px-3 py-2.5 text-xs"></div>
+                    <div class="space-y-1"><label class="flabel">Condición de pago</label><select x-model="preciosForm.tipoPago" class="field w-full px-3 py-2.5 text-xs"><option value="Contado">Contado</option><option value="Credito">A crédito</option></select></div>
+                </div>
+                <div class="space-y-3">
+                    <template x-for="(it, i) in preciosForm.items" :key="i">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-end panel-inset p-3">
+                            <div class="md:col-span-4 space-y-1"><label class="flabel">Producto</label><select x-model="it.productoId" class="field w-full px-3 py-2.5 text-xs"><option value="">Seleccione producto...</option><template x-for="p in productos" :key="p.id"><option :value="p.id" x-text="p.nombre"></option></template></select></div>
+                            <div class="md:col-span-2 space-y-1"><label class="flabel">Precio ($)</label><input type="number" min="0" step="0.01" x-model="it.precio" placeholder="0.00" class="field w-full px-3 py-2.5 text-xs"></div>
+                            <div class="md:col-span-5 space-y-1"><label class="flabel">Nota</label><input type="text" x-model="it.nota" placeholder="Presentación, condiciones, observaciones..." class="field w-full px-3 py-2.5 text-xs"></div>
+                            <div class="md:col-span-1 flex justify-end"><button type="button" x-show="preciosForm.items.length > 1" @click="preciosForm.items.splice(i,1)" class="btn-ghost px-3 py-2 text-xs" title="Quitar producto">✕</button></div>
+                        </div>
+                    </template>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <button type="button" @click="preciosForm.items.push({ productoId: '', precio: '', nota: '' })" class="btn-ghost px-4 py-2.5 text-xs">＋ Agregar otro producto</button>
+                    <button type="button" @click="guardarListaPrecios()" class="btn-primary px-5 py-2.5 text-xs">Guardar lista</button>
+                </div>
+                <p x-show="preciosForm.error" x-text="preciosForm.error" class="text-xs" style="color:var(--danger)"></p>
+            </div>
+            <div class="card-box p-5 md:p-6 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3"><h3 class="section-title">Comparativa por producto</h3><select x-model="filtroPrecioProducto" class="field px-3 py-2 text-xs"><option value="">Todos los productos</option><template x-for="p in productos" :key="p.id"><option :value="String(p.id)" x-text="p.nombre"></option></template></select></div>
+                <div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2.5 px-3">Producto</th><th class="py-2.5 px-3">Proveedor</th><th class="py-2.5 px-3">Fecha</th><th class="py-2.5 px-3">Pago</th><th class="py-2.5 px-3">Precio</th><th class="py-2.5 px-3">Nota</th></tr></thead><tbody class="divide-y divide-slate-100 text-xs"><template x-if="comparativaPrecios.length === 0"><tr><td colspan="6" class="py-6 text-center text-slate-400">Todavía no hay precios registrados para este filtro.</td></tr></template><template x-for="r in comparativaPrecios" :key="r.id"><tr><td class="py-2.5 px-3 font-semibold text-slate-900" x-text="r.producto"></td><td class="py-2.5 px-3" x-text="r.proveedor"></td><td class="py-2.5 px-3 whitespace-nowrap" x-text="fmtFecha(r.fecha)"></td><td class="py-2.5 px-3" x-text="r.tipoPago === 'Credito' ? 'Crédito' : 'Contado'"></td><td class="py-2.5 px-3 font-bold" x-text="usd(r.precio)"></td><td class="py-2.5 px-3 text-slate-500" x-text="r.nota || '—'"></td></tr></template></tbody></table></div>
+                <p class="text-[11px] text-slate-500">Los precios se muestran del menor al mayor dentro de cada producto para facilitar la evaluación. Considera también las notas y la condición de pago antes de decidir.</p>
+            </div>
+            <div class="card-box p-5 space-y-3"><h3 class="section-title">Listas guardadas</h3><template x-if="listasPrecios.length === 0"><p class="text-xs text-slate-500">No hay listas guardadas.</p></template><template x-for="l in listasPrecios.slice().sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))" :key="l.id"><div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 py-2"><div><p class="text-xs font-semibold" x-text="nombreProveedor(proveedores.find(p=>String(p.id)===String(l.proveedorId)) || {nombre:'Proveedor eliminado'})"></p><p class="text-[11px] text-slate-500" x-text="fmtFecha(l.fecha) + ' · ' + (l.tipoPago === 'Credito' ? 'Crédito' : 'Contado') + ' · ' + l.items.length + ' producto(s)'"></p></div><button type="button" @click="eliminarListaPrecios(l.id)" class="text-rose-600 hover:underline text-xs">Eliminar</button></div></template></div>
         </div>
 
         <!-- PEDIDOS (anotación interna, no afecta finanzas) -->
@@ -1926,65 +1967,6 @@
             </div>
         </div>
 
-        <!-- FINANZAS: PRÉSTAMOS -->
-        <div x-show="currentTab === 'prestamos'" x-cloak class="space-y-6">
-            <div class="card-box p-5 flex flex-wrap items-center justify-between gap-3 no-print">
-                <h3 class="section-title"><svg class="ic" aria-hidden="true"><use href="#ic-credit_card"/></svg><span>Préstamos</span></h3>
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" @click="abrirForm('prestamo')" class="btn-primary px-5 py-2.5 text-xs"><svg class="ic text-base" aria-hidden="true"><use href="#ic-add_circle"/></svg> Nuevo préstamo</button>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5">
-                <div class="card-box float stat-card">
-                    <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-account_balance_wallet"/></svg></span>
-                    <div class="space-y-1.5 min-w-0">
-                        <p class="stat-label">Total prestado</p>
-                        <h4 class="stat-value" x-text="usd(totalPrestado)"></h4>
-                        <p class="stat-bs" x-show="totalPrestadoBs !== 0" x-text="'≈ Bs. ' + fmtBs(totalPrestadoBs)"></p>
-                    </div>
-                </div>
-                <div class="card-box float stat-card">
-                    <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-credit_card"/></svg></span>
-                    <div class="space-y-1.5 min-w-0">
-                        <p class="stat-label">Intereses totales</p>
-                        <h4 class="stat-value" x-text="usd(totalIntereses)"></h4>
-                        <p class="stat-bs" x-show="totalInteresesBs !== 0" x-text="'≈ Bs. ' + fmtBs(totalInteresesBs)"></p>
-                    </div>
-                </div>
-                <div class="card-box float stat-card">
-                    <span class="stat-icon"><svg class="ic text-2xl" aria-hidden="true"><use href="#ic-receipt_long"/></svg></span>
-                    <div class="space-y-1.5 min-w-0">
-                        <p class="stat-label">Total a devolver</p>
-                        <h4 class="stat-value" x-text="usd(totalPrestado + totalIntereses)"></h4>
-                        <p class="stat-bs" x-show="totalPrestadoBs + totalInteresesBs !== 0" x-text="'≈ Bs. ' + fmtBs(totalPrestadoBs + totalInteresesBs)"></p>
-                    </div>
-                </div>
-            </div>
-            <div class="space-y-6">
-                <div class="card-box p-6 space-y-4">
-                    <h3 class="section-title"><svg class="ic " aria-hidden="true"><use href="#ic-credit_card"/></svg><span>Préstamos Recibidos</span></h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead><tr class="border-b border-slate-200 text-slate-500 text-xs"><th class="py-2.5 px-3">Prestamista</th><th class="py-2.5 px-3">Vigencia</th><th class="py-2.5 px-3">Monto</th><th class="py-2.5 px-3">Interés</th><th class="py-2.5 px-3">A devolver</th><th class="py-2.5 px-3">Periodicidad</th><th class="py-2.5 px-3 text-right no-print">Acción</th></tr></thead>
-                            <tbody class="divide-y divide-slate-100 text-xs">
-                                <template x-if="prestamosOrdenados.length === 0">
-                                    <tr><td colspan="7" class="py-5 text-center text-slate-400 italic">No se han registrado préstamos.</td></tr>
-                                </template>
-                                <template x-for="r in prestamosOrdenados" :key="r.id">
-                                    <tr>
-<td class="py-2.5 px-3 text-slate-900 font-medium" x-text="r.prestamista"></td>
-<td class="py-2.5 px-3 text-slate-500 whitespace-nowrap"><span x-text="fmtFecha(r.fecha)"></span><span class="block text-[10px]" x-text="r.fechaFin ? 'hasta ' + fmtFecha(r.fechaFin) + ' · interés repartido' : 'interés en un solo cargo'"></span></td>
-<td class="py-2.5 px-3 text-slate-900"><span class="block" x-text="usd(r.monto)"></span><span class="block text-[10px] text-slate-500" x-text="bsPrestamoFijo(r) > 0 ? 'Bs. ' + fmtBs(bsPrestamoFijo(r)) : ''"></span><span class="block text-[10px] text-slate-400" x-show="bsPrestamoFijo(r) > 0" x-text="'Tasa ' + fmtTasa(r.tasa) + ' · ' + fmtFecha(r.tasaFecha || r.fecha)"></span></td>
-<td class="py-2.5 px-3 text-slate-600" x-text="`${r.interes}% · ${usd(interesDe(r))}`"></td>
-<td class="py-2.5 px-3 text-slate-900 font-semibold" x-text="usd(Number(r.monto) + interesDe(r))"></td>
-<td class="py-2.5 px-3"><span class="badge" x-text="r.periodicidad"></span></td><td class="py-2.5 px-3 text-right no-print whitespace-nowrap space-x-3"><button @click="abrirModal('prestamo', r)" class="text-blue-600 hover:underline cursor-pointer font-medium">Editar</button><button @click="eliminar('prestamo', r.id)" class="text-rose-600 hover:underline cursor-pointer font-medium">Eliminar</button></td></tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
 
     </div>
 
@@ -2982,7 +2964,8 @@
                     { id: 'registro', name: 'Registro', icon: 'assignment', children: [
                         { id: 'proveedores', name: 'Proveedores', icon: 'group' },
                         { id: 'clientes', name: 'Clientes', icon: 'store' },
-                        { id: 'productos', name: 'Productos', icon: 'inventory_2' }
+                        { id: 'productos', name: 'Productos', icon: 'inventory_2' },
+                        { id: 'precios', name: 'Precios', icon: 'sell' }
                     ] },
                     { id: 'pedidos', name: 'Pedidos', icon: 'assignment' },
                     { id: 'compras', name: 'Compra', icon: 'receipt_long' },
@@ -2990,8 +2973,7 @@
                     { id: 'finanzas', name: 'Finanzas', icon: 'account_balance_wallet', children: [
                         { id: 'pagos', name: 'Pagos', icon: 'call_made' },
                         { id: 'cobranzas', name: 'Cobranzas', icon: 'call_received' },
-                        { id: 'gastos', name: 'Gastos', icon: 'local_shipping' },
-                        { id: 'prestamos', name: 'Préstamos', icon: 'credit_card' }
+                        { id: 'gastos', name: 'Gastos', icon: 'local_shipping' }
                     ] }
                 ],
                 irA(id) {
@@ -3018,6 +3000,10 @@
                 compras: [],       // { id, docId, fecha, proveedorId, productoId, precioKg, cantidadKg, metodo, tasa, tasaEur, tipoPago, diasCredito, vence, abonos[] }
                 ventas: [],        // { id, docId, nro, fecha, clienteId, productoId, precioKg, cantidadKg, metodo, tasa, tasaEur, tipoPago, diasCredito, vence, abonos[] }
                 gastos: [],        // { id, titulo, monto, fecha, categoria, metodo, tasa }
+                listasPrecios: [], // { id, proveedorId, fecha, tipoPago, items:[{productoId, precio, nota}] }
+                preciosForm: { proveedorId: '', fecha: '', tipoPago: 'Contado', items: [{ productoId: '', precio: '', nota: '' }], error: '' },
+                filtroPrecioProducto: '',
+                guardadoLocalError: '',
                 prestamos: [],     // { id, prestamista, monto, interes, fecha, periodicidad }
                 _ultimoId: 0,
                 nube: { estado: '', ultima: null },
@@ -3471,12 +3457,36 @@
                     return s;
                 },
 
+                // ===================== LISTAS DE PRECIOS (datos informativos) =====================
+                get comparativaPrecios() {
+                    const out = [];
+                    this.listasPrecios.forEach(l => (l.items || []).forEach((it, idx) => {
+                        if (this.filtroPrecioProducto && String(it.productoId) !== String(this.filtroPrecioProducto)) return;
+                        const p = this.productos.find(x => String(x.id) === String(it.productoId));
+                        const prov = this.proveedores.find(x => String(x.id) === String(l.proveedorId));
+                        out.push({ id: `${l.id}-${idx}`, productoId: it.productoId, producto: p ? p.nombre : 'Producto eliminado', proveedor: prov ? this.nombreProveedor(prov) : 'Proveedor eliminado', fecha: l.fecha, tipoPago: l.tipoPago, precio: Number(it.precio), nota: it.nota || '' });
+                    }));
+                    return out.sort((a,b) => a.producto.localeCompare(b.producto) || a.precio-b.precio || (b.fecha||'').localeCompare(a.fecha||''));
+                },
+                guardarListaPrecios() {
+                    const f = this.preciosForm;
+                    const items = (f.items || []).filter(x => x.productoId !== '' && x.precio !== '' && Number.isFinite(Number(x.precio)) && Number(x.precio) >= 0).map(x => ({ productoId: Number(x.productoId), precio: this.r2(Number(x.precio)), nota: String(x.nota || '').trim() }));
+                    if (!f.proveedorId || !f.fecha || !items.length) { f.error = 'Selecciona proveedor, fecha y agrega al menos un producto con su precio válido.'; return; }
+                    this.listasPrecios.push({ id: this.nuevoId(), proveedorId: Number(f.proveedorId), fecha: f.fecha, tipoPago: f.tipoPago === 'Credito' ? 'Credito' : 'Contado', items });
+                    this.preciosForm = { proveedorId: '', fecha: this.hoy(), tipoPago: 'Contado', items: [{ productoId: '', precio: '', nota: '' }], error: '' };
+                    this.currentTab = 'precios';
+                },
+                eliminarListaPrecios(id) {
+                    if (!confirm('¿Eliminar esta lista de precios?')) return;
+                    this.listasPrecios = this.listasPrecios.filter(x => x.id !== id);
+                },
+
                 // ===================== PERSISTENCIA / RESPALDO =====================
                 snapshot() {
                     return {
                         version: 3,
                         proveedores: this.proveedores, clientes: this.clientes, productos: this.productos,
-                        compras: this.compras, ventas: this.ventas, gastos: this.gastos, prestamos: this.prestamos, pedidos: this.pedidos, mermas: this.mermas, saldosFavor: this.saldosFavor,
+                        compras: this.compras, ventas: this.ventas, gastos: this.gastos, listasPrecios: this.listasPrecios, prestamos: this.prestamos, pedidos: this.pedidos, mermas: this.mermas, saldosFavor: this.saldosFavor,
                         tasas: { usd: this.tasas.usd, eur: this.tasas.eur, usdt: this.tasas.usdt, refer: this.tasas.refer },
                         historialTasas: this.historialTasas,
                         empresa: this.empresa, papelera: this.papelera
@@ -3484,8 +3494,15 @@
                 },
                 guardarTodo() {
                     if (window.__saliendo) return;
-                    try { localStorage.setItem(CLAVE_DATOS, JSON.stringify(this.snapshot())); } catch (e) { /* almacenamiento no disponible */ }
+                    try {
+                        localStorage.setItem(CLAVE_DATOS, JSON.stringify(this.snapshot()));
+                        this.guardadoLocalError = '';
+                    } catch (e) {
+                        this.guardadoLocalError = 'No se pudo guardar en este dispositivo. Es posible que el almacenamiento esté lleno o bloqueado. Descarga un respaldo y libera espacio antes de continuar.';
+                        console.error('Error al guardar datos localmente:', e);
+                    }
                 },
+                reintentarGuardadoLocal() { this.guardarTodo(); },
                 cargarGuardado() {
                     try {
                         const raw = localStorage.getItem(CLAVE_DATOS);
@@ -3497,7 +3514,7 @@
                     if (p && p.version >= 3) {
                         return {
                             proveedores: p.proveedores || [], clientes: p.clientes || [], productos: p.productos || [],
-                            compras: p.compras || [], ventas: p.ventas || [], gastos: p.gastos || [], prestamos: p.prestamos || [], pedidos: p.pedidos || [], mermas: p.mermas || [], saldosFavor: p.saldosFavor || [], tasas: p.tasas, historialTasas: p.historialTasas || {}, empresa: p.empresa, papelera: p.papelera || []
+                            compras: p.compras || [], ventas: p.ventas || [], gastos: p.gastos || [], listasPrecios: p.listasPrecios || [], prestamos: p.prestamos || [], pedidos: p.pedidos || [], mermas: p.mermas || [], saldosFavor: p.saldosFavor || [], tasas: p.tasas, historialTasas: p.historialTasas || {}, empresa: p.empresa, papelera: p.papelera || []
                         };
                     }
                     const hoy = this.hoy();
@@ -3530,12 +3547,12 @@
                     });
                     const gastos = (p.logistica || []).map(l => ({ id: l.id, titulo: l.descripcion || 'Gasto', monto: Number(l.costo), fecha: hoy, categoria: 'Logística', metodo: 'Efectivo', tasa: 0 }));
                     const prestamos = (p.prestamos || []).map(x => ({ id: x.id, prestamista: x.prestamista || x.descripcion || 'Prestamista', monto: Number(x.monto), interes: Number(x.interes || 0), fecha: x.fecha || hoy, periodicidad: x.periodicidad || 'Pago único' }));
-                    return { proveedores, clientes, productos, compras, ventas, gastos, prestamos, tasas: p.tasas };
+                    return { proveedores, clientes, productos, compras, ventas, gastos, listasPrecios: [], prestamos, tasas: p.tasas };
                 },
                 aplicarDatos(parsed, guardar = true) {
                     const d = this.migrarDatos(parsed);
                     this.proveedores = d.proveedores; this.clientes = d.clientes; this.productos = d.productos;
-                    this.compras = d.compras; this.ventas = d.ventas; this.gastos = d.gastos; this.prestamos = d.prestamos; this.pedidos = d.pedidos || []; this.mermas = d.mermas || []; this.saldosFavor = d.saldosFavor || [];
+                    this.compras = d.compras; this.ventas = d.ventas; this.gastos = d.gastos; this.listasPrecios = d.listasPrecios || []; this.prestamos = d.prestamos; this.pedidos = d.pedidos || []; this.mermas = d.mermas || []; this.saldosFavor = d.saldosFavor || [];
                     this.historialTasas = { ...this.historialTasas, ...(d.historialTasas || {}) };
                     if (d.empresa) Object.assign(this.empresa, d.empresa);
                     this.papelera = d.papelera || [];
@@ -4154,7 +4171,6 @@
                 get egresos() {
                     return [
                         ...this.gastos.map(g => ({ fecha: g.fecha, monto: Number(g.monto), bs: this.bsGasto(g) })),
-                        ...this.interesesDevengados.map(e => ({ fecha: e.fecha, monto: e.monto, bs: e.bs })),
                         ...this.mermasList.map(m => ({ fecha: m.fecha, monto: m.costo, bs: m.costoBs }))
                     ];
                 },
@@ -4246,7 +4262,6 @@
                     const ex = { gv: 0, gvBs: 0, int: 0, intBs: 0, mer: 0 };
                     this.ventasList.forEach(v => { const i = k(v.fecha); if (i !== undefined) { S.ventas[i] += v.total; S.ganancia[i] += v.ganancia; bsT.ventas += v.totalBsEst; ex.gv += v.ganancia; ex.gvBs += v.gananciaBs; } });
                     this.comprasList.forEach(c => { const i = k(c.fecha); if (i !== undefined) { S.compras[i] += c.total; bsT.compras += c.totalBsEst; } });
-                    this.interesesDevengados.forEach(e => { const i = k(e.fecha); if (i !== undefined) { ex.int += e.monto; ex.intBs += e.bs; } });
                     this.mermasList.forEach(m => { const i = k(m.fecha); if (i !== undefined) ex.mer += m.costo; });
                     this.egresos.forEach(e => { const i = k(e.fecha); if (i !== undefined) { S.gastos[i] += e.monto; S.ganancia[i] -= e.monto; bsT.gastos += e.bs; } });
                     ['ventas', 'compras', 'gastos', 'ganancia'].forEach(key => { S[key] = S[key].map(v => this.r2(v)); });
@@ -4260,7 +4275,7 @@
                 get comprasPeriodoBs() { return this.serieFinanzas.tot.comprasBs; },
                 get gastosPeriodo() { return this.serieFinanzas.tot.gastos; },
                 get gastosPeriodoBs() { return this.serieFinanzas.tot.gastosBs; },
-                get interesesPeriodo() { return this.serieFinanzas.tot.intereses; },
+                get interesesPeriodo() { return 0; },
                 get gananciaNetaPeriodo() { return this.serieFinanzas.tot.ganancia; },
                 get gananciaNetaPeriodoBs() { const t = this.serieFinanzas.tot; return this.r2(t.gananciaVentasBs - t.gastosBs); },
                 get hayMovimientos() { const t = this.serieFinanzas.tot; return t.ventas > 0 || t.compras > 0 || t.gastos > 0; },
@@ -5291,6 +5306,7 @@ html, body { margin: 0; padding: 0; background: #fff; height: auto; }
                     this.$watch('sidebarOpen', (v) => { if (!v) { this.ajustesAbierto = false; this.descargaAbierta = false; } });
                     this.cargarGuardado();
                     Object.keys(LISTAS).forEach(t => this.resetForm(t));
+                    this.preciosForm.fecha = this.hoy();
                     this.carteraForm.cxc.fecha = this.hoy();
                     this.carteraForm.cxp.fecha = this.hoy();
                     this.restaurarTasas();
